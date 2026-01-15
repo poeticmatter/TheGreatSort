@@ -57,7 +57,10 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
 
   return (
     <div 
-      onClick={() => onClick(item)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(item);
+      }}
       className={`
         relative flex flex-col items-center justify-center 
         w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 

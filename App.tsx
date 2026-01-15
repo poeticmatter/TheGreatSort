@@ -33,6 +33,7 @@ export default function TheGreatSort() {
   
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [selection, setSelection] = useState<number | null>(null); 
+  const [shakeTools, setShakeTools] = useState(0);
 
   // --- Refs ---
   const inspectionIndex = useRef(0);
@@ -86,6 +87,20 @@ export default function TheGreatSort() {
     if (phase !== GamePhase.PLANNING) return;
     if (!toolsAvailable[toolId as keyof ToolsAvailable]) return;
 
+    // Check if we have a pending card selection (Reverse Flow)
+    if (selection !== null) {
+      // If it's a swap, we just enter swap mode with the current selection
+      if (toolId === 'swap') {
+        setSelectedTool('swap');
+        // Selection remains kept
+      } else {
+        // Immediate execution for single-target tools
+        executeMove(toolId, selection);
+      }
+      return;
+    }
+
+    // Normal Flow (Tool first)
     if (selectedTool === toolId) {
       setSelectedTool(null);
       setSelection(null);
@@ -97,41 +112,67 @@ export default function TheGreatSort() {
 
   const handleCardClick = (item: CardItem) => {
     if (phase !== GamePhase.PLANNING) return;
-    if (!selectedTool) return;
 
     const index = list.findIndex(i => i.id === item.id);
+
+    // Flow 1: Tool is already selected
+    if (selectedTool) {
+      executeMove(selectedTool, index);
+      return;
+    }
+
+    // Flow 2: No tool selected (Reverse Flow)
+    if (selection === index) {
+      // Clicked same card -> flash tools
+      setShakeTools(prev => prev + 1);
+    } else {
+      // New selection
+      setSelection(index);
+      if (level === 1) {
+        // Help user by flashing tools on first level
+        setShakeTools(prev => prev + 1);
+      }
+    }
+  };
+
+  const handleBackgroundClick = () => {
+    if (phase === GamePhase.PLANNING) {
+      setSelection(null);
+      setSelectedTool(null);
+    }
+  };
+
+  const executeMove = (toolId: string, targetIndex: number) => {
     const newList = [...list];
 
-    if (selectedTool === 'purge') {
-      newList.splice(index, 1);
+    if (toolId === 'purge') {
+      newList.splice(targetIndex, 1);
       commitMove(newList, 'purge');
     } 
-    else if (selectedTool === 'demote') {
-      // Demote moves to START
-      const [moved] = newList.splice(index, 1);
+    else if (toolId === 'demote') {
+      const [moved] = newList.splice(targetIndex, 1);
       newList.unshift(moved);
       commitMove(newList, 'demote');
     }
-    else if (selectedTool === 'promote') {
-      // Promote moves to END
-      const [moved] = newList.splice(index, 1);
+    else if (toolId === 'promote') {
+      const [moved] = newList.splice(targetIndex, 1);
       newList.push(moved);
       commitMove(newList, 'promote');
     }
-    else if (selectedTool === 'swap') {
+    else if (toolId === 'swap') {
       if (selection === null) {
-        setSelection(index);
+        setSelection(targetIndex);
       } else {
-        if (Math.abs(selection - index) === 1) {
+        if (Math.abs(selection - targetIndex) === 1) {
           // Valid neighbor swap
-          [newList[selection], newList[index]] = [newList[index], newList[selection]];
+          [newList[selection], newList[targetIndex]] = [newList[targetIndex], newList[selection]];
           commitMove(newList, 'swap');
-        } else if (selection === index) {
-          // Deselect
+        } else if (selection === targetIndex) {
+          // Deselect if clicking same
           setSelection(null);
         } else {
           // Switch selection
-          setSelection(index);
+          setSelection(targetIndex);
         }
       }
     }
@@ -170,16 +211,15 @@ export default function TheGreatSort() {
     ));
 
     // 2. Wait, then evaluate
+    // 2. Wait, then evaluate
     timeoutRef.current = setTimeout(() => {
-      setList(prevList => {
-        const newList = [...prevList];
-        const currentItem = newList[idx];
+        const currentItem = list[idx];
         const currentVal = currentItem.val;
         
         let survived = false;
         let pointsToAdd = 0;
 
-        // Evaluation Logic
+        // Evaluation Logic (Performed ONCE outside updater)
         if (idx === 0) {
           // First item always survives
           survived = true;
@@ -213,20 +253,23 @@ export default function TheGreatSort() {
         // Apply Status & Score
         if (survived) {
           pointsToAdd = currentVal;
-
-          newList[idx] = { 
-            ...currentItem, 
-            status: 'safe', 
-            linkScore: pointsToAdd
-          };
-          
           setLevelScore(prev => prev + pointsToAdd);
-        } else {
-          newList[idx] = { ...currentItem, status: 'eliminated' };
         }
 
-        return newList;
-      });
+        // Update List State
+        setList(prevList => {
+          const newList = [...prevList];
+          if (survived) {
+            newList[idx] = { 
+              ...currentItem, 
+              status: 'safe', 
+              linkScore: pointsToAdd
+            };
+          } else {
+            newList[idx] = { ...currentItem, status: 'eliminated' };
+          }
+          return newList;
+        });
 
       // 3. Move to next
       inspectionIndex.current++;
@@ -296,7 +339,10 @@ export default function TheGreatSort() {
       </header>
 
       {/* --- MAIN AREA --- */}
-      <main className="flex-1 flex flex-col items-center p-4 relative overflow-hidden">
+      <main
+        className="flex-1 flex flex-col items-center p-4 relative overflow-hidden"
+        onClick={handleBackgroundClick}
+      >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
@@ -420,7 +466,10 @@ export default function TheGreatSort() {
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           
           {/* Toolbelt */}
-          <div className="flex gap-3 sm:gap-5">
+          <div
+            key={shakeTools}
+            className={`flex gap-3 sm:gap-5 ${shakeTools > 0 ? 'shake-animation' : ''}`}
+          >
             {TOOLS_DISPLAY_ORDER.map(toolKey => {
               const tool = TOOLS[toolKey.toUpperCase()];
               const isUsed = !toolsAvailable[tool.id as keyof ToolsAvailable];
@@ -430,7 +479,10 @@ export default function TheGreatSort() {
               return (
                 <button
                   key={tool.id}
-                  onClick={() => handleToolClick(tool.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToolClick(tool.id);
+                  }}
                   disabled={isUsed || phase !== GamePhase.PLANNING}
                   title={tool.desc}
                   className={`
