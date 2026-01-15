@@ -211,16 +211,15 @@ export default function TheGreatSort() {
     ));
 
     // 2. Wait, then evaluate
+    // 2. Wait, then evaluate
     timeoutRef.current = setTimeout(() => {
-      setList(prevList => {
-        const newList = [...prevList];
-        const currentItem = newList[idx];
+        const currentItem = list[idx];
         const currentVal = currentItem.val;
         
         let survived = false;
         let pointsToAdd = 0;
 
-        // Evaluation Logic
+        // Evaluation Logic (Performed ONCE outside updater)
         if (idx === 0) {
           // First item always survives
           survived = true;
@@ -254,20 +253,23 @@ export default function TheGreatSort() {
         // Apply Status & Score
         if (survived) {
           pointsToAdd = currentVal;
-
-          newList[idx] = { 
-            ...currentItem, 
-            status: 'safe', 
-            linkScore: pointsToAdd
-          };
-          
           setLevelScore(prev => prev + pointsToAdd);
-        } else {
-          newList[idx] = { ...currentItem, status: 'eliminated' };
         }
 
-        return newList;
-      });
+        // Update List State
+        setList(prevList => {
+          const newList = [...prevList];
+          if (survived) {
+            newList[idx] = { 
+              ...currentItem, 
+              status: 'safe', 
+              linkScore: pointsToAdd
+            };
+          } else {
+            newList[idx] = { ...currentItem, status: 'eliminated' };
+          }
+          return newList;
+        });
 
       // 3. Move to next
       inspectionIndex.current++;
