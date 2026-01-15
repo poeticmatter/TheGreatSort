@@ -423,14 +423,6 @@ export default function TheGreatSort() {
                   </div>
                </div>
 
-               <button 
-                onClick={nextLevel}
-                className="mt-8 group relative bg-amber-700 hover:bg-amber-600 text-stone-950 px-10 py-3 rounded-sm font-bold shadow-[0_4px_0_rgb(69,26,3)] active:shadow-none active:translate-y-1 transition-all font-[Cinzel] uppercase tracking-widest text-lg border-2 border-amber-900"
-               >
-                 <span className="flex items-center gap-3">
-                   Next Quota <Play size={18} fill="currentColor" />
-                 </span>
-               </button>
             </div>
           )}
         </div>
@@ -524,6 +516,17 @@ export default function TheGreatSort() {
                >
                  <Star size={20} fill="#f59e0b" className="text-amber-500" />
                  STALIN, SORT!
+               </button>
+             )}
+
+             {phase === GamePhase.RESULTS && (
+               <button
+                onClick={nextLevel}
+                className="group relative bg-amber-700 hover:bg-amber-600 text-stone-950 px-10 py-3 rounded-sm font-bold shadow-[0_4px_0_rgb(69,26,3)] active:shadow-none active:translate-y-1 transition-all font-[Cinzel] uppercase tracking-widest text-lg border-2 border-amber-900"
+               >
+                 <span className="flex items-center gap-3">
+                   Next Quota <Play size={18} fill="currentColor" />
+                 </span>
                </button>
              )}
              
