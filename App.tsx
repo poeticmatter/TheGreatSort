@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeftToLine, ArrowRightToLine, Trash2, ArrowRightLeft, 
-  Play, RotateCcw, TrendingUp, TrendingDown, Star, AlertCircle, Award 
+  Play, RotateCcw, TrendingUp, TrendingDown, Star, AlertCircle, Award,
+  Volume2, VolumeX
 } from 'lucide-react';
 import Card from './components/Card';
 import { CardItem, GamePhase, ToolDefinition, ToolsAvailable } from './types';
 import { generateLevel, findOptimalScore } from './utils/gameLogic';
+import { useMusic } from './src/hooks/useMusic';
 
 const TOOLS: Record<string, ToolDefinition> = {
   DEMOTE: { id: 'demote', name: 'Demote', icon: ArrowLeftToLine, desc: 'Move item to the start (Left)' },
@@ -34,6 +36,9 @@ export default function TheGreatSort() {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [selection, setSelection] = useState<number | null>(null); 
   const [shakeTools, setShakeTools] = useState(0);
+
+  // --- Music ---
+  const { isPlaying, toggleMusic } = useMusic();
 
   // --- Refs ---
   const inspectionIndex = useRef(0);
@@ -542,6 +547,14 @@ export default function TheGreatSort() {
               title="Reset Game"
              >
                <RotateCcw size={20} />
+             </button>
+
+             <button
+              onClick={toggleMusic}
+              className={`p-3 transition-colors border border-transparent hover:border-stone-700 rounded ${isPlaying ? 'text-amber-500' : 'text-stone-600 hover:text-amber-500'}`}
+              title={isPlaying ? "Mute Music" : "Play Music"}
+             >
+               {isPlaying ? <Volume2 size={20} /> : <VolumeX size={20} />}
              </button>
           </div>
           
