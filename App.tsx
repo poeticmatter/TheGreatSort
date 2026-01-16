@@ -516,11 +516,12 @@ export default function TheGreatSort() {
                 phase === GamePhase.INSPECTING
               }
               className={`
-                group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-colors duration-300 font-[Cinzel] tracking-widest text-lg border-2
+                group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2
                 ${phase === GamePhase.RESULTS
                   ? 'bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]'
                   : 'bg-red-800 hover:bg-red-700 text-stone-200 border-red-600 shadow-[0_5px_0_rgb(69,10,10)] disabled:opacity-50 disabled:cursor-not-allowed'
                 }
+                ${phase === GamePhase.INSPECTING ? 'translate-y-1 shadow-none bg-red-900 border-red-800' : ''}
               `}
              >
                {phase === GamePhase.RESULTS ? (
