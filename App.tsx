@@ -423,14 +423,6 @@ export default function TheGreatSort() {
                   </div>
                </div>
 
-               <button 
-                onClick={nextLevel}
-                className="mt-8 group relative bg-amber-700 hover:bg-amber-600 text-stone-950 px-10 py-3 rounded-sm font-bold shadow-[0_4px_0_rgb(69,26,3)] active:shadow-none active:translate-y-1 transition-all font-[Cinzel] uppercase tracking-widest text-lg border-2 border-amber-900"
-               >
-                 <span className="flex items-center gap-3">
-                   Next Quota <Play size={18} fill="currentColor" />
-                 </span>
-               </button>
             </div>
           )}
         </div>
@@ -516,16 +508,33 @@ export default function TheGreatSort() {
 
           {/* Action Buttons */}
           <div className="flex gap-4 items-center">
-             {phase === GamePhase.PLANNING && (
-               <button
-                onClick={startInspection}
-                disabled={list.length === 0}
-                className="bg-red-800 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-stone-200 px-8 py-4 rounded-sm font-bold flex items-center gap-3 shadow-[0_5px_0_rgb(69,10,10)] active:shadow-none active:translate-y-1 transition-all border border-red-600 font-[Cinzel] tracking-widest text-lg"
-               >
-                 <Star size={20} fill="#f59e0b" className="text-amber-500" />
-                 STALIN, SORT!
-               </button>
-             )}
+             {/* Unified Action Button */}
+             <button
+              onClick={phase === GamePhase.RESULTS ? nextLevel : startInspection}
+              disabled={
+                (phase === GamePhase.PLANNING && list.length === 0) ||
+                phase === GamePhase.INSPECTING
+              }
+              className={`
+                group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2
+                ${phase === GamePhase.RESULTS
+                  ? 'bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]'
+                  : 'bg-red-800 hover:bg-red-700 text-stone-200 border-red-600 shadow-[0_5px_0_rgb(69,10,10)] disabled:opacity-50 disabled:cursor-not-allowed'
+                }
+                ${phase === GamePhase.INSPECTING ? 'translate-y-1 shadow-none bg-red-900 border-red-800' : ''}
+              `}
+             >
+               {phase === GamePhase.RESULTS ? (
+                 <span className="flex items-center gap-3">
+                   Next Quota <Play size={18} fill="currentColor" />
+                 </span>
+               ) : (
+                 <>
+                   <Star size={20} fill="#f59e0b" className="text-amber-500" />
+                   STALIN, SORT!
+                 </>
+               )}
+             </button>
              
              <button 
               onClick={resetGame}
