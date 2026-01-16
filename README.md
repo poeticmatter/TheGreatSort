@@ -1,19 +1,25 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# The Great Sort
 
-# Run and deploy your AI Studio app
+A strategic sorting game about order, efficiency, and difficult choices.
 
-This contains everything you need to run your app locally.
+## Solver Tool
 
-View your app in AI Studio: https://ai.studio/apps/drive/10O392leFeSPBkvf72ES2QmaJ2uM5iALI
+This project includes a built-in solver to verify the optimal solutions for random sequences.
 
-## Run Locally
+**How to run the solver:**
 
-**Prerequisites:**  Node.js
+1.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+2.  Navigate to the solver page in your browser:
+    ```
+    http://localhost:3000/TheGreatSort/solver.html
+    ```
+    *(Note: If your port is different, adjust accordingly. The path `/TheGreatSort/` is the configured base path.)*
 
+## Development
 
-1. Install dependencies:
-   `npm install`
-2. Run the app:
-   `npm run dev`
+- `npm install`: Install dependencies
+- `npm run dev`: Start dev server
+- `npm run build`: Build for production
