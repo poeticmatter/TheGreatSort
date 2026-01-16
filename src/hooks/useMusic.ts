@@ -25,13 +25,8 @@ export function useMusic() {
     }
   });
 
-  const initialized = useRef(false);
-
   // Initialize Tone.js entities once
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
     // We can setup the instruments immediately, but we must not start Transport yet.
     // However, AudioContext might be suspended.
 
