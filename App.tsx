@@ -267,8 +267,6 @@ export default function TheGreatSort() {
     setToolsAvailable(prev => ({ ...prev, [toolId]: false }));
     setSelectedTool(null);
     setSelection(null);
-    // Reset optimal score calculation as state changed
-    setOptimalScore(null);
   };
   
   const startInspection = () => {
