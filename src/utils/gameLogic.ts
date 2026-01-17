@@ -1,4 +1,4 @@
-import { CardItem, ToolType } from '../types';
+import { CardItem, ToolType } from '../../types';
 
 export interface Move {
   tool: ToolType;
@@ -141,6 +141,48 @@ export const findOptimalSolution = (startList: CardItem[]): Solution => {
 export const lengthFromLevel = (level: number): number => {
   // Cap length at 14 to prevent UI clutter and Solver blowout
   return Math.min(7 + Math.floor((level - 1) / 2), 14);
+};
+
+// Apply a move to a list and return the new list
+export const applyMove = (list: CardItem[], tool: ToolType, index: number, selection?: number | null): CardItem[] => {
+    const newList = [...list];
+
+    if (tool === 'purge') {
+        newList.splice(index, 1);
+    }
+    else if (tool === 'demote') {
+        const [moved] = newList.splice(index, 1);
+        newList.unshift(moved);
+    }
+    else if (tool === 'promote') {
+        const [moved] = newList.splice(index, 1);
+        newList.push(moved);
+    }
+    else if (tool === 'swap') {
+        // Check selection for swap
+        // Logic for swap might differ slightly between app (interaction) and solver (moves)
+        // In solver, swap is always i and i+1
+        // In app, it depends on selection.
+        // For general "applyMove", let's assume valid neighbor swap if selection is provided?
+        // Actually, the App's executeMove handles the logic of "checking if neighbor".
+        // Here we just want the transformation.
+        // If selection is provided and index is different, swap them.
+        // If selection is not provided, maybe assume index and index+1?
+        // Let's mirror what SolverApp needs: index and index+1.
+
+        // Wait, App has two clicks for swap. Solver has one move definition (index means index & index+1).
+
+        if (selection !== undefined && selection !== null) {
+            // App mode: swap selection and index
+             [newList[selection], newList[index]] = [newList[index], newList[selection]];
+        } else {
+            // Solver/Simple mode: swap index and index+1
+            if (index < newList.length - 1) {
+                [newList[index], newList[index+1]] = [newList[index+1], newList[index]];
+            }
+        }
+    }
+    return newList;
 };
 
 // Utility to generate random levels
