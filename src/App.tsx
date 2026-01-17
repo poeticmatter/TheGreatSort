@@ -18,6 +18,7 @@ export default function TheGreatSort() {
         level={state.level}
         levelScore={state.levelScore}
         totalScore={state.totalScore}
+        totalOptimalScore={state.totalOptimalScore}
         gameMode={state.gameMode}
         phase={state.phase}
         optimalScore={state.optimalScore}

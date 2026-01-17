@@ -109,10 +109,10 @@ const StatusBar: React.FC<StatusBarProps> = ({
                    </span>
                    {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
                  </div>
-                 <span className="text-[10px] text-stone-600">Target: {optimalScore}</span>
+                 <span className="text-amber-500 font-bold text-xl mt-1">Target: {optimalScore}</span>
               </div>
 
-              {/* Buttons for Daily/Practice */}
+              {/* Buttons for Daily */}
               <div className="flex gap-2">
                 {gameMode === 'DAILY' && (
                   <button
@@ -123,18 +123,19 @@ const StatusBar: React.FC<StatusBarProps> = ({
                     <Share2 size={20} />
                   </button>
                 )}
-
-                {gameMode === 'PRACTICE' && getEfficiency() < 100 && (
-                  <button
-                    onClick={onRetryPractice}
-                    className="ml-2 bg-stone-700 hover:bg-stone-600 text-stone-200 p-2 rounded transition-colors"
-                    title="Retry Level (Same Seed)"
-                  >
-                    <Repeat size={20} />
-                  </button>
-                )}
               </div>
            </div>
+
+           {gameMode === 'PRACTICE' && getEfficiency() < 100 && (
+             <div className="mt-4 flex flex-col items-center">
+                <button
+                  onClick={onRetryPractice}
+                  className="bg-stone-700 hover:bg-stone-600 text-stone-200 px-6 py-2 rounded transition-colors font-bold uppercase tracking-wider text-sm flex items-center gap-2"
+                >
+                  <Repeat size={16} /> Retry Level
+                </button>
+             </div>
+           )}
 
            {gameMode === 'DAILY' && (
               <div className="mt-4 text-stone-500 text-xs font-serif italic">

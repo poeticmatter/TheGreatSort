@@ -7,6 +7,7 @@ export function useGame() {
   // --- State ---
   const [level, setLevel] = useState(1);
   const [totalScore, setTotalScore] = useState(0);
+  const [totalOptimalScore, setTotalOptimalScore] = useState(0);
   const [levelScore, setLevelScore] = useState(0);
   const [optimalScore, setOptimalScore] = useState<number | null>(null);
 
@@ -125,6 +126,7 @@ export function useGame() {
   const changeMode = (newMode: GameMode) => {
     setGameMode(newMode);
     setTotalScore(0);
+    setTotalOptimalScore(0);
 
     if (newMode === 'DAILY') {
       const today = getTodayDateString();
@@ -187,6 +189,7 @@ export function useGame() {
     setToolsAvailable(prev => ({ ...prev, [toolId]: false }));
     setSelectedTool(null);
     setSelection(null);
+    localStorage.setItem('hasUsedAction', 'true');
   };
 
   const handleToolClick = (toolId: string) => {
@@ -234,8 +237,9 @@ export function useGame() {
     } else {
       // New selection
       setSelection(index);
-      if (level === 1) {
-        // Help user by flashing tools on first level
+      const hasUsed = localStorage.getItem('hasUsedAction');
+      if (!hasUsed) {
+        // Help user by flashing tools if they haven't used any yet
         setShakeTools(prev => prev + 1);
       }
     }
@@ -501,6 +505,7 @@ export function useGame() {
   useEffect(() => {
     if (phase === GamePhase.RESULTS) {
       setTotalScore(prev => prev + levelScore);
+      setTotalOptimalScore(prev => prev + (optimalScore || 0));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -523,6 +528,7 @@ export function useGame() {
   const resetGame = () => {
     if (gameMode === 'DAILY') return;
     setTotalScore(0);
+    setTotalOptimalScore(0);
     startLevel(1);
   };
 
@@ -542,7 +548,7 @@ export function useGame() {
 
   return {
     state: {
-      level, levelScore, totalScore, optimalScore, list, phase,
+      level, levelScore, totalScore, totalOptimalScore, optimalScore, list, phase,
       detectedMode, toolsAvailable, selectedTool, selection, shakeTools,
       gameMode, dailyCompleted
     },
