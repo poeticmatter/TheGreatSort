@@ -11,6 +11,24 @@ export interface Solution {
   moves: Move[];
 }
 
+// Simple PRNG (Mulberry32)
+function mulberry32(a: number) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+export const stringToSeed = (str: string): number => {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  }
+  return h >>> 0;
+};
+
 // Pure function to calculate score for a given number array
 export const calculateBatchScore = (numbers: number[]): number => {
   if (!numbers || numbers.length === 0) return 0;
@@ -126,24 +144,34 @@ export const lengthFromLevel = (level: number): number => {
 };
 
 // Utility to generate random levels
-export const generateLevel = (length: number): CardItem[] => {
+export const generateLevel = (length: number, seed?: number): CardItem[] => {
+  // Setup Random Generator
+  const random = seed !== undefined ? mulberry32(seed) : Math.random;
+
   // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
   
   // Fisher-Yates Shuffle the pool
   for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
   // Select the first 'length' numbers
   const numbers = pool.slice(0, length);
 
-  return numbers.map(val => ({
-    id: Math.random().toString(36).substring(2, 9),
-    val: val,
-    status: 'pending',
-    linkScore: null 
-  }));
+  return numbers.map(val => {
+    // We also want deterministic IDs if seeded, to avoid hydration mismatches or randomness
+    const idSuffix = seed !== undefined
+      ? Math.floor(random() * 1000000).toString(36)
+      : Math.random().toString(36).substring(2, 9);
+
+    return {
+      id: idSuffix,
+      val: val,
+      status: 'pending',
+      linkScore: null
+    };
+  });
 };

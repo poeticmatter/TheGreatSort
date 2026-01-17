@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CardItem, ToolType } from '../types';
-import { generateLevel, findOptimalSolution, Solution, Move } from '../utils/gameLogic';
+import { generateLevel, findOptimalSolution, Solution, Move, stringToSeed } from '../utils/gameLogic';
 import Card from '../components/Card';
-import { ArrowRight, ArrowRightToLine, ArrowLeftToLine, Trash2, ArrowRightLeft } from 'lucide-react';
+import { ArrowRight, ArrowRightToLine, ArrowLeftToLine, Trash2, ArrowRightLeft, Calendar } from 'lucide-react';
 
 export default function SolverApp() {
   const [seqLength, setSeqLength] = useState(5);
@@ -10,8 +10,27 @@ export default function SolverApp() {
   const [solution, setSolution] = useState<Solution | null>(null);
   const [isSolving, setIsSolving] = useState(false);
 
+  // Helper for Daily
+  const getTodayDateString = () => {
+    const d = new Date();
+    // Use UTC for consistent Daily Challenge globally
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleGenerate = () => {
     const newSeq = generateLevel(seqLength);
+    setSequence(newSeq);
+    setSolution(null);
+  };
+
+  const handleLoadDaily = () => {
+    const today = getTodayDateString();
+    const seed = stringToSeed(today);
+    const newSeq = generateLevel(9, seed); // Daily is fixed at 9
+    setSeqLength(9);
     setSequence(newSeq);
     setSolution(null);
   };
@@ -93,6 +112,14 @@ export default function SolverApp() {
                 className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded text-white font-semibold transition"
             >
                 Generate Sequence
+            </button>
+            <button
+                onClick={handleLoadDaily}
+                className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded text-amber-500 font-semibold transition flex items-center gap-2 border border-amber-900/30"
+                title="Load Today's Daily Challenge"
+            >
+                <Calendar size={18} />
+                Load Daily
             </button>
             <button
                 onClick={handleSolve}

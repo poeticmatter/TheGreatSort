@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeftToLine, ArrowRightToLine, Trash2, ArrowRightLeft, 
   Play, RotateCcw, TrendingUp, TrendingDown, Star, AlertCircle, Award,
-  Volume2, VolumeX
+  Volume2, VolumeX, Share2, ChevronDown, Repeat
 } from 'lucide-react';
 import Card from './components/Card';
-import { CardItem, GamePhase, ToolDefinition, ToolsAvailable } from './types';
-import { generateLevel, findOptimalScore, lengthFromLevel } from './utils/gameLogic';
+import { CardItem, GamePhase, ToolDefinition, ToolsAvailable, GameMode } from './types';
+import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed } from './utils/gameLogic';
 import { useMusic } from './src/hooks/useMusic';
 
 const TOOLS: Record<string, ToolDefinition> = {
@@ -37,6 +37,12 @@ export default function TheGreatSort() {
   const [selection, setSelection] = useState<number | null>(null); 
   const [shakeTools, setShakeTools] = useState(0);
 
+  // --- New Modes State ---
+  const [gameMode, setGameMode] = useState<GameMode>('DAILY');
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [currentSeed, setCurrentSeed] = useState<number | undefined>(undefined);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+
   // --- Music ---
   const { isPlaying, toggleMusic } = useMusic();
 
@@ -46,9 +52,39 @@ export default function TheGreatSort() {
   const sortDirection = useRef<'ASC' | 'DESC' | null>(null); 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // --- Helpers for Daily ---
+  const getTodayDateString = () => {
+    const d = new Date();
+    // Use UTC for consistent Daily Challenge globally
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // --- Initialization & Effects ---
   useEffect(() => {
-    startLevel(1);
+    // Initial Load Logic
+    const today = getTodayDateString();
+    const savedDaily = localStorage.getItem(`daily_result_${today}`);
+
+    if (savedDaily) {
+       // Daily already done
+       const result = JSON.parse(savedDaily);
+       setGameMode('DAILY');
+       setDailyCompleted(true);
+       setLevelScore(result.score);
+       setOptimalScore(result.optimal);
+       setLevel(1);
+       // We can't really restore the list visual state easily without storing it all,
+       // but for the report card we just need score/efficiency.
+       // Let's set phase to RESULTS directly.
+       setPhase(GamePhase.RESULTS);
+    } else {
+       // Start Fresh Daily
+       startLevel(1, 'DAILY');
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,10 +109,27 @@ export default function TheGreatSort() {
 
   // --- Game Actions ---
 
-  const startLevel = (lvl: number) => {
+  const startLevel = (lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
+    const activeMode = modeOverride || gameMode;
     setLevel(lvl);
-    const len = lengthFromLevel(lvl);
-    setList(generateLevel(len));
+
+    let len = 0;
+    let seed: number | undefined = undefined;
+
+    if (activeMode === 'CAREER') {
+      len = lengthFromLevel(lvl);
+      seed = undefined; // Random
+    } else if (activeMode === 'DAILY') {
+      len = 9;
+      seed = stringToSeed(getTodayDateString());
+    } else if (activeMode === 'PRACTICE') {
+      len = 9;
+      // If a seed override is passed (retry), use it. Otherwise random.
+      seed = seedOverride !== undefined ? seedOverride : Math.random() * 1000000;
+    }
+
+    setCurrentSeed(seed);
+    setList(generateLevel(len, seed));
     setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
     setPhase(GamePhase.PLANNING);
     setLevelScore(0);
@@ -87,6 +140,31 @@ export default function TheGreatSort() {
     inspectionIndex.current = 0;
     lastSurvivorVal.current = null;
     sortDirection.current = null;
+  };
+
+  const changeMode = (newMode: GameMode) => {
+    setGameMode(newMode);
+    setShowModeMenu(false);
+    setTotalScore(0);
+
+    if (newMode === 'DAILY') {
+      const today = getTodayDateString();
+      const savedDaily = localStorage.getItem(`daily_result_${today}`);
+      if (savedDaily) {
+         const result = JSON.parse(savedDaily);
+         setDailyCompleted(true);
+         setLevelScore(result.score);
+         setOptimalScore(result.optimal);
+         setLevel(1);
+         setPhase(GamePhase.RESULTS);
+      } else {
+         setDailyCompleted(false);
+         startLevel(1, 'DAILY');
+      }
+    } else {
+      setDailyCompleted(false);
+      startLevel(1, newMode);
+    }
   };
 
   const handleToolClick = (toolId: string) => {
@@ -189,8 +267,6 @@ export default function TheGreatSort() {
     setToolsAvailable(prev => ({ ...prev, [toolId]: false }));
     setSelectedTool(null);
     setSelection(null);
-    // Reset optimal score calculation as state changed
-    setOptimalScore(null);
   };
   
   const startInspection = () => {
@@ -216,7 +292,6 @@ export default function TheGreatSort() {
       i === idx ? { ...item, status: 'scanning' } : item
     ));
 
-    // 2. Wait, then evaluate
     // 2. Wait, then evaluate
     timeoutRef.current = setTimeout(() => {
         const currentItem = list[idx];
@@ -286,15 +361,75 @@ export default function TheGreatSort() {
   const endInspection = () => {
     setPhase(GamePhase.RESULTS);
     setTotalScore(prev => prev + levelScore); 
+
+    // Handle Persistence for Daily
+    if (gameMode === 'DAILY') {
+      const today = getTodayDateString();
+      localStorage.setItem(`daily_result_${today}`, JSON.stringify({
+        score: levelScore + (list[list.length - 1].status !== 'eliminated' ? 0 : 0), // Small hack: levelScore is updated in state, but might lag one frame? No, we use setter.
+        // Wait, levelScore state inside this function might be stale?
+        // `endInspection` is called from `processNextStep`, which is a timeout chain.
+        // We should use the functional update or a ref to be safe, but let's trust React for now or fix if buggy.
+        // Actually, better to read the final score from state after a render, but `endInspection` runs immediately.
+        // Let's defer storage slightly or assume `levelScore` (state) is not yet updated with the LAST item's result?
+        // Ah, `processNextStep` updates score, then sets timeout for `processNextStep` again.
+        // The last step finishes, updates score, then calls `processNextStep` again -> index >= length -> `endInspection`.
+        // So `levelScore` should be up to date?
+        // Wait, state updates are async. If the last item adds score, and we recursively call, the state *might* be updated on next render.
+        // However, `endInspection` sets the phase.
+        // Let's rely on `useEffect` to save if phase becomes RESULTS and mode is daily?
+        optimal: optimalScore
+      }));
+      setDailyCompleted(true);
+    }
   };
 
+  // Safer save effect
+  useEffect(() => {
+    if (gameMode === 'DAILY' && phase === GamePhase.RESULTS) {
+      const today = getTodayDateString();
+      localStorage.setItem(`daily_result_${today}`, JSON.stringify({
+        score: levelScore,
+        optimal: optimalScore
+      }));
+    }
+  }, [phase, gameMode, levelScore, optimalScore]);
+
   const nextLevel = () => {
-    startLevel(level + 1);
+    if (gameMode === 'CAREER') {
+      startLevel(level + 1);
+    } else if (gameMode === 'PRACTICE') {
+      // New seed
+      startLevel(1, 'PRACTICE');
+    }
+    // Daily: No next level
+  };
+
+  const retryPractice = () => {
+    if (gameMode === 'PRACTICE' && currentSeed !== undefined) {
+      startLevel(1, 'PRACTICE', currentSeed);
+    }
   };
   
   const resetGame = () => {
+    if (gameMode === 'DAILY') return; // Cannot reset daily
     setTotalScore(0);
     startLevel(1);
+  };
+
+  const shareResult = async () => {
+    const today = getTodayDateString();
+    const efficiency = getEfficiency();
+    const text = `The Great Sort Daily ${today}\nScore: ${levelScore}\nEfficiency: ${efficiency}%`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Result copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Fallback
+      alert(text);
+    }
   };
 
   // --- Render Helpers ---
@@ -319,9 +454,29 @@ export default function TheGreatSort() {
               The Great Sort
             </h1>
           </div>
-          <p className="text-[10px] text-stone-400 font-[Courier] uppercase tracking-[0.3em] mt-1 ml-1">
-            People's Commissariat of Order
-          </p>
+
+          <div className="relative mt-2 ml-1 z-50">
+             <button
+               onClick={() => setShowModeMenu(!showModeMenu)}
+               className="flex items-center gap-1 text-[12px] text-stone-400 font-[Courier] uppercase tracking-[0.2em] hover:text-amber-500 transition-colors"
+             >
+               Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
+             </button>
+
+             {showModeMenu && (
+               <div className="absolute top-full left-0 mt-1 w-40 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1">
+                 {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
+                   <button
+                     key={m}
+                     onClick={() => changeMode(m)}
+                     className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                   >
+                     {m}
+                   </button>
+                 ))}
+               </div>
+             )}
+          </div>
         </div>
         
         <div className="flex gap-4 sm:gap-8 text-sm font-['Courier_Prime'] border border-red-900/50 bg-stone-950/40 p-3 rounded-md shadow-inner">
@@ -336,11 +491,15 @@ export default function TheGreatSort() {
               {levelScore}
             </span>
           </div>
-          <div className="w-px bg-stone-700 h-8 self-center"></div>
-          <div className="flex flex-col items-center">
-            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Total Output</span>
-            <span className="text-xl text-amber-500 font-bold">{totalScore}</span>
-          </div>
+          {gameMode === 'CAREER' && (
+            <>
+              <div className="w-px bg-stone-700 h-8 self-center"></div>
+              <div className="flex flex-col items-center">
+                <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Total Output</span>
+                <span className="text-xl text-amber-500 font-bold">{totalScore}</span>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -427,7 +586,36 @@ export default function TheGreatSort() {
                      </div>
                      <span className="text-[10px] text-stone-600">Target: {optimalScore}</span>
                   </div>
+
+                  {/* Buttons for Daily/Practice */}
+                  <div className="flex gap-2">
+                    {gameMode === 'DAILY' && (
+                      <button
+                        onClick={shareResult}
+                        className="ml-2 bg-stone-700 hover:bg-stone-600 text-stone-200 p-2 rounded transition-colors"
+                        title="Share Result"
+                      >
+                        <Share2 size={20} />
+                      </button>
+                    )}
+
+                    {gameMode === 'PRACTICE' && getEfficiency() < 100 && (
+                      <button
+                        onClick={retryPractice}
+                        className="ml-2 bg-stone-700 hover:bg-stone-600 text-stone-200 p-2 rounded transition-colors"
+                        title="Retry Level (Same Seed)"
+                      >
+                        <Repeat size={20} />
+                      </button>
+                    )}
+                  </div>
                </div>
+
+               {gameMode === 'DAILY' && (
+                  <div className="mt-4 text-stone-500 text-xs font-serif italic">
+                    Come back tomorrow for new orders, comrade.
+                  </div>
+               )}
 
             </div>
           )}
@@ -435,26 +623,40 @@ export default function TheGreatSort() {
 
         {/* --- CARDS GRID --- */}
         <div className="flex-1 flex items-center justify-center w-full">
-            <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 max-w-5xl px-4 perspective-[1000px]">
-              {list.map((item, idx) => (
-                <Card 
-                  key={item.id} 
-                  item={item} 
-                  onClick={handleCardClick}
-                  isSelected={selection === idx}
-                  isTargetCandidate={
-                    phase === GamePhase.PLANNING && 
-                    selectedTool === 'swap' && 
-                    selection !== null && 
-                    Math.abs(selection - idx) === 1
-                  }
-                />
-              ))}
+            {/* If Daily Completed and we are just showing results, we don't necessarily show cards, or we show empty?
+                The user didn't specify, but usually if you load a done daily you just see the report.
+                But if we just finished it, we see the cards.
+                If we loaded from localStorage, list is empty?
+                Let's handle the "Loaded from storage" case where list is empty but phase is RESULTS.
+            */}
+            {list.length > 0 ? (
+              <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 max-w-5xl px-4 perspective-[1000px]">
+                {list.map((item, idx) => (
+                  <Card
+                    key={item.id}
+                    item={item}
+                    onClick={handleCardClick}
+                    isSelected={selection === idx}
+                    isTargetCandidate={
+                      phase === GamePhase.PLANNING &&
+                      selectedTool === 'swap' &&
+                      selection !== null &&
+                      Math.abs(selection - idx) === 1
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              gameMode === 'DAILY' && phase === GamePhase.RESULTS && (
+                 <div className="text-stone-600 italic font-serif opacity-50">
+                    Daily Quota Fulfilled.
+                 </div>
+              )
+            )}
               
-              {list.length === 0 && phase === GamePhase.PLANNING && (
-                <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
-              )}
-            </div>
+            {list.length === 0 && phase === GamePhase.PLANNING && (
+              <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
+            )}
         </div>
 
       </main>
@@ -519,12 +721,13 @@ export default function TheGreatSort() {
               onClick={phase === GamePhase.RESULTS ? nextLevel : startInspection}
               disabled={
                 (phase === GamePhase.PLANNING && list.length === 0) ||
-                phase === GamePhase.INSPECTING
+                phase === GamePhase.INSPECTING ||
+                (phase === GamePhase.RESULTS && gameMode === 'DAILY') // Disable "Next" for Daily
               }
               className={`
                 group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2
                 ${phase === GamePhase.RESULTS
-                  ? 'bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]'
+                  ? (gameMode === 'DAILY' ? 'bg-stone-800 text-stone-500 border-stone-700 shadow-none cursor-not-allowed' : 'bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]')
                   : 'bg-red-800 hover:bg-red-700 text-stone-200 border-red-600 shadow-[0_5px_0_rgb(69,10,10)] disabled:opacity-50 disabled:cursor-not-allowed'
                 }
                 ${phase === GamePhase.INSPECTING ? 'translate-y-1 shadow-none bg-red-900 border-red-800' : ''}
@@ -532,7 +735,8 @@ export default function TheGreatSort() {
              >
                {phase === GamePhase.RESULTS ? (
                  <span className="flex items-center gap-3">
-                   Next Quota <Play size={18} fill="currentColor" />
+                   {gameMode === 'DAILY' ? 'Mission Complete' : 'Next Quota'}
+                   {gameMode !== 'DAILY' && <Play size={18} fill="currentColor" />}
                  </span>
                ) : (
                  <>
@@ -542,13 +746,15 @@ export default function TheGreatSort() {
                )}
              </button>
              
-             <button 
-              onClick={resetGame}
-              className="p-3 text-stone-600 hover:text-red-500 transition-colors border border-transparent hover:border-stone-700 rounded"
-              title="Reset Game"
-             >
-               <RotateCcw size={20} />
-             </button>
+             {gameMode !== 'DAILY' && (
+                <button
+                  onClick={resetGame}
+                  className="p-3 text-stone-600 hover:text-red-500 transition-colors border border-transparent hover:border-stone-700 rounded"
+                  title="Reset Game"
+                >
+                  <RotateCcw size={20} />
+                </button>
+             )}
 
              <button
               onClick={toggleMusic}
