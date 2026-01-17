@@ -5,7 +5,7 @@ import Card from '../components/Card';
 import { ArrowRight, ArrowRightToLine, ArrowLeftToLine, Trash2, ArrowRightLeft, Calendar } from 'lucide-react';
 
 export default function SolverApp() {
-  const [seqLength, setSeqLength] = useState(5);
+  const [seqLength, setSeqLength] = useState(9);
   const [sequence, setSequence] = useState<CardItem[]>([]);
   const [solution, setSolution] = useState<Solution | null>(null);
   const [isSolving, setIsSolving] = useState(false);
