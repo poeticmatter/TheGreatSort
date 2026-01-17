@@ -6,6 +6,7 @@ interface HeaderProps {
   level: number;
   levelScore: number;
   totalScore: number;
+  totalOptimalScore: number;
   gameMode: GameMode;
   phase: GamePhase;
   optimalScore: number | null;
@@ -16,11 +17,15 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({
-  level, levelScore, totalScore, gameMode,
+  level, levelScore, totalScore, totalOptimalScore, gameMode,
   phase, optimalScore, detectedMode,
   onChangeMode, onShareResult, onRetryPractice
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
+
+  const totalEfficiency = totalOptimalScore > 0
+    ? Math.round((totalScore / totalOptimalScore) * 100)
+    : 0;
 
   return (
     <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 z-10 sticky top-0">
@@ -30,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({
             <Star className="text-amber-500 fill-amber-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" size={32} />
             <div className="absolute inset-0 blur-sm bg-amber-500/30 rounded-full"></div>
           </div>
-          <h1 className="text-3xl font-[Cinzel] font-bold text-amber-500 tracking-widest uppercase drop-shadow-md">
+          <h1 className="text-xl sm:text-3xl font-[Cinzel] font-bold text-amber-500 tracking-widest uppercase drop-shadow-md whitespace-nowrap">
             The Great Sort
           </h1>
         </div>
@@ -62,28 +67,21 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex gap-4 sm:gap-8 text-sm font-['Courier_Prime'] border border-red-900/50 bg-stone-950/40 p-3 rounded-md shadow-inner">
-        <div className="flex flex-col items-center">
-          <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Quota Level</span>
-          <span className="text-xl text-stone-200 font-bold">{level}</span>
+      {gameMode === 'CAREER' && (
+        <div className="flex gap-4 sm:gap-8 text-sm font-['Courier_Prime'] border border-red-900/50 bg-stone-950/40 p-3 rounded-md shadow-inner">
+          <div className="flex flex-col items-center">
+            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Day</span>
+            <span className="text-xl text-stone-200 font-bold">{level}</span>
+          </div>
+          <div className="w-px bg-stone-700 h-8 self-center"></div>
+          <div className="flex flex-col items-center">
+            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Overall Eff.</span>
+            <span className={`text-xl font-bold ${totalEfficiency >= 100 ? 'text-amber-500' : 'text-stone-300'}`}>
+              {totalEfficiency}%
+            </span>
+          </div>
         </div>
-        <div className="w-px bg-stone-700 h-8 self-center"></div>
-        <div className="flex flex-col items-center">
-          <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Current Yield</span>
-          <span className={`text-xl font-bold transition-colors duration-300 ${levelScore > 0 ? 'text-amber-500' : 'text-stone-500'}`}>
-            {levelScore}
-          </span>
-        </div>
-        {gameMode === 'CAREER' && (
-          <>
-            <div className="w-px bg-stone-700 h-8 self-center"></div>
-            <div className="flex flex-col items-center">
-              <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Total Output</span>
-              <span className="text-xl text-amber-500 font-bold">{totalScore}</span>
-            </div>
-          </>
-        )}
-      </div>
+      )}
     </header>
   );
 };

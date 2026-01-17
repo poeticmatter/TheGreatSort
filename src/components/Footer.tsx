@@ -62,7 +62,7 @@ const Footer: React.FC<FooterProps> = ({
                     ? 'border-2 border-amber-500 bg-stone-800 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-105'
                     : isUsed
                       ? 'border border-stone-800 bg-stone-950 text-stone-700 cursor-not-allowed opacity-60'
-                      : 'border border-stone-600 bg-stone-800 text-stone-400 hover:border-amber-700 hover:text-amber-100 hover:bg-stone-700 hover:-translate-y-1'
+                      : 'border border-transparent bg-stone-800 text-amber-500 hover:border-amber-700 hover:text-amber-100 hover:bg-stone-700 hover:-translate-y-1'
                   }
                 `}
               >
