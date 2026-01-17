@@ -6,9 +6,10 @@ interface CardProps {
   onClick: (item: CardItem) => void;
   isSelected: boolean;
   isTargetCandidate: boolean;
+  style?: React.CSSProperties;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -57,6 +58,7 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
 
   return (
     <div 
+      style={style}
       onClick={(e) => {
         e.stopPropagation();
         onClick(item);

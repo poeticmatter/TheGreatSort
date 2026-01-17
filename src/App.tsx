@@ -7,6 +7,37 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
 
+const getSnakePosition = (index: number): React.CSSProperties => {
+  const cycle = Math.floor(index / 12);
+  const localIndex = index % 12;
+  const baseRow = cycle * 4;
+  let col = 0;
+  let row = 0;
+
+  if (localIndex < 5) {
+    // 0, 1, 2, 3, 4 -> Row 1, Col 1..5
+    row = 1;
+    col = localIndex + 1;
+  } else if (localIndex === 5) {
+    // 5 -> Row 2, Col 5
+    row = 2;
+    col = 5;
+  } else if (localIndex < 11) {
+    // 6, 7, 8, 9, 10 -> Row 3, Col 5..1
+    row = 3;
+    col = 11 - localIndex;
+  } else {
+    // 11 -> Row 4, Col 1
+    row = 4;
+    col = 1;
+  }
+
+  return {
+    gridColumn: col,
+    gridRow: baseRow + row,
+  };
+};
+
 export default function TheGreatSort() {
   const { state, actions } = useGame();
   const { isPlaying, toggleMusic } = useMusic();
@@ -51,11 +82,12 @@ export default function TheGreatSort() {
         {/* --- CARDS GRID --- */}
         <div className="flex-1 flex items-center justify-center w-full">
             {state.list.length > 0 ? (
-              <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 max-w-5xl px-4 perspective-[1000px]">
+              <div className="grid grid-cols-5 gap-3 justify-items-center sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-4 max-w-5xl px-4 perspective-[1000px]">
                 {state.list.map((item, idx) => (
                   <Card
                     key={item.id}
                     item={item}
+                    style={getSnakePosition(idx)}
                     onClick={actions.handleCardClick}
                     isSelected={state.selection === idx}
                     isTargetCandidate={
