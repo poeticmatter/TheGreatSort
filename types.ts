@@ -30,3 +30,5 @@ export interface ToolsAvailable {
   promote: boolean;
   demote: boolean;
 }
+
+export type GameMode = 'CAREER' | 'DAILY' | 'PRACTICE';
