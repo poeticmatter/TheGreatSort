@@ -80,11 +80,19 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
            className={`
              absolute pointer-events-none text-amber-500/80 text-xs sm:text-sm font-black
              transition-all duration-300 z-0
-             ${mobileDirection === 'right' ? '-right-4 sm:-right-5 top-1/2 -translate-y-1/2' : ''}
-             ${mobileDirection === 'left' ? '-left-4 sm:-left-5 top-1/2 -translate-y-1/2 rotate-180 sm:rotate-0 sm:left-auto sm:-right-5' : ''}
-             ${mobileDirection === 'down' ? '-bottom-5 left-1/2 -translate-x-1/2 rotate-90 sm:rotate-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:left-auto sm:-right-5' : ''}
-             /* Desktop Override: Always Right, No Rotation (unless standard 'right' was used, but we need to reset any potential overrides) */
-             sm:left-auto sm:top-1/2 sm:translate-x-0 sm:-translate-y-1/2
+
+             /* Mobile: Right (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'right' ? 'left-[calc(100%+6px)] top-1/2 -translate-y-1/2 -translate-x-1/2' : ''}
+
+             /* Mobile: Left (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'left' ? 'right-[calc(100%+6px)] top-1/2 -translate-y-1/2 translate-x-1/2 rotate-180' : ''}
+
+             /* Mobile: Down (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'down' ? 'top-[calc(100%+6px)] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90' : ''}
+
+             /* Desktop Override: Always Right (Gap 16px -> Center at 8px) */
+             sm:left-[calc(100%+8px)] sm:right-auto sm:top-1/2 sm:bottom-auto
+             sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0
            `}
          >
            &gt;
