@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Card from './components/Card';
 import { CardItem, GamePhase, ToolDefinition, ToolsAvailable } from './types';
-import { generateLevel, findOptimalScore } from './utils/gameLogic';
+import { generateLevel, findOptimalScore, lengthFromLevel } from './utils/gameLogic';
 import { useMusic } from './src/hooks/useMusic';
 
 const TOOLS: Record<string, ToolDefinition> = {
@@ -75,7 +75,8 @@ export default function TheGreatSort() {
 
   const startLevel = (lvl: number) => {
     setLevel(lvl);
-    setList(generateLevel(lvl));
+    const len = lengthFromLevel(lvl);
+    setList(generateLevel(len));
     setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
     setPhase(GamePhase.PLANNING);
     setLevelScore(0);

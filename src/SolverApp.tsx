@@ -11,28 +11,7 @@ export default function SolverApp() {
   const [isSolving, setIsSolving] = useState(false);
 
   const handleGenerate = () => {
-    // Generate random sequence manually to respect length
-    // Reusing generateLevel utility but forcing length control if needed
-    // Actually generateLevel depends on "level" to determine length.
-    // Let's copy the logic or modify generateLevel.
-    // generateLevel(level) -> length = min(7 + floor((level-1)/2), 14).
-    // If I want exact length 5, I need a specific level?
-    // Let's just reimplement basic generation here for total control.
-
-    const maxVal = seqLength * 2;
-    const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    const numbers = pool.slice(0, seqLength);
-    const newSeq = numbers.map(val => ({
-      id: Math.random().toString(36).substring(2, 9),
-      val: val,
-      status: 'pending' as const,
-      linkScore: null
-    }));
-
+    const newSeq = generateLevel(seqLength);
     setSequence(newSeq);
     setSolution(null);
   };

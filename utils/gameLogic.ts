@@ -119,11 +119,14 @@ export const findOptimalSolution = (startList: CardItem[]): Solution => {
   return { score: maxScore, moves: bestMoves };
 };
 
-// Utility to generate random levels
-export const generateLevel = (level: number): CardItem[] => {
+// Calculate level length based on level number
+export const lengthFromLevel = (level: number): number => {
   // Cap length at 14 to prevent UI clutter and Solver blowout
-  const length = Math.min(7 + Math.floor((level - 1) / 2), 14); 
-  
+  return Math.min(7 + Math.floor((level - 1) / 2), 14);
+};
+
+// Utility to generate random levels
+export const generateLevel = (length: number): CardItem[] => {
   // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
