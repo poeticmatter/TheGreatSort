@@ -1,5 +1,5 @@
 import React from 'react';
-import { CardItem, CardStatus } from '../types';
+import { CardItem, CardStatus } from '../../types';
 
 interface CardProps {
   item: CardItem;

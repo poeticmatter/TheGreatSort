@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { CardItem, ToolType } from '../types';
-import { generateLevel, findOptimalSolution, Solution, Move, stringToSeed } from '../utils/gameLogic';
-import Card from '../components/Card';
+import { generateLevel, findOptimalSolution, Solution, Move, stringToSeed, applyMove } from './utils/gameLogic';
+import { getTodayDateString } from './utils/dateUtils';
+import Card from './components/Card';
 import { ArrowRight, ArrowRightToLine, ArrowLeftToLine, Trash2, ArrowRightLeft, Calendar } from 'lucide-react';
 
 export default function SolverApp() {
@@ -9,16 +10,6 @@ export default function SolverApp() {
   const [sequence, setSequence] = useState<CardItem[]>([]);
   const [solution, setSolution] = useState<Solution | null>(null);
   const [isSolving, setIsSolving] = useState(false);
-
-  // Helper for Daily
-  const getTodayDateString = () => {
-    const d = new Date();
-    // Use UTC for consistent Daily Challenge globally
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const handleGenerate = () => {
     const newSeq = generateLevel(seqLength);
@@ -65,18 +56,7 @@ export default function SolverApp() {
     states.push({ move: null, seq: currentSeq });
 
     moves.forEach(move => {
-        const nextSeq = [...currentSeq];
-        if (move.tool === 'purge') {
-            nextSeq.splice(move.index!, 1);
-        } else if (move.tool === 'demote') {
-            const [moved] = nextSeq.splice(move.index!, 1);
-            nextSeq.unshift(moved);
-        } else if (move.tool === 'promote') {
-            const [moved] = nextSeq.splice(move.index!, 1);
-            nextSeq.push(moved);
-        } else if (move.tool === 'swap') {
-             [nextSeq[move.index!], nextSeq[move.index!+1]] = [nextSeq[move.index!+1], nextSeq[move.index!]];
-        }
+        const nextSeq = applyMove(currentSeq, move.tool, move.index);
         states.push({ move, seq: nextSeq });
         currentSeq = nextSeq;
     });
