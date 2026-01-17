@@ -1,5 +1,16 @@
 import { CardItem, ToolType } from '../types';
 
+export interface Move {
+  tool: ToolType;
+  index: number;
+  description: string;
+}
+
+export interface Solution {
+  score: number;
+  moves: Move[];
+}
+
 // Pure function to calculate score for a given number array
 export const calculateBatchScore = (numbers: number[]): number => {
   if (!numbers || numbers.length === 0) return 0;
@@ -41,14 +52,24 @@ export const calculateBatchScore = (numbers: number[]): number => {
 
 // Recursive Solver to find the theoretical maximum score
 export const findOptimalScore = (startList: CardItem[]): number => {
+  const solution = findOptimalSolution(startList);
+  return solution.score;
+};
+
+// Recursive Solver to find the optimal solution (score + path)
+export const findOptimalSolution = (startList: CardItem[]): Solution => {
   const initialNums = startList.map(item => item.val);
   const initialTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
   
-  let maxScore = 0;
+  let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
+  let bestMoves: Move[] = [];
 
-  const search = (currentNums: number[], availableTools: ToolType[]) => {
+  const search = (currentNums: number[], availableTools: ToolType[], currentMoves: Move[]) => {
     const currentScore = calculateBatchScore(currentNums);
-    if (currentScore > maxScore) maxScore = currentScore;
+    if (currentScore > maxScore) {
+      maxScore = currentScore;
+      bestMoves = [...currentMoves];
+    }
 
     if (availableTools.length === 0) return;
 
@@ -61,7 +82,7 @@ export const findOptimalScore = (startList: CardItem[]): number => {
         for (let i = 0; i < currentNums.length; i++) {
           const nextNums = [...currentNums];
           nextNums.splice(i, 1);
-          search(nextNums, nextTools);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'purge', index: i, description: `Purge item at index ${i}` }]);
         }
       } 
       else if (tool === 'demote') { 
@@ -71,7 +92,7 @@ export const findOptimalScore = (startList: CardItem[]): number => {
           const nextNums = [...currentNums];
           const [moved] = nextNums.splice(i, 1);
           nextNums.unshift(moved);
-          search(nextNums, nextTools);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'demote', index: i, description: `Demote item at index ${i}` }]);
         }
       }
       else if (tool === 'promote') {
@@ -81,28 +102,31 @@ export const findOptimalScore = (startList: CardItem[]): number => {
           const nextNums = [...currentNums];
           const [moved] = nextNums.splice(i, 1);
           nextNums.push(moved);
-          search(nextNums, nextTools);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'promote', index: i, description: `Promote item at index ${i}` }]);
         }
       }
       else if (tool === 'swap') {
         for (let i = 0; i < currentNums.length - 1; i++) {
           const nextNums = [...currentNums];
           [nextNums[i], nextNums[i+1]] = [nextNums[i+1], nextNums[i]];
-          search(nextNums, nextTools);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
         }
       }
     }
   };
 
-  search(initialNums, initialTools);
-  return maxScore;
+  search(initialNums, initialTools, []);
+  return { score: maxScore, moves: bestMoves };
+};
+
+// Calculate level length based on level number
+export const lengthFromLevel = (level: number): number => {
+  // Cap length at 14 to prevent UI clutter and Solver blowout
+  return Math.min(7 + Math.floor((level - 1) / 2), 14);
 };
 
 // Utility to generate random levels
-export const generateLevel = (level: number): CardItem[] => {
-  // Cap length at 14 to prevent UI clutter and Solver blowout
-  const length = Math.min(7 + Math.floor((level - 1) / 2), 14); 
-  
+export const generateLevel = (length: number): CardItem[] => {
   // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
