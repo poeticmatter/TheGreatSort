@@ -38,6 +38,32 @@ const getSnakePosition = (index: number): React.CSSProperties => {
   };
 };
 
+const getSnakeDirection = (index: number, total: number): 'right' | 'left' | 'down' | null => {
+  if (index >= total - 1) return null; // No arrow for the last item
+
+  const localIndex = index % 12;
+
+  // Row 1: 0, 1, 2, 3 -> Right (4 is end of row)
+  if (localIndex < 4) return 'right';
+
+  // End of Row 1: 4 -> Down
+  if (localIndex === 4) return 'down';
+
+  // Row 2: 5 -> Down
+  if (localIndex === 5) return 'down';
+
+  // Row 3: 6, 7, 8, 9 -> Left (10 is end of row)
+  if (localIndex >= 6 && localIndex < 10) return 'left';
+
+  // End of Row 3: 10 -> Down
+  if (localIndex === 10) return 'down';
+
+  // Row 4: 11 -> Down
+  if (localIndex === 11) return 'down';
+
+  return 'right'; // Fallback
+};
+
 export default function TheGreatSort() {
   const { state, actions } = useGame();
   const { isPlaying, toggleMusic } = useMusic();
@@ -88,6 +114,7 @@ export default function TheGreatSort() {
                     key={item.id}
                     item={item}
                     style={getSnakePosition(idx)}
+                    mobileDirection={getSnakeDirection(idx, state.list.length)}
                     onClick={actions.handleCardClick}
                     isSelected={state.selection === idx}
                     isTargetCandidate={

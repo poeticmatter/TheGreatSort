@@ -7,9 +7,10 @@ interface CardProps {
   isSelected: boolean;
   isTargetCandidate: boolean;
   style?: React.CSSProperties;
+  mobileDirection?: 'right' | 'left' | 'down' | null;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -73,6 +74,23 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         group
       `}
     >
+      {/* Directional Chevron (Snake Logic) */}
+      {mobileDirection && (
+         <div
+           className={`
+             absolute pointer-events-none text-amber-500/80 text-xs sm:text-sm font-black
+             transition-all duration-300 z-0
+             ${mobileDirection === 'right' ? '-right-4 sm:-right-5 top-1/2 -translate-y-1/2' : ''}
+             ${mobileDirection === 'left' ? '-left-4 sm:-left-5 top-1/2 -translate-y-1/2 rotate-180 sm:rotate-0 sm:left-auto sm:-right-5' : ''}
+             ${mobileDirection === 'down' ? '-bottom-5 left-1/2 -translate-x-1/2 rotate-90 sm:rotate-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:left-auto sm:-right-5' : ''}
+             /* Desktop Override: Always Right, No Rotation (unless standard 'right' was used, but we need to reset any potential overrides) */
+             sm:left-auto sm:top-1/2 sm:translate-x-0 sm:-translate-y-1/2
+           `}
+         >
+           &gt;
+         </div>
+      )}
+
       {/* Decorative 'rivets' */}
       <div className={`absolute top-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
       <div className={`absolute top-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
