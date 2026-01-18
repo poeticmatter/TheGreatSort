@@ -1,6 +1,8 @@
 import React from 'react';
 import { CardItem, CardStatus } from '../../types';
 
+import { ChevronRight } from 'lucide-react';
+
 interface CardProps {
   item: CardItem;
   onClick: (item: CardItem) => void;
@@ -78,8 +80,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       {mobileDirection && (
          <div
            className={`
-             absolute pointer-events-none text-amber-500/80 text-xs sm:text-sm font-black
-             transition-all duration-300 z-0
+             absolute pointer-events-none text-amber-500/80
+             transition-all duration-300 z-0 flex items-center justify-center
 
              /* Mobile: Right (Gap 12px -> Center at 6px) */
              ${mobileDirection === 'right' ? 'left-[calc(100%+6px)] top-1/2 -translate-y-1/2 -translate-x-1/2' : ''}
@@ -95,7 +97,7 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
              sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0
            `}
          >
-           &gt;
+           <ChevronRight size={16} strokeWidth={4} />
          </div>
       )}
 
