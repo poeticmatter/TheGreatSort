@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CardItem, GamePhase, ToolsAvailable, GameMode } from '../../types';
-import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove } from '../utils/gameLogic';
+import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, calculateBatchScore } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
 
 export function useGame() {
@@ -12,6 +12,7 @@ export function useGame() {
   const [optimalScore, setOptimalScore] = useState<number | null>(null);
 
   const [list, setList] = useState<CardItem[]>([]);
+  const [movesHistory, setMovesHistory] = useState<Move[]>([]);
   const [phase, setPhase] = useState<GamePhase>(GamePhase.PLANNING);
   const [detectedMode, setDetectedMode] = useState<'ASC' | 'DESC' | null>(null);
 
@@ -35,22 +36,98 @@ export function useGame() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- Initialization & Effects ---
+
+  // Helper to load daily state safely
+  const loadDailyState = (): boolean => {
+    const today = getTodayDateString();
+    try {
+        const savedStateStr = localStorage.getItem(`daily_state_${today}`);
+        const savedDailyResult = localStorage.getItem(`daily_result_${today}`);
+
+        if (savedStateStr) {
+            // Restore detailed state
+            const savedState: DailyState = JSON.parse(savedStateStr);
+            const seed = stringToSeed(today);
+            let currentList = generateLevel(9, seed);
+            let currentTools: ToolsAvailable = { swap: true, purge: true, promote: true, demote: true };
+
+            // Replay moves
+            savedState.moves.forEach(move => {
+                currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+                currentTools = { ...currentTools, [move.tool]: false };
+            });
+
+            setGameMode('DAILY');
+            setLevel(1);
+            setCurrentSeed(seed);
+            setList(currentList);
+            setToolsAvailable(currentTools);
+            setMovesHistory(savedState.moves);
+            setPhase(savedState.phase);
+
+            if (savedState.phase === GamePhase.RESULTS) {
+                setDailyCompleted(true);
+                // Calculate score for the restored list
+                const score = calculateBatchScore(currentList.map(i => i.val));
+                setLevelScore(score);
+                // Restore optimal if available in result, or trigger recalc (recalc will happen via effect)
+                if (savedDailyResult) {
+                    const result = JSON.parse(savedDailyResult);
+                    setOptimalScore(result.optimal);
+                }
+            } else {
+                setDailyCompleted(false);
+            }
+            return true;
+        }
+
+        // Fallback for legacy completed state (no moves saved)
+        if (savedDailyResult) {
+            const result = JSON.parse(savedDailyResult);
+            // Only load legacy if we don't have new state (which is handled above)
+            // But we must return true so we don't overwrite it?
+            // If we have legacy result but no daily_state, we load legacy result.
+            // And since we are in daily mode, the save effect might run.
+            // But save effect saves `daily_state` which is new.
+            // It won't overwrite `daily_result` unless phase is RESULTS.
+
+            setGameMode('DAILY');
+            setDailyCompleted(true);
+            setLevelScore(result.score);
+            setOptimalScore(result.optimal);
+            setLevel(1);
+            setPhase(GamePhase.RESULTS);
+            // We should probably initialize list for legacy result?
+            // Legacy result didn't store moves, so we can't restore list state accurately.
+            // Just regenerate initial list? The user sees "Results".
+            // If we regenerate initial list, it will look like un-sorted list but with Score shown.
+            // That's acceptable for legacy transition.
+            const seed = stringToSeed(today);
+            setList(generateLevel(9, seed));
+            setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
+
+            return true;
+        }
+
+    } catch (e) {
+        console.error("Failed to load daily state", e);
+    }
+    return false;
+  };
+
   useEffect(() => {
     // Initial Load Logic
     const today = getTodayDateString();
-    const savedDaily = localStorage.getItem(`daily_result_${today}`);
 
-    if (savedDaily) {
-       // Daily already done
-       const result = JSON.parse(savedDaily);
-       setGameMode('DAILY');
-       setDailyCompleted(true);
-       setLevelScore(result.score);
-       setOptimalScore(result.optimal);
-       setLevel(1);
-       setPhase(GamePhase.RESULTS);
-    } else {
-       // Start Fresh Daily
+    // Cleanup old daily states
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    if (!loadDailyState()) {
+       // Start Fresh Daily if not loaded
        startLevel(1, 'DAILY');
     }
 
@@ -76,16 +153,31 @@ export function useGame() {
     };
   }, []);
 
-   // Safer save effect
-   useEffect(() => {
-    if (gameMode === 'DAILY' && phase === GamePhase.RESULTS) {
+  // Save State Effect
+  useEffect(() => {
+    if (gameMode === 'DAILY') {
       const today = getTodayDateString();
-      localStorage.setItem(`daily_result_${today}`, JSON.stringify({
-        score: levelScore,
-        optimal: optimalScore
-      }));
+
+      // Save simplified result for easy checking
+      if (phase === GamePhase.RESULTS) {
+        localStorage.setItem(`daily_result_${today}`, JSON.stringify({
+          score: levelScore,
+          optimal: optimalScore
+        }));
+      }
+
+      // Save detailed state
+      // Avoid saving INSPECTING phase, revert to PLANNING or skip
+      const phaseToSave = phase === GamePhase.INSPECTING ? GamePhase.PLANNING : phase;
+
+      const stateToSave: DailyState = {
+        date: today,
+        moves: movesHistory,
+        phase: phaseToSave
+      };
+      localStorage.setItem(`daily_state_${today}`, JSON.stringify(stateToSave));
     }
-  }, [phase, gameMode, levelScore, optimalScore]);
+  }, [phase, gameMode, levelScore, optimalScore, movesHistory]);
 
 
   // --- Game Actions ---
@@ -112,6 +204,7 @@ export function useGame() {
     setCurrentSeed(seed);
     setList(generateLevel(len, seed));
     setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
+    setMovesHistory([]); // Reset history
     setPhase(GamePhase.PLANNING);
     setLevelScore(0);
     setOptimalScore(null);
@@ -125,25 +218,27 @@ export function useGame() {
 
   const changeMode = (newMode: GameMode) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setGameMode(newMode);
-    setTotalScore(0);
-    setTotalOptimalScore(0);
 
+    // Switch logic
     if (newMode === 'DAILY') {
-      const today = getTodayDateString();
-      const savedDaily = localStorage.getItem(`daily_result_${today}`);
-      if (savedDaily) {
-         const result = JSON.parse(savedDaily);
-         setDailyCompleted(true);
-         setLevelScore(result.score);
-         setOptimalScore(result.optimal);
-         setLevel(1);
-         setPhase(GamePhase.RESULTS);
-      } else {
-         setDailyCompleted(false);
-         startLevel(1, 'DAILY');
+      // Try to load daily state first
+      if (loadDailyState()) {
+          // Successfully loaded, just ensure total scores are reset if needed
+          setTotalScore(0);
+          setTotalOptimalScore(0);
+          return;
       }
+
+      // If load failed or no state, start fresh
+      setGameMode(newMode);
+      setTotalScore(0);
+      setTotalOptimalScore(0);
+      setDailyCompleted(false);
+      startLevel(1, 'DAILY');
     } else {
+      setGameMode(newMode);
+      setTotalScore(0);
+      setTotalOptimalScore(0);
       setDailyCompleted(false);
       startLevel(1, newMode);
     }
@@ -151,14 +246,7 @@ export function useGame() {
 
   const executeMove = (toolId: string, targetIndex: number) => {
     let newList = [...list];
-
-    // Use the shared applyMove logic
-    // applyMove handles the transformation. App specific checks (like checking neighbor for swap)
-    // are partly done here or in applyMove.
-    // In original code:
-    // swap: checked if selection is neighbor or self.
-
-    // We can use applyMove but we need to respect the selection logic for SWAP.
+    let recordedMove: Move | null = null;
 
     if (toolId === 'swap') {
         if (selection === null) {
@@ -168,7 +256,13 @@ export function useGame() {
             if (Math.abs(selection - targetIndex) === 1) {
                 // Valid neighbor swap
                 newList = applyMove(list, 'swap', targetIndex, selection);
-                commitMove(newList, 'swap');
+                recordedMove = {
+                    tool: 'swap',
+                    index: targetIndex,
+                    targetIndex: selection,
+                    description: `Swap ${targetIndex} and ${selection}`
+                };
+                commitMove(newList, 'swap', recordedMove);
             } else if (selection === targetIndex) {
                 // Deselect if clicking same
                 setSelection(null);
@@ -179,15 +273,20 @@ export function useGame() {
         }
     } else {
         // Other tools
-        // applyMove takes (list, tool, index).
         newList = applyMove(list, toolId as any, targetIndex);
-        commitMove(newList, toolId);
+        recordedMove = {
+            tool: toolId as any,
+            index: targetIndex,
+            description: `${toolId} at ${targetIndex}`
+        };
+        commitMove(newList, toolId, recordedMove);
     }
   };
 
-  const commitMove = (newList: CardItem[], toolId: string) => {
+  const commitMove = (newList: CardItem[], toolId: string, move: Move) => {
     setList(newList);
     setToolsAvailable(prev => ({ ...prev, [toolId]: false }));
+    setMovesHistory(prev => [...prev, move]);
     setSelectedTool(null);
     setSelection(null);
     localStorage.setItem('hasUsedAction', 'true');

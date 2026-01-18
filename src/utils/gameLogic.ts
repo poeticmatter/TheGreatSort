@@ -1,9 +1,16 @@
-import { CardItem, ToolType } from '../../types';
+import { CardItem, ToolType, GamePhase } from '../../types';
 
 export interface Move {
   tool: ToolType;
   index: number;
+  targetIndex?: number;
   description: string;
+}
+
+export interface DailyState {
+  date: string;
+  moves: Move[];
+  phase: GamePhase;
 }
 
 export interface Solution {
