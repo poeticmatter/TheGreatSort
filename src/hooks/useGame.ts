@@ -124,6 +124,7 @@ export function useGame() {
   };
 
   const changeMode = (newMode: GameMode) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setGameMode(newMode);
     setTotalScore(0);
     setTotalOptimalScore(0);
