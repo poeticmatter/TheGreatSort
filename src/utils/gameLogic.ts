@@ -75,6 +75,50 @@ export const calculateBatchScore = (numbers: number[]): number => {
   return score;
 };
 
+// Evaluate list to produce final scored items (for visual restoration)
+export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardItem[] } => {
+  const gradedList = list.map(item => ({ ...item })); // Clone
+  if (gradedList.length === 0) return { score: 0, gradedList };
+
+  let score = 0;
+  let lastSurvivor = 0;
+  let mode: 'ASC' | 'DESC' | null = null;
+
+  for (let i = 0; i < gradedList.length; i++) {
+    const item = gradedList[i];
+    const currentVal = item.val;
+    let survived = false;
+
+    if (i === 0) {
+      survived = true;
+      lastSurvivor = currentVal;
+    } else if (i === 1) {
+      survived = true;
+      if (currentVal >= lastSurvivor) mode = 'ASC';
+      else mode = 'DESC';
+    } else {
+      const effectiveMode = mode || 'ASC';
+      if (effectiveMode === 'ASC') {
+        if (currentVal >= lastSurvivor) survived = true;
+      } else {
+        if (currentVal <= lastSurvivor) survived = true;
+      }
+    }
+
+    if (survived) {
+      score += currentVal;
+      lastSurvivor = currentVal;
+      item.status = 'safe';
+      item.linkScore = currentVal;
+    } else {
+      item.status = 'eliminated';
+      item.linkScore = null;
+    }
+  }
+
+  return { score, gradedList };
+};
+
 // Recursive Solver to find the theoretical maximum score
 export const findOptimalScore = (startList: CardItem[]): number => {
   const solution = findOptimalSolution(startList);

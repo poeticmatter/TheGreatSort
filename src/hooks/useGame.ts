@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CardItem, GamePhase, ToolsAvailable, GameMode } from '../../types';
-import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, calculateBatchScore } from '../utils/gameLogic';
+import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, calculateBatchScore, gradeLevel } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
 
 export function useGame() {
@@ -15,6 +15,7 @@ export function useGame() {
   const [movesHistory, setMovesHistory] = useState<Move[]>([]);
   const [phase, setPhase] = useState<GamePhase>(GamePhase.PLANNING);
   const [detectedMode, setDetectedMode] = useState<'ASC' | 'DESC' | null>(null);
+  const [isGameLoaded, setIsGameLoaded] = useState(false);
 
   const [toolsAvailable, setToolsAvailable] = useState<ToolsAvailable>({
     swap: true, purge: true, promote: true, demote: true
@@ -60,22 +61,24 @@ export function useGame() {
             setGameMode('DAILY');
             setLevel(1);
             setCurrentSeed(seed);
-            setList(currentList);
             setToolsAvailable(currentTools);
             setMovesHistory(savedState.moves);
             setPhase(savedState.phase);
 
             if (savedState.phase === GamePhase.RESULTS) {
                 setDailyCompleted(true);
-                // Calculate score for the restored list
-                const score = calculateBatchScore(currentList.map(i => i.val));
+                // Grade and restore visual state
+                const { score, gradedList } = gradeLevel(currentList);
+                setList(gradedList);
                 setLevelScore(score);
+
                 // Restore optimal if available in result, or trigger recalc (recalc will happen via effect)
                 if (savedDailyResult) {
                     const result = JSON.parse(savedDailyResult);
                     setOptimalScore(result.optimal);
                 }
             } else {
+                setList(currentList);
                 setDailyCompleted(false);
             }
             return true;
@@ -130,6 +133,7 @@ export function useGame() {
        // Start Fresh Daily if not loaded
        startLevel(1, 'DAILY');
     }
+    setIsGameLoaded(true);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -155,6 +159,9 @@ export function useGame() {
 
   // Save State Effect
   useEffect(() => {
+    // Prevent saving if game isn't loaded yet to avoid overwriting state with initial defaults
+    if (!isGameLoaded) return;
+
     if (gameMode === 'DAILY') {
       const today = getTodayDateString();
 
@@ -177,7 +184,7 @@ export function useGame() {
       };
       localStorage.setItem(`daily_state_${today}`, JSON.stringify(stateToSave));
     }
-  }, [phase, gameMode, levelScore, optimalScore, movesHistory]);
+  }, [phase, gameMode, levelScore, optimalScore, movesHistory, isGameLoaded]);
 
 
   // --- Game Actions ---
@@ -226,6 +233,7 @@ export function useGame() {
           // Successfully loaded, just ensure total scores are reset if needed
           setTotalScore(0);
           setTotalOptimalScore(0);
+          setIsGameLoaded(true);
           return;
       }
 
@@ -242,6 +250,8 @@ export function useGame() {
       setDailyCompleted(false);
       startLevel(1, newMode);
     }
+    // Ensure we mark game as loaded for other modes too (safe default)
+    setIsGameLoaded(true);
   };
 
   const executeMove = (toolId: string, targetIndex: number) => {
