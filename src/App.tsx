@@ -110,7 +110,7 @@ export default function TheGreatSort() {
         {/* --- CARDS GRID --- */}
         <div className="flex-1 flex items-center justify-center w-full">
             {state.list.length > 0 ? (
-              <div className="grid grid-cols-5 gap-3 justify-items-center sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-4 max-w-5xl px-4 perspective-[1000px]">
+              <div className="grid grid-cols-5 gap-5 justify-items-center sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-6 max-w-5xl px-4 perspective-[1000px]">
                 {state.list.map((item, idx) => (
                   <Card
                     key={item.id}
