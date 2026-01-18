@@ -80,6 +80,8 @@ export default function TheGreatSort() {
         phase={state.phase}
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
+        isPlaying={isPlaying}
+        onToggleMusic={toggleMusic}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
@@ -147,12 +149,9 @@ export default function TheGreatSort() {
         toolsAvailable={state.toolsAvailable}
         selectedTool={state.selectedTool}
         shakeTools={state.shakeTools}
-        isPlaying={isPlaying}
         listLength={state.list.length}
         onToolClick={actions.handleToolClick}
         onActionClick={state.phase === GamePhase.RESULTS ? actions.nextLevel : actions.startInspection}
-        onResetGame={actions.resetGame}
-        onToggleMusic={toggleMusic}
       />
 
       {/* Help / Rules Overlay (Desktop Only) */}
