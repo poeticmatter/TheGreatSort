@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Star } from 'lucide-react';
+import { Play, SearchCode } from 'lucide-react';
 import { GamePhase, GameMode } from '../../types';
 
 interface SubmitButtonProps {
@@ -35,12 +35,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
       {phase === GamePhase.RESULTS ? (
         <span className="flex items-center gap-3">
           {gameMode === 'DAILY' ? 'Mission Complete' : 'Next Quota'}
-          {gameMode !== 'DAILY' && <Play size={18} fill="currentColor" />}
+          {gameMode !== 'DAILY' && <Play size={24} fill="currentColor" />}
         </span>
       ) : (
         <>
-          <Star size={20} fill="#f59e0b" className="text-amber-500" />
-          STALIN, SORT!
+          Inspector
+          <SearchCode size={24} className="text-white" />
         </>
       )}
     </button>
