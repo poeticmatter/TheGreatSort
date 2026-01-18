@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, TrendingUp, TrendingDown, Award, Share2, Repeat } from 'lucide-react';
+import { Star, ChevronDown, Volume2, VolumeX, TrendingUp, TrendingDown, Award, Share2, Repeat } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
 
 interface HeaderProps {
@@ -11,6 +11,8 @@ interface HeaderProps {
   phase: GamePhase;
   optimalScore: number | null;
   detectedMode: 'ASC' | 'DESC' | null;
+  isPlaying: boolean;
+  onToggleMusic: () => void;
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
@@ -18,7 +20,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
-  phase, optimalScore, detectedMode,
+  phase, optimalScore, detectedMode, isPlaying, onToggleMusic,
   onChangeMode, onShareResult, onRetryPractice
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -40,30 +42,42 @@ const Header: React.FC<HeaderProps> = ({
           </h1>
         </div>
 
-        <div className="relative mt-2 ml-1 z-50">
-           <button
-             onClick={() => setShowModeMenu(!showModeMenu)}
-             className="flex items-center gap-1 text-[12px] text-stone-400 font-[Courier] uppercase tracking-[0.2em] hover:text-amber-500 transition-colors"
-           >
-             Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
-           </button>
+        <div className="flex items-center gap-6 mt-2 ml-1 z-50">
+           {/* Mode Selector */}
+           <div className="relative">
+             <button
+               onClick={() => setShowModeMenu(!showModeMenu)}
+               className="flex items-center gap-1 text-[12px] text-stone-400 font-[Courier] uppercase tracking-[0.2em] hover:text-amber-500 transition-colors"
+             >
+               Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
+             </button>
 
-           {showModeMenu && (
-             <div className="absolute top-full left-0 mt-1 w-40 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1">
-               {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
-                 <button
-                   key={m}
-                   onClick={() => {
-                     onChangeMode(m);
-                     setShowModeMenu(false);
-                   }}
-                   className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
-                 >
-                   {m}
-                 </button>
-               ))}
-             </div>
-           )}
+             {showModeMenu && (
+               <div className="absolute top-full left-0 mt-1 w-40 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1">
+                 {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
+                   <button
+                     key={m}
+                     onClick={() => {
+                       onChangeMode(m);
+                       setShowModeMenu(false);
+                     }}
+                     className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                   >
+                     {m}
+                   </button>
+                 ))}
+               </div>
+             )}
+           </div>
+
+           {/* Sound Toggle */}
+           <button
+             onClick={onToggleMusic}
+             className={`flex items-center gap-2 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${isPlaying ? 'text-amber-500' : 'text-stone-400 hover:text-amber-500'}`}
+             title={isPlaying ? "Mute Music" : "Play Music"}
+           >
+             Sound {isPlaying ? <Volume2 size={14} /> : <VolumeX size={14} />}
+           </button>
         </div>
       </div>
 

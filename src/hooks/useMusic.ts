@@ -16,14 +16,7 @@ const bassSynthType = "square";
 
 export function useMusic() {
   // Initialize state from localStorage (defaulting to false)
-  const [isPlaying, setIsPlaying] = useState(() => {
-    try {
-      const stored = localStorage.getItem('music_enabled');
-      return stored === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Initialize Tone.js entities once
   useEffect(() => {
