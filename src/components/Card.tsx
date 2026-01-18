@@ -1,14 +1,18 @@
 import React from 'react';
 import { CardItem, CardStatus } from '../../types';
 
+import { ChevronRight } from 'lucide-react';
+
 interface CardProps {
   item: CardItem;
   onClick: (item: CardItem) => void;
   isSelected: boolean;
   isTargetCandidate: boolean;
+  style?: React.CSSProperties;
+  mobileDirection?: 'right' | 'left' | 'down' | null;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -57,6 +61,7 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
 
   return (
     <div 
+      style={style}
       onClick={(e) => {
         e.stopPropagation();
         onClick(item);
@@ -71,6 +76,31 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         group
       `}
     >
+      {/* Directional Chevron (Snake Logic) */}
+      {mobileDirection && (
+         <div
+           className={`
+             absolute pointer-events-none text-amber-500/80
+             transition-all duration-300 z-0 flex items-center justify-center
+
+             /* Mobile: Right (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'right' ? 'left-[calc(100%+6px)] top-1/2 -translate-y-1/2 -translate-x-1/2' : ''}
+
+             /* Mobile: Left (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'left' ? 'right-[calc(100%+6px)] top-1/2 -translate-y-1/2 translate-x-1/2 rotate-180' : ''}
+
+             /* Mobile: Down (Gap 12px -> Center at 6px) */
+             ${mobileDirection === 'down' ? 'top-[calc(100%+6px)] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90' : ''}
+
+             /* Desktop Override: Always Right (Gap 16px -> Center at 8px) */
+             sm:left-[calc(100%+8px)] sm:right-auto sm:top-1/2 sm:bottom-auto
+             sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0
+           `}
+         >
+           <ChevronRight size={16} strokeWidth={4} />
+         </div>
+      )}
+
       {/* Decorative 'rivets' */}
       <div className={`absolute top-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
       <div className={`absolute top-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
