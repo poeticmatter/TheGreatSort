@@ -47,7 +47,12 @@ const Header: React.FC<HeaderProps> = ({
            <div className="relative">
              <button
                onClick={() => setShowModeMenu(!showModeMenu)}
-               className="flex items-center gap-1 text-[12px] text-stone-400 font-[Courier] uppercase tracking-[0.2em] hover:text-amber-500 transition-colors"
+               disabled={phase === GamePhase.INSPECTING}
+               className={`flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${
+                 phase === GamePhase.INSPECTING
+                   ? 'text-stone-600 cursor-not-allowed opacity-50'
+                   : 'text-stone-400 hover:text-amber-500'
+               }`}
              >
                Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
              </button>
