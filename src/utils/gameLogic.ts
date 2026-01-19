@@ -198,13 +198,21 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
           search(nextNums, nextTools, [...currentMoves, { tool: 'merge', index: i, description: `Merge items at index ${i}` }]);
         }
       }
-      else if (tool === 'floor') {
+      else if (tool === 'sink') {
         for (let i = 0; i < currentNums.length - 1; i++) {
           const nextNums = [...currentNums];
           const min = Math.min(nextNums[i], nextNums[i+1]);
           nextNums[i] = min;
           nextNums[i+1] = min;
-          search(nextNums, nextTools, [...currentMoves, { tool: 'floor', index: i, description: `Floor items at index ${i}` }]);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'sink', index: i, description: `Sink items at index ${i}` }]);
+        }
+      } else if (tool === 'float') {
+        for (let i = 0; i < currentNums.length - 1; i++) {
+          const nextNums = [...currentNums];
+          const max = Math.max(nextNums[i], nextNums[i+1]);
+          nextNums[i] = max;
+          nextNums[i+1] = max;
+          search(nextNums, nextTools, [...currentMoves, { tool: 'float', index: i, description: `Float items at index ${i}` }]);
         }
       }
       else if (tool === 'longswap') {
@@ -268,7 +276,7 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
             newList.splice(firstIdx, 2, newItem);
          }
     }
-    else if (tool === 'floor') {
+    else if (tool === 'sink') {
         let idx1 = index;
         let idx2 = index + 1;
 
