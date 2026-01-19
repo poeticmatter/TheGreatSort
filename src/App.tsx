@@ -121,7 +121,7 @@ export default function TheGreatSort() {
 
         <StatusBar
           phase={state.phase}
-          selectedTool={state.selectedTool}
+          selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
           selection={state.selection}
           detectedMode={state.detectedMode}
           levelScore={state.levelScore}
