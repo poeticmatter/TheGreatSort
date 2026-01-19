@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CardItem, GamePhase, ToolsAvailable, GameMode } from '../../types';
-import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, calculateBatchScore, gradeLevel } from '../utils/gameLogic';
+import { CardItem, GamePhase, GameMode, ToolInstance, ToolType } from '../../types';
+import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, generateTools } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
+import { gradeLevel } from '../utils/gameLogic';
 
 export function useGame() {
   // --- State ---
@@ -17,11 +18,10 @@ export function useGame() {
   const [detectedMode, setDetectedMode] = useState<'ASC' | 'DESC' | null>(null);
   const [isGameLoaded, setIsGameLoaded] = useState(false);
 
-  const [toolsAvailable, setToolsAvailable] = useState<ToolsAvailable>({
-    swap: true, purge: true, promote: true, demote: true
-  });
+  // Tools are now an array of specific instances
+  const [toolsAvailable, setToolsAvailable] = useState<ToolInstance[]>([]);
 
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [selectedToolInstanceId, setSelectedToolInstanceId] = useState<string | null>(null);
   const [selection, setSelection] = useState<number | null>(null);
   const [shakeTools, setShakeTools] = useState(0);
 
@@ -35,6 +35,10 @@ export function useGame() {
   const lastSurvivorVal = useRef<number | null>(null);
   const sortDirection = useRef<'ASC' | 'DESC' | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listRef = useRef(list);
+
+  // Sync ref
+  useEffect(() => { listRef.current = list; }, [list]);
 
   // --- Initialization & Effects ---
 
@@ -50,12 +54,28 @@ export function useGame() {
             const savedState: DailyState = JSON.parse(savedStateStr);
             const seed = stringToSeed(today);
             let currentList = generateLevel(9, seed);
-            let currentTools: ToolsAvailable = { swap: true, purge: true, promote: true, demote: true };
+
+            // Restore tools (either saved in state or regenerate from seed)
+            // If savedState has tools, use them. Otherwise regenerate (backward compat?)
+            // Daily tools are deterministic anyway.
+            let currentTools = savedState.tools;
+            if (!currentTools) {
+                // Fallback for transition: generate tools
+                currentTools = generateTools(seed);
+            }
 
             // Replay moves
             savedState.moves.forEach(move => {
                 currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
-                currentTools = { ...currentTools, [move.tool]: false };
+
+                // Mark tool as used
+                // We need to find a tool of that type and mark it.
+                // Since we don't track *which* exact instance ID was used in movesHistory (legacy),
+                // we just take the first available one of that type.
+                const toolIndex = currentTools.findIndex(t => t.type === move.tool && !t.used);
+                if (toolIndex !== -1) {
+                    currentTools[toolIndex].used = true;
+                }
             });
 
             setGameMode('DAILY');
@@ -72,7 +92,7 @@ export function useGame() {
                 setList(gradedList);
                 setLevelScore(score);
 
-                // Restore optimal if available in result, or trigger recalc (recalc will happen via effect)
+                // Restore optimal if available in result
                 if (savedDailyResult) {
                     const result = JSON.parse(savedDailyResult);
                     setOptimalScore(result.optimal);
@@ -86,28 +106,20 @@ export function useGame() {
 
         // Fallback for legacy completed state (no moves saved)
         if (savedDailyResult) {
-            const result = JSON.parse(savedDailyResult);
-            // Only load legacy if we don't have new state (which is handled above)
-            // But we must return true so we don't overwrite it?
-            // If we have legacy result but no daily_state, we load legacy result.
-            // And since we are in daily mode, the save effect might run.
-            // But save effect saves `daily_state` which is new.
-            // It won't overwrite `daily_result` unless phase is RESULTS.
-
+            // Just show results
             setGameMode('DAILY');
             setDailyCompleted(true);
+            const result = JSON.parse(savedDailyResult);
             setLevelScore(result.score);
             setOptimalScore(result.optimal);
             setLevel(1);
             setPhase(GamePhase.RESULTS);
-            // We should probably initialize list for legacy result?
-            // Legacy result didn't store moves, so we can't restore list state accurately.
-            // Just regenerate initial list? The user sees "Results".
-            // If we regenerate initial list, it will look like un-sorted list but with Score shown.
-            // That's acceptable for legacy transition.
+
             const seed = stringToSeed(today);
+            // We need a list to show.
             setList(generateLevel(9, seed));
-            setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
+            // Tools
+            setToolsAvailable(generateTools(seed));
 
             return true;
         }
@@ -130,7 +142,6 @@ export function useGame() {
     });
 
     if (!loadDailyState()) {
-       // Start Fresh Daily if not loaded
        startLevel(1, 'DAILY');
     }
     setIsGameLoaded(true);
@@ -143,29 +154,20 @@ export function useGame() {
     if (list.length > 0 && phase === GamePhase.PLANNING && optimalScore === null) {
       // Small delay to let UI render first
       const timer = setTimeout(() => {
-        const best = findOptimalScore(list);
+        const best = findOptimalScore(list, toolsAvailable);
         setOptimalScore(best);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [list, phase, optimalScore]);
-
-  // Clean up animation on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
+  }, [list, phase, optimalScore, toolsAvailable]);
 
   // Save State Effect
   useEffect(() => {
-    // Prevent saving if game isn't loaded yet to avoid overwriting state with initial defaults
     if (!isGameLoaded) return;
 
     if (gameMode === 'DAILY') {
       const today = getTodayDateString();
 
-      // Save simplified result for easy checking
       if (phase === GamePhase.RESULTS) {
         localStorage.setItem(`daily_result_${today}`, JSON.stringify({
           score: levelScore,
@@ -173,18 +175,17 @@ export function useGame() {
         }));
       }
 
-      // Save detailed state
-      // Avoid saving INSPECTING phase, revert to PLANNING or skip
       const phaseToSave = phase === GamePhase.INSPECTING ? GamePhase.PLANNING : phase;
 
       const stateToSave: DailyState = {
         date: today,
         moves: movesHistory,
-        phase: phaseToSave
+        phase: phaseToSave,
+        tools: toolsAvailable
       };
       localStorage.setItem(`daily_state_${today}`, JSON.stringify(stateToSave));
     }
-  }, [phase, gameMode, levelScore, optimalScore, movesHistory, isGameLoaded]);
+  }, [phase, gameMode, levelScore, optimalScore, movesHistory, isGameLoaded, toolsAvailable]);
 
 
   // --- Game Actions ---
@@ -195,28 +196,55 @@ export function useGame() {
 
     let len = 0;
     let seed: number | undefined = undefined;
+    let tools: ToolInstance[] = [];
 
     if (activeMode === 'CAREER') {
       len = lengthFromLevel(lvl);
-      seed = undefined; // Random
+      seed = undefined; // Level random
+
+      // Career Tools Logic
+      if (lvl === 1) {
+          // Generate new career tools and save
+          tools = generateTools(); // Random
+          localStorage.setItem('career_tools', JSON.stringify(tools));
+      } else {
+          // Load career tools
+          const savedTools = localStorage.getItem('career_tools');
+          if (savedTools) {
+              tools = JSON.parse(savedTools);
+              // Reset 'used' status for the new level
+              tools = tools.map(t => ({ ...t, used: false }));
+          } else {
+              // Fallback
+              tools = generateTools();
+              localStorage.setItem('career_tools', JSON.stringify(tools));
+          }
+      }
+
     } else if (activeMode === 'DAILY') {
       len = 9;
       seed = stringToSeed(getTodayDateString());
+      tools = generateTools(seed);
     } else if (activeMode === 'PRACTICE') {
       len = 9;
-      // If a seed override is passed (retry), use it. Otherwise random.
       seed = seedOverride !== undefined ? seedOverride : Math.random() * 1000000;
+      // If retrying (seedOverride provided), we should probably regenerate tools with same logic?
+      // Since generateTools uses random, we need to seed it too if we want same tools.
+      // But `generateTools` takes a seed.
+      // If Practice is "random tools", then for retry we want "same random tools".
+      // So passing the level seed to generateTools works if we want them tied.
+      tools = generateTools(seed);
     }
 
     setCurrentSeed(seed);
     setList(generateLevel(len, seed));
-    setToolsAvailable({ swap: true, purge: true, promote: true, demote: true });
-    setMovesHistory([]); // Reset history
+    setToolsAvailable(tools);
+    setMovesHistory([]);
     setPhase(GamePhase.PLANNING);
     setLevelScore(0);
     setOptimalScore(null);
     setDetectedMode(null);
-    setSelectedTool(null);
+    setSelectedToolInstanceId(null);
     setSelection(null);
     inspectionIndex.current = 0;
     lastSurvivorVal.current = null;
@@ -226,18 +254,13 @@ export function useGame() {
   const changeMode = (newMode: GameMode) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Switch logic
     if (newMode === 'DAILY') {
-      // Try to load daily state first
       if (loadDailyState()) {
-          // Successfully loaded, just ensure total scores are reset if needed
           setTotalScore(0);
           setTotalOptimalScore(0);
           setIsGameLoaded(true);
           return;
       }
-
-      // If load failed or no state, start fresh
       setGameMode(newMode);
       setTotalScore(0);
       setTotalOptimalScore(0);
@@ -250,81 +273,110 @@ export function useGame() {
       setDailyCompleted(false);
       startLevel(1, newMode);
     }
-    // Ensure we mark game as loaded for other modes too (safe default)
     setIsGameLoaded(true);
   };
 
-  const executeMove = (toolId: string, targetIndex: number) => {
+  const executeMove = (toolInstanceId: string, targetIndex: number) => {
+    const toolInstance = toolsAvailable.find(t => t.instanceId === toolInstanceId);
+    if (!toolInstance || toolInstance.used) return;
+
+    const toolType = toolInstance.type;
     let newList = [...list];
     let recordedMove: Move | null = null;
 
-    if (toolId === 'swap') {
+    // Check interaction type
+    // Two-step interactions: Swap, LongSwap, Consolidate, Equalize
+    const isTwoStep = ['swap', 'longswap', 'consolidate', 'equalize'].includes(toolType);
+
+    if (isTwoStep) {
         if (selection === null) {
             setSelection(targetIndex);
             return;
         } else {
-            if (Math.abs(selection - targetIndex) === 1) {
-                // Valid neighbor swap
-                newList = applyMove(list, 'swap', targetIndex, selection);
+            // We have a selection. Validate move.
+            let valid = false;
+            const idx1 = selection;
+            const idx2 = targetIndex;
+
+            if (toolType === 'swap' || toolType === 'consolidate' || toolType === 'equalize') {
+                // Must be adjacent
+                if (Math.abs(idx1 - idx2) === 1) valid = true;
+            } else if (toolType === 'longswap') {
+                // Must be NON-adjacent
+                if (Math.abs(idx1 - idx2) > 1) valid = true;
+            }
+
+            if (valid) {
+                // Execute
+                newList = applyMove(list, toolType, targetIndex, selection);
                 recordedMove = {
-                    tool: 'swap',
+                    tool: toolType,
                     index: targetIndex,
                     targetIndex: selection,
-                    description: `Swap ${targetIndex} and ${selection}`
+                    description: `${toolType} ${selection} and ${targetIndex}`
                 };
-                commitMove(newList, 'swap', recordedMove);
-            } else if (selection === targetIndex) {
-                // Deselect if clicking same
-                setSelection(null);
+                commitMove(newList, toolInstanceId, recordedMove);
             } else {
-                // Switch selection
-                setSelection(targetIndex);
+                // Invalid selection
+                if (selection === targetIndex) {
+                    setSelection(null); // Deselect
+                } else {
+                     setSelection(targetIndex); // Switch selection
+                }
             }
         }
     } else {
-        // Other tools
-        newList = applyMove(list, toolId as any, targetIndex);
+        // One-step tools (Purge, Promote, Demote, Cut)
+        newList = applyMove(list, toolType, targetIndex);
         recordedMove = {
-            tool: toolId as any,
+            tool: toolType,
             index: targetIndex,
-            description: `${toolId} at ${targetIndex}`
+            description: `${toolType} at ${targetIndex}`
         };
-        commitMove(newList, toolId, recordedMove);
+        commitMove(newList, toolInstanceId, recordedMove);
     }
   };
 
-  const commitMove = (newList: CardItem[], toolId: string, move: Move) => {
+  const commitMove = (newList: CardItem[], toolInstanceId: string, move: Move) => {
     setList(newList);
-    setToolsAvailable(prev => ({ ...prev, [toolId]: false }));
+    setToolsAvailable(prev => prev.map(t =>
+        t.instanceId === toolInstanceId ? { ...t, used: true } : t
+    ));
     setMovesHistory(prev => [...prev, move]);
-    setSelectedTool(null);
+    setSelectedToolInstanceId(null);
     setSelection(null);
     localStorage.setItem('hasUsedAction', 'true');
   };
 
-  const handleToolClick = (toolId: string) => {
+  const handleToolClick = (toolInstanceId: string) => {
     if (phase !== GamePhase.PLANNING) return;
-    if (!toolsAvailable[toolId as keyof ToolsAvailable]) return;
+    const toolInstance = toolsAvailable.find(t => t.instanceId === toolInstanceId);
+    if (!toolInstance || toolInstance.used) return;
 
     // Check if we have a pending card selection (Reverse Flow)
     if (selection !== null) {
-      // If it's a swap, we just enter swap mode with the current selection
-      if (toolId === 'swap') {
-        setSelectedTool('swap');
-        // Selection remains kept
+      // If we have a selection, and we click a tool...
+      // If it's a two-step tool, we select the tool and keep card selection?
+      // Or if it's one-step, we execute immediately?
+
+      const isTwoStep = ['swap', 'longswap', 'consolidate', 'equalize'].includes(toolInstance.type);
+
+      if (isTwoStep) {
+         setSelectedToolInstanceId(toolInstanceId);
+         // Selection kept
       } else {
-        // Immediate execution for single-target tools
-        executeMove(toolId, selection);
+         // Immediate execution
+         executeMove(toolInstanceId, selection);
       }
       return;
     }
 
     // Normal Flow (Tool first)
-    if (selectedTool === toolId) {
-      setSelectedTool(null);
+    if (selectedToolInstanceId === toolInstanceId) {
+      setSelectedToolInstanceId(null);
       setSelection(null);
     } else {
-      setSelectedTool(toolId);
+      setSelectedToolInstanceId(toolInstanceId);
       setSelection(null);
     }
   };
@@ -335,8 +387,8 @@ export function useGame() {
     const index = list.findIndex(i => i.id === item.id);
 
     // Flow 1: Tool is already selected
-    if (selectedTool) {
-      executeMove(selectedTool, index);
+    if (selectedToolInstanceId) {
+      executeMove(selectedToolInstanceId, index);
       return;
     }
 
@@ -349,7 +401,6 @@ export function useGame() {
       setSelection(index);
       const hasUsed = localStorage.getItem('hasUsedAction');
       if (!hasUsed) {
-        // Help user by flashing tools if they haven't used any yet
         setShakeTools(prev => prev + 1);
       }
     }
@@ -358,207 +409,21 @@ export function useGame() {
   const handleBackgroundClick = () => {
     if (phase === GamePhase.PLANNING) {
       setSelection(null);
-      setSelectedTool(null);
+      setSelectedToolInstanceId(null);
     }
   };
 
   // --- Inspection Logic ---
 
-  const startInspection = () => {
-    setPhase(GamePhase.INSPECTING);
-    inspectionIndex.current = 0;
-    lastSurvivorVal.current = null;
-    sortDirection.current = null;
-    setDetectedMode(null);
-    processNextStep();
-  };
-
-  const processNextStep = () => {
-    // End condition
-    if (inspectionIndex.current >= list.length) {
-        // We can't call endInspection directly because of closure scope if defined outside.
-        // We need to trigger the end logic.
-        // But endInspection depends on state.
-        // Since we are inside a hook, we can call a function that accesses state?
-        // No, `list` in `processNextStep` (via closure or ref) needs to be current.
-        // Actually, `processNextStep` is called recursively via setTimeout.
-        // The `list` accessed inside `processNextStep` will be stale if we don't be careful.
-        // The original code used `processNextStep` defined inside the component, closing over the *current render's* scope?
-        // No, `setTimeout(processNextStep, ...)` uses the `processNextStep` from the render where it was scheduled.
-        // But state updates inside it (`setList`) use functional updates.
-        // Accessing `list.length` might be stale.
-        // `inspectionIndex` is a ref, so it's fresh.
-        // But `list.length`?
-        // In the original component, `list` was a dependency of `useEffect`? No, `processNextStep` wasn't in useEffect.
-        // It was a function defined in the component body.
-        // When `setTimeout` calls it, it calls the version from the closure when `setTimeout` was called.
-        // If `list` changes (it does, status updates), the next `processNextStep` (recursively called)
-        // is scheduled from the *previous* execution?
-        // Wait, `timeoutRef.current = setTimeout(processNextStep, 600);`
-        // This refers to `processNextStep` variable. In the component, `processNextStep` is recreated every render.
-        // So `setTimeout` holds onto the *old* function.
-        // The old function sees the *old* `list`.
-        // BUT `inspectionIndex` is a ref.
-        // `list[idx]` usage?
-        // `setList(prev => ...)` is safe.
-        // But `const currentItem = list[idx];` <-- this is dangerous if `list` is stale.
-        // However, the items (values/ids) don't change, only their status.
-        // So reading `list[idx]` from stale `list` might give an item with old status, but correct value/id.
-        // And `setList` updates it.
-        // The check `inspectionIndex.current >= list.length` is also potentially stale if list length changed.
-        // But list length *doesn't* change during inspection.
-        // So it might be fine.
-
-        // To be safer and cleaner in a hook, let's use a `useEffect` that watches `phase` or `inspectionIndex`?
-        // Or keep it as is, mirroring the working code.
-
-        // I'll wrap it in a `useCallback` and use a ref for `list` to access current state if needed?
-        // Or just trust that length doesn't change.
-        finishInspection();
-        return;
-    }
-
-    const idx = inspectionIndex.current;
-
-    // 1. Highlight current item as scanning
-    setList(prev => prev.map((item, i) =>
-      i === idx ? { ...item, status: 'scanning' } : item
-    ));
-
-    // 2. Wait, then evaluate
-    timeoutRef.current = setTimeout(() => {
-        // We need to access the item.
-        // We can get it from the state setter to be sure? No, we need it for logic.
-        // Let's use a ref for list or just assume the closure is "fresh enough" if we are careful?
-        // Actually, since we are moving to a hook, `list` is in scope.
-        // We need `processNextStep` to be able to reference the *latest* list if possible, or at least the static data.
-
-        // Ideally: use a ref to track the latest list if we need to read from it in async callbacks.
-        // Or pass the list into the recursive call?
-
-        // Let's use a Ref for the list that we update whenever list changes, just for reading in the loop.
-
-        const currentItem = listRef.current[idx];
-        const currentVal = currentItem.val;
-
-        let survived = false;
-        let pointsToAdd = 0;
-
-        // Evaluation Logic
-        if (idx === 0) {
-          survived = true;
-          lastSurvivorVal.current = currentVal;
-        } else if (idx === 1) {
-          survived = true;
-          const prevVal = lastSurvivorVal.current!;
-          if (currentVal >= prevVal) sortDirection.current = 'ASC';
-          else sortDirection.current = 'DESC';
-          lastSurvivorVal.current = currentVal;
-          setDetectedMode(sortDirection.current);
-        } else {
-          const threshold = lastSurvivorVal.current!;
-          const mode = sortDirection.current || 'ASC';
-          if (mode === 'ASC') {
-            if (currentVal >= threshold) survived = true;
-          } else {
-            if (currentVal <= threshold) survived = true;
-          }
-          if (survived) {
-            lastSurvivorVal.current = currentVal;
-          }
-        }
-
-        // Apply Status & Score
-        if (survived) {
-          pointsToAdd = currentVal;
-          setLevelScore(prev => prev + pointsToAdd);
-        }
-
-        // Update List State
-        setList(prevList => {
-          const newList = [...prevList];
-          if (survived) {
-            newList[idx] = {
-              ...currentItem,
-              status: 'safe',
-              linkScore: pointsToAdd
-            };
-          } else {
-            newList[idx] = { ...currentItem, status: 'eliminated' };
-          }
-          return newList;
-        });
-
-      // 3. Move to next
-      inspectionIndex.current++;
-      timeoutRef.current = setTimeout(processNextStep, 600);
-    }, 400);
-  };
-
-  const listRef = useRef(list);
-  useEffect(() => { listRef.current = list; }, [list]);
-
-  // We need `processNextStep` to be stable or handled correctly.
-  // If we define it inside a useCallback, it depends on `detectedMode`, etc.
-  // Actually, let's use a ref for the function too, or simpler:
-  // Put the whole `processNextStep` logic into a useEffect that triggers on `phase === INSPECTING`?
-  // No, that's complex with timeouts.
-
-  // The original code had `processNextStep` accessing state.
-  // The crucial part is that `list` inside `setTimeout` needs to be correct.
-  // I added `listRef` to solve that.
-
-  // But wait, `processNextStep` calls itself.
-  // If `processNextStep` is re-created on render, the recursive call uses the OLD version (closed over).
-  // So `listRef` is necessary.
-
-  // Also `setDetectedMode` and `setLevelScore` are fine (functional updates or stable setters).
-
-  // One issue: `processNextStep` itself needs to be stable or we need to call the latest version.
-  // We can use a ref to hold the function.
-  const processNextStepRef = useRef<() => void>(() => {});
-
-  useEffect(() => {
-    processNextStepRef.current = processNextStep;
-  });
-
-  const finishInspection = () => {
-    setPhase(GamePhase.RESULTS);
-    setTotalScore(prev => prev + levelScore); // Use current levelScore state?
-    // levelScore is updated in the loop.
-    // But inside `finishInspection`, `levelScore` might be stale if called from stale `processNextStep`.
-    // Let's use functional update for setTotalScore: `setTotalScore(prev => prev + scoreRef.current)`?
-    // Or just trust that since we call `setPhase(RESULTS)`, the effect that saves daily will run with correct state?
-    // The effect runs when `phase` changes. By then `levelScore` should be updated?
-
-    if (gameMode === 'DAILY') {
-        setDailyCompleted(true);
-    }
-  };
-
-  // --- End Inspection Logic Adjustment ---
-  // To handle the recursion cleanly using refs:
   const processNextStepWrapper = useCallback(() => {
-     // We define the logic here, but we use refs for all mutable state we need to read.
-     // `listRef` is already set up.
-     // `inspectionIndex`, `lastSurvivorVal`, `sortDirection` are refs.
-     // `levelScore`? We write to it.
-
      if (inspectionIndex.current >= listRef.current.length) {
-         // End
          setPhase(GamePhase.RESULTS);
-         // We need to add the final levelScore to totalScore.
-         // Since levelScore state update might be pending/async, we might not have the final value in `levelScore` variable here.
-         // But `setLevelScore` was called in previous steps.
-         // Actually, `levelScore` state is only needed for display and final total.
-         // Let's rely on a `useEffect` to update `totalScore` when phase changes to RESULTS?
          setDailyCompleted(prev => gameMode === 'DAILY' ? true : prev);
          return;
      }
 
      const idx = inspectionIndex.current;
 
-     // 1. Highlight
      setList(prev => prev.map((item, i) => i === idx ? { ...item, status: 'scanning' } : item));
 
      timeoutRef.current = setTimeout(() => {
@@ -606,10 +471,19 @@ export function useGame() {
          });
 
          inspectionIndex.current++;
-         timeoutRef.current = setTimeout(processNextStepWrapper, 600); // Call self
+         timeoutRef.current = setTimeout(processNextStepWrapper, 600);
      }, 400);
 
-  }, [gameMode]); // gameMode dependency is stable enough or we use ref if needed.
+  }, [gameMode]);
+
+  const startInspection = () => {
+    setPhase(GamePhase.INSPECTING);
+    inspectionIndex.current = 0;
+    lastSurvivorVal.current = null;
+    sortDirection.current = null;
+    setDetectedMode(null);
+    processNextStepWrapper();
+  };
 
   // Update total score when entering results
   useEffect(() => {
@@ -659,20 +533,13 @@ export function useGame() {
   return {
     state: {
       level, levelScore, totalScore, totalOptimalScore, optimalScore, list, phase,
-      detectedMode, toolsAvailable, selectedTool, selection, shakeTools,
+      detectedMode, toolsAvailable, selectedTool: selectedToolInstanceId, selection, shakeTools,
       gameMode, dailyCompleted
     },
     actions: {
       changeMode, handleToolClick, handleCardClick, handleBackgroundClick,
-      startInspection: () => {
-         setPhase(GamePhase.INSPECTING);
-         inspectionIndex.current = 0;
-         lastSurvivorVal.current = null;
-         sortDirection.current = null;
-         setDetectedMode(null);
-         processNextStepWrapper();
-      },
-      nextLevel, retryPractice, resetGame, shareResult, toggleMusic: () => {} // handled in hook usage or here?
+      startInspection,
+      nextLevel, retryPractice, resetGame, shareResult, toggleMusic: () => {}
     }
   };
 }

@@ -34,14 +34,9 @@ const StatusBar: React.FC<StatusBarProps> = ({
               <span className="font-serif italic text-lg">"Comrade, select a tool to re-educate the sequence."</span>
             </div>
           )}
-          {selectedTool && selectedTool !== 'swap' && (
+          {selectedTool && !(selectedTool === 'swap' && selection !== null) && (
             <span className="text-amber-400 font-bold animate-pulse font-[Courier_Prime] uppercase tracking-wide">
-               Select target for {TOOLS[selectedTool.toUpperCase()].name}
-            </span>
-          )}
-          {selectedTool === 'swap' && !selection && (
-            <span className="text-amber-400 font-bold animate-pulse font-[Courier_Prime] uppercase tracking-wide">
-              Select first item to Swap
+              {TOOLS[selectedTool.toUpperCase()]?.desc}
             </span>
           )}
           {selectedTool === 'swap' && selection !== null && (
