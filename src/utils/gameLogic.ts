@@ -183,28 +183,28 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
           search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
         }
       }
-      else if (tool === 'cut') {
+      else if (tool === 'halve') {
         for (let i = 0; i < currentNums.length; i++) {
           const nextNums = [...currentNums];
           nextNums[i] = Math.floor(nextNums[i] / 2);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'cut', index: i, description: `Cut item at index ${i}` }]);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'halve', index: i, description: `Halve item at index ${i}` }]);
         }
       }
-      else if (tool === 'consolidate') {
+      else if (tool === 'merge') {
         for (let i = 0; i < currentNums.length - 1; i++) {
           const nextNums = [...currentNums];
           const sum = nextNums[i] + nextNums[i+1];
           nextNums.splice(i, 2, sum); // Remove 2 items, insert sum
-          search(nextNums, nextTools, [...currentMoves, { tool: 'consolidate', index: i, description: `Consolidate items at index ${i}` }]);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'merge', index: i, description: `Merge items at index ${i}` }]);
         }
       }
-      else if (tool === 'equalize') {
+      else if (tool === 'floor') {
         for (let i = 0; i < currentNums.length - 1; i++) {
           const nextNums = [...currentNums];
           const min = Math.min(nextNums[i], nextNums[i+1]);
           nextNums[i] = min;
           nextNums[i+1] = min;
-          search(nextNums, nextTools, [...currentMoves, { tool: 'equalize', index: i, description: `Equalize items at index ${i}` }]);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'floor', index: i, description: `Floor items at index ${i}` }]);
         }
       }
       else if (tool === 'longswap') {
@@ -247,10 +247,10 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
         const [moved] = newList.splice(index, 1);
         newList.push(moved);
     }
-    else if (tool === 'cut') {
+    else if (tool === 'halve') {
         newList[index] = { ...newList[index], val: Math.floor(newList[index].val / 2) };
     }
-    else if (tool === 'consolidate') {
+    else if (tool === 'merge') {
          // App Mode: merge selection and index (must be adjacent)
          // Solver Mode: merge index and index+1
          let firstIdx = index;
@@ -268,7 +268,7 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
             newList.splice(firstIdx, 2, newItem);
          }
     }
-    else if (tool === 'equalize') {
+    else if (tool === 'floor') {
         let idx1 = index;
         let idx2 = index + 1;
 

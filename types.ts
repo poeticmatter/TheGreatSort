@@ -9,7 +9,7 @@ export interface CardItem {
   linkScore: number | null;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'consolidate' | 'equalize' | 'cut';
+export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'floor' | 'halve';
 
 export interface ToolDefinition {
   id: ToolType;
