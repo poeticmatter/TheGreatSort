@@ -1,4 +1,5 @@
-import { CardItem, ToolType, GamePhase } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance } from '../../types';
+import { ALL_TOOL_TYPES } from '../constants';
 
 export interface Move {
   tool: ToolType;
@@ -11,6 +12,7 @@ export interface DailyState {
   date: string;
   moves: Move[];
   phase: GamePhase;
+  tools: ToolInstance[];
 }
 
 export interface Solution {
@@ -120,31 +122,35 @@ export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardI
 };
 
 // Recursive Solver to find the theoretical maximum score
-export const findOptimalScore = (startList: CardItem[]): number => {
-  const solution = findOptimalSolution(startList);
+export const findOptimalScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
+  // If no tools provided, default to standard set (legacy support or fallback)
+  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
+
+  const solution = findOptimalSolution(startList, toolsToUse);
   return solution.score;
 };
 
 // Recursive Solver to find the optimal solution (score + path)
-export const findOptimalSolution = (startList: CardItem[]): Solution => {
+// Note: availableTools here is a list of Types, representing the remaining usages.
+export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
   const initialNums = startList.map(item => item.val);
-  const initialTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
   
   let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
   let bestMoves: Move[] = [];
 
-  const search = (currentNums: number[], availableTools: ToolType[], currentMoves: Move[]) => {
+  const search = (currentNums: number[], currentTools: ToolType[], currentMoves: Move[]) => {
     const currentScore = calculateBatchScore(currentNums);
     if (currentScore > maxScore) {
       maxScore = currentScore;
       bestMoves = [...currentMoves];
     }
 
-    if (availableTools.length === 0) return;
+    if (currentTools.length === 0) return;
 
-    for (let t = 0; t < availableTools.length; t++) {
-      const tool = availableTools[t];
-      const nextTools = [...availableTools];
+    for (let t = 0; t < currentTools.length; t++) {
+      const tool = currentTools[t];
+      const nextTools = [...currentTools];
       nextTools.splice(t, 1); 
 
       if (tool === 'purge') {
@@ -155,8 +161,6 @@ export const findOptimalSolution = (startList: CardItem[]): Solution => {
         }
       } 
       else if (tool === 'demote') { 
-        // Demote moves to START (Left)
-        // Optimization: Moving index 0 to 0 is redundant, start at 1
         for (let i = 1; i < currentNums.length; i++) {
           const nextNums = [...currentNums];
           const [moved] = nextNums.splice(i, 1);
@@ -165,8 +169,6 @@ export const findOptimalSolution = (startList: CardItem[]): Solution => {
         }
       }
       else if (tool === 'promote') {
-        // Promote moves to END (Right)
-        // Optimization: Moving last to last is redundant
         for (let i = 0; i < currentNums.length - 1; i++) {
           const nextNums = [...currentNums];
           const [moved] = nextNums.splice(i, 1);
@@ -181,10 +183,46 @@ export const findOptimalSolution = (startList: CardItem[]): Solution => {
           search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
         }
       }
+      else if (tool === 'cut') {
+        for (let i = 0; i < currentNums.length; i++) {
+          const nextNums = [...currentNums];
+          nextNums[i] = Math.floor(nextNums[i] / 2);
+          search(nextNums, nextTools, [...currentMoves, { tool: 'cut', index: i, description: `Cut item at index ${i}` }]);
+        }
+      }
+      else if (tool === 'consolidate') {
+        for (let i = 0; i < currentNums.length - 1; i++) {
+          const nextNums = [...currentNums];
+          const sum = nextNums[i] + nextNums[i+1];
+          nextNums.splice(i, 2, sum); // Remove 2 items, insert sum
+          search(nextNums, nextTools, [...currentMoves, { tool: 'consolidate', index: i, description: `Consolidate items at index ${i}` }]);
+        }
+      }
+      else if (tool === 'equalize') {
+        for (let i = 0; i < currentNums.length - 1; i++) {
+          const nextNums = [...currentNums];
+          const min = Math.min(nextNums[i], nextNums[i+1]);
+          nextNums[i] = min;
+          nextNums[i+1] = min;
+          search(nextNums, nextTools, [...currentMoves, { tool: 'equalize', index: i, description: `Equalize items at index ${i}` }]);
+        }
+      }
+      else if (tool === 'longswap') {
+        // Swap any non-adjacent items
+        // i from 0 to N-3
+        // j from i+2 to N-1
+        for (let i = 0; i < currentNums.length - 2; i++) {
+          for (let j = i + 2; j < currentNums.length; j++) {
+             const nextNums = [...currentNums];
+             [nextNums[i], nextNums[j]] = [nextNums[j], nextNums[i]];
+             search(nextNums, nextTools, [...currentMoves, { tool: 'longswap', index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` }]);
+          }
+        }
+      }
     }
   };
 
-  search(initialNums, initialTools, []);
+  search(initialNums, availableTools, []);
   return { score: maxScore, moves: bestMoves };
 };
 
@@ -196,7 +234,7 @@ export const lengthFromLevel = (level: number): number => {
 
 // Apply a move to a list and return the new list
 export const applyMove = (list: CardItem[], tool: ToolType, index: number, selection?: number | null): CardItem[] => {
-    const newList = [...list];
+    let newList = [...list];
 
     if (tool === 'purge') {
         newList.splice(index, 1);
@@ -209,31 +247,86 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
         const [moved] = newList.splice(index, 1);
         newList.push(moved);
     }
-    else if (tool === 'swap') {
-        // Check selection for swap
-        // Logic for swap might differ slightly between app (interaction) and solver (moves)
-        // In solver, swap is always i and i+1
-        // In app, it depends on selection.
-        // For general "applyMove", let's assume valid neighbor swap if selection is provided?
-        // Actually, the App's executeMove handles the logic of "checking if neighbor".
-        // Here we just want the transformation.
-        // If selection is provided and index is different, swap them.
-        // If selection is not provided, maybe assume index and index+1?
-        // Let's mirror what SolverApp needs: index and index+1.
+    else if (tool === 'cut') {
+        newList[index] = { ...newList[index], val: Math.floor(newList[index].val / 2) };
+    }
+    else if (tool === 'consolidate') {
+         // App Mode: merge selection and index (must be adjacent)
+         // Solver Mode: merge index and index+1
+         let firstIdx = index;
+         if (selection !== undefined && selection !== null) {
+             firstIdx = Math.min(index, selection);
+             // Ensure adjacency check happens in UI logic, here we just execute
+         }
 
-        // Wait, App has two clicks for swap. Solver has one move definition (index means index & index+1).
+         if (firstIdx < newList.length - 1) {
+            const sum = newList[firstIdx].val + newList[firstIdx+1].val;
+            // Create new item, remove both
+            // We reuse the ID of the first one? Or create new?
+            // Reusing ID of first is fine for React keys as long as second is removed.
+            const newItem = { ...newList[firstIdx], val: sum };
+            newList.splice(firstIdx, 2, newItem);
+         }
+    }
+    else if (tool === 'equalize') {
+        let idx1 = index;
+        let idx2 = index + 1;
 
         if (selection !== undefined && selection !== null) {
-            // App mode: swap selection and index
+            idx1 = index;
+            idx2 = selection;
+        }
+
+        if (idx1 >= 0 && idx1 < newList.length && idx2 >= 0 && idx2 < newList.length) {
+            const min = Math.min(newList[idx1].val, newList[idx2].val);
+            newList[idx1] = { ...newList[idx1], val: min };
+            newList[idx2] = { ...newList[idx2], val: min };
+        }
+    }
+    else if (tool === 'swap') {
+        if (selection !== undefined && selection !== null) {
              [newList[selection], newList[index]] = [newList[index], newList[selection]];
         } else {
-            // Solver/Simple mode: swap index and index+1
             if (index < newList.length - 1) {
                 [newList[index], newList[index+1]] = [newList[index+1], newList[index]];
             }
         }
     }
+    else if (tool === 'longswap') {
+        if (selection !== undefined && selection !== null) {
+             [newList[selection], newList[index]] = [newList[index], newList[selection]];
+        } else {
+             // Solver passes targetIndex in `selection`?
+             // Wait, applyMove signature has `selection?: number`.
+             // In Solver loop: `index: i, targetIndex: j`.
+             // `findOptimalSolution` stores `targetIndex`.
+             // So when replaying moves (SolverApp), we should pass targetIndex as selection.
+             if (selection !== undefined && selection !== null) {
+                [newList[selection], newList[index]] = [newList[index], newList[selection]];
+             } else {
+                 // Fallback if no target provided (shouldn't happen for valid longswap move)
+             }
+        }
+    }
     return newList;
+};
+
+// Generate 4 tools from the pool
+export const generateTools = (seed?: number): ToolInstance[] => {
+    const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
+    const tools: ToolInstance[] = [];
+
+    // Pick 4 tools allowing duplicates
+    for (let i = 0; i < 4; i++) {
+        const typeIdx = Math.floor(random() * ALL_TOOL_TYPES.length);
+        const type = ALL_TOOL_TYPES[typeIdx] as ToolType;
+        tools.push({
+            instanceId: `tool-${i}-${Math.random().toString(36).substr(2, 5)}`,
+            type: type,
+            used: false
+        });
+    }
+    return tools;
 };
 
 // Utility to generate random levels

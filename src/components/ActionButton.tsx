@@ -3,14 +3,16 @@ import { ToolDefinition } from '../../types';
 
 interface ActionButtonProps {
   tool: ToolDefinition;
+  instanceId?: string;
   isActive: boolean;
   isUsed: boolean;
   isDisabled: boolean;
-  onClick: (toolId: string) => void;
+  onClick: (id: string) => void;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
   tool,
+  instanceId,
   isActive,
   isUsed,
   isDisabled,
@@ -22,7 +24,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
     <button
       onClick={(e) => {
         e.stopPropagation();
-        onClick(tool.id);
+        onClick(instanceId || tool.id);
       }}
       disabled={isDisabled}
       title={tool.desc}

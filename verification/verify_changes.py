@@ -1,42 +1,42 @@
 
 from playwright.sync_api import sync_playwright
+import time
 
-def verify_changes():
+def verify_daily_tools():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        # 1. Navigate to the app (using port 3000 as per log)
-        page.goto("http://localhost:3000/TheGreatSort/")
+        # Navigate to the app (Port 5173 according to explicit start)
+        page.goto("http://localhost:5173/")
 
-        # Wait for app to load
-        page.wait_for_selector("h1")
+        # Wait for app to load - Look for "The Great Sort" title instead of "Day 1" as Day 1 might not be visible in all modes
+        # But Daily starts in Daily mode which usually has no "Level" header unless I check code.
+        # Actually Daily Mode has "DAILY CHALLENGE" or similar text?
+        # Let's wait for the Tool Belt which is key.
+        page.wait_for_selector("button[title]", timeout=10000)
 
-        # 2. Check Daily Mode (Default)
-        # Should NOT see "Quota Level" or "Current Yield" in Header
+        # Take screenshot of the initial state (Daily Mode)
         page.screenshot(path="verification/step1_daily.png")
         print("Daily mode screenshot taken.")
 
-        # 3. Change to Career Mode to check Header Stats
-        # Click Mode button -> Career
-        page.get_by_role("button", name="Mode:").click()
+        # Switch to Career Mode to verify it generates tools
+        # Try finding button by role or text.
         page.get_by_role("button", name="CAREER").click()
 
-        # Wait for Career mode
-        # Header should now show "Day" and "Overall Eff."
-        # Use simple text matching
-        page.wait_for_selector("text=Day")
-        page.wait_for_selector("text=Overall Eff.")
-
+        time.sleep(1) # Wait for state update
         page.screenshot(path="verification/step2_career.png")
         print("Career mode screenshot taken.")
 
-        # 4. Check Action Buttons styling
-        footer = page.locator("footer")
-        footer.screenshot(path="verification/step4_footer.png")
-        print("Footer screenshot taken.")
+        # Switch to Practice
+        page.get_by_role("button", name="PRACTICE").click()
+        time.sleep(1)
+
+        # Take final screenshot
+        page.screenshot(path="verification/step3_practice.png")
+        print("Practice mode screenshot taken.")
 
         browser.close()
 
 if __name__ == "__main__":
-    verify_changes()
+    verify_daily_tools()

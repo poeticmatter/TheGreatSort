@@ -68,6 +68,30 @@ export default function TheGreatSort() {
   const { state, actions } = useGame();
   const { isPlaying, toggleMusic } = useMusic();
 
+  // Helper to determine if we should highlight candidates
+  const isCandidate = (idx: number) => {
+    if (state.phase !== GamePhase.PLANNING) return false;
+    if (state.selection === null) return false;
+    if (!state.selectedTool) return false; // Tool ID (instance)
+
+    // Find tool type
+    const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedTool);
+    if (!toolInstance) return false;
+
+    const toolType = toolInstance.type;
+    const diff = Math.abs(state.selection - idx);
+
+    if (toolType === 'swap' || toolType === 'consolidate' || toolType === 'equalize') {
+        // Adjacent only
+        return diff === 1;
+    } else if (toolType === 'longswap') {
+        // Non-adjacent only
+        return diff > 1;
+    }
+
+    return false;
+  };
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
 
@@ -119,12 +143,7 @@ export default function TheGreatSort() {
                     mobileDirection={getSnakeDirection(idx, state.list.length)}
                     onClick={actions.handleCardClick}
                     isSelected={state.selection === idx}
-                    isTargetCandidate={
-                      state.phase === GamePhase.PLANNING &&
-                      state.selectedTool === 'swap' &&
-                      state.selection !== null &&
-                      Math.abs(state.selection - idx) === 1
-                    }
+                    isTargetCandidate={isCandidate(idx)}
                   />
                 ))}
               </div>

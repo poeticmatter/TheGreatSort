@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { CardItem, ToolType } from '../types';
-import { generateLevel, findOptimalSolution, Solution, Move, stringToSeed, applyMove } from './utils/gameLogic';
+import { generateLevel, findOptimalSolution, Solution, Move, stringToSeed, applyMove, generateTools } from './utils/gameLogic';
 import { getTodayDateString } from './utils/dateUtils';
 import Card from './components/Card';
-import { ArrowRight, ArrowRightToLine, ArrowLeftToLine, Trash2, ArrowRightLeft, Calendar } from 'lucide-react';
+import { TOOLS } from './constants';
+import { ArrowRight, Calendar } from 'lucide-react';
 
 export default function SolverApp() {
   const [seqLength, setSeqLength] = useState(9);
   const [sequence, setSequence] = useState<CardItem[]>([]);
   const [solution, setSolution] = useState<Solution | null>(null);
   const [isSolving, setIsSolving] = useState(false);
+  const [tools, setTools] = useState<ToolType[]>(['swap', 'purge', 'promote', 'demote']);
 
   const handleGenerate = () => {
     const newSeq = generateLevel(seqLength);
     setSequence(newSeq);
     setSolution(null);
+    // Random tools for solver
+    const generated = generateTools().map(t => t.type);
+    setTools(generated);
   };
 
   const handleLoadDaily = () => {
@@ -24,6 +29,8 @@ export default function SolverApp() {
     setSeqLength(9);
     setSequence(newSeq);
     setSolution(null);
+    const generated = generateTools(seed).map(t => t.type);
+    setTools(generated);
   };
 
   const handleSolve = () => {
@@ -31,20 +38,15 @@ export default function SolverApp() {
     setIsSolving(true);
     // Use timeout to allow UI to update
     setTimeout(() => {
-      const sol = findOptimalSolution(sequence);
+      const sol = findOptimalSolution(sequence, tools);
       setSolution(sol);
       setIsSolving(false);
     }, 100);
   };
 
   const renderToolIcon = (tool: ToolType) => {
-    switch(tool) {
-        case 'demote': return <ArrowLeftToLine size={16} />;
-        case 'promote': return <ArrowRightToLine size={16} />;
-        case 'purge': return <Trash2 size={16} />;
-        case 'swap': return <ArrowRightLeft size={16} />;
-        default: return null;
-    }
+    const ToolIcon = TOOLS[tool.toUpperCase()]?.icon;
+    return ToolIcon ? <ToolIcon size={16} /> : null;
   };
 
   // Helper to reconstruct state after moves
@@ -56,7 +58,7 @@ export default function SolverApp() {
     states.push({ move: null, seq: currentSeq });
 
     moves.forEach(move => {
-        const nextSeq = applyMove(currentSeq, move.tool, move.index);
+        const nextSeq = applyMove(currentSeq, move.tool, move.index, move.targetIndex);
         states.push({ move, seq: nextSeq });
         currentSeq = nextSeq;
     });
@@ -110,13 +112,26 @@ export default function SolverApp() {
             </button>
         </div>
 
+        {/* Tools Display */}
+        {sequence.length > 0 && (
+             <div className="bg-stone-900 p-4 rounded border border-stone-700 flex gap-4 items-center">
+                 <span className="text-sm text-stone-500 uppercase">Tools:</span>
+                 {tools.map((t, i) => (
+                     <div key={i} className="flex items-center gap-1 bg-stone-800 px-2 py-1 rounded text-amber-500 border border-stone-600 text-sm">
+                         {renderToolIcon(t)}
+                         <span>{TOOLS[t.toUpperCase()]?.name}</span>
+                     </div>
+                 ))}
+             </div>
+        )}
+
         {/* Initial Sequence */}
         {sequence.length > 0 && (
             <div className="bg-stone-950 p-6 rounded border border-stone-800">
                 <h2 className="text-stone-500 uppercase tracking-widest text-sm mb-4">Initial Sequence</h2>
                 <div className="flex gap-2 flex-wrap">
                     {sequence.map((item) => (
-                        <Card key={item.id} item={item} onClick={() => {}} />
+                        <Card key={item.id} item={item} onClick={() => {}} isSelected={false} isTargetCandidate={false} />
                     ))}
                 </div>
             </div>
@@ -150,7 +165,7 @@ export default function SolverApp() {
 
                             <div className="flex gap-2 flex-wrap opacity-90 scale-90 origin-top-left">
                                 {step.seq.map((item) => (
-                                    <Card key={item.id} item={item} onClick={() => {}} />
+                                    <Card key={item.id} item={item} onClick={() => {}} isSelected={false} isTargetCandidate={false} />
                                 ))}
                             </div>
 

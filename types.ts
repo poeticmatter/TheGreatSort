@@ -9,7 +9,7 @@ export interface CardItem {
   linkScore: number | null;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote';
+export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'consolidate' | 'equalize' | 'cut';
 
 export interface ToolDefinition {
   id: ToolType;
@@ -18,17 +18,16 @@ export interface ToolDefinition {
   desc: string;
 }
 
+export interface ToolInstance {
+  instanceId: string;
+  type: ToolType;
+  used: boolean;
+}
+
 export enum GamePhase {
   PLANNING = 'planning',
   INSPECTING = 'inspecting',
   RESULTS = 'results',
-}
-
-export interface ToolsAvailable {
-  swap: boolean;
-  purge: boolean;
-  promote: boolean;
-  demote: boolean;
 }
 
 export type GameMode = 'CAREER' | 'DAILY' | 'PRACTICE';
