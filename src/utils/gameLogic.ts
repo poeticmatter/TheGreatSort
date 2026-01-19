@@ -155,63 +155,48 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
 
       if (tool === 'purge') {
         for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = [...currentNums];
-          nextNums.splice(i, 1);
+          const nextNums = applyMove(currentNums, 'purge', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'purge', index: i, description: `Purge item at index ${i}` }]);
         }
       } 
       else if (tool === 'demote') { 
         for (let i = 1; i < currentNums.length; i++) {
-          const nextNums = [...currentNums];
-          const [moved] = nextNums.splice(i, 1);
-          nextNums.unshift(moved);
+          const nextNums = applyMove(currentNums, 'demote', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'demote', index: i, description: `Demote item at index ${i}` }]);
         }
       }
       else if (tool === 'promote') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = [...currentNums];
-          const [moved] = nextNums.splice(i, 1);
-          nextNums.push(moved);
+          const nextNums = applyMove(currentNums, 'promote', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'promote', index: i, description: `Promote item at index ${i}` }]);
         }
       }
       else if (tool === 'swap') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = [...currentNums];
-          [nextNums[i], nextNums[i+1]] = [nextNums[i+1], nextNums[i]];
+          const nextNums = applyMove(currentNums, 'swap', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
         }
       }
       else if (tool === 'halve') {
         for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = [...currentNums];
-          nextNums[i] = Math.floor(nextNums[i] / 2);
+          const nextNums = applyMove(currentNums, 'halve', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'halve', index: i, description: `Halve item at index ${i}` }]);
         }
       }
       else if (tool === 'merge') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = [...currentNums];
-          const sum = nextNums[i] + nextNums[i+1];
-          nextNums.splice(i, 2, sum); // Remove 2 items, insert sum
+          const nextNums = applyMove(currentNums, 'merge', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'merge', index: i, description: `Merge items at index ${i}` }]);
         }
       }
       else if (tool === 'sink') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = [...currentNums];
-          const min = Math.min(nextNums[i], nextNums[i+1]);
-          nextNums[i] = min;
-          nextNums[i+1] = min;
+          const nextNums = applyMove(currentNums, 'sink', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'sink', index: i, description: `Sink items at index ${i}` }]);
         }
       } else if (tool === 'float') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = [...currentNums];
-          const max = Math.max(nextNums[i], nextNums[i+1]);
-          nextNums[i] = max;
-          nextNums[i+1] = max;
+          const nextNums = applyMove(currentNums, 'float', i) as number[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'float', index: i, description: `Float items at index ${i}` }]);
         }
       }
@@ -221,8 +206,7 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
         // j from i+2 to N-1
         for (let i = 0; i < currentNums.length - 2; i++) {
           for (let j = i + 2; j < currentNums.length; j++) {
-             const nextNums = [...currentNums];
-             [nextNums[i], nextNums[j]] = [nextNums[j], nextNums[i]];
+             const nextNums = applyMove(currentNums, 'longswap', i, j) as number[];
              search(nextNums, nextTools, [...currentMoves, { tool: 'longswap', index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` }]);
           }
         }
@@ -241,8 +225,23 @@ export const lengthFromLevel = (level: number): number => {
 };
 
 // Apply a move to a list and return the new list
-export const applyMove = (list: CardItem[], tool: ToolType, index: number, selection?: number | null): CardItem[] => {
-    let newList = [...list];
+export function applyMove(list: number[], tool: ToolType, index: number, selection?: number | null): number[];
+export function applyMove(list: CardItem[], tool: ToolType, index: number, selection?: number | null): CardItem[];
+export function applyMove(list: (number | CardItem)[], tool: ToolType, index: number, selection?: number | null): (number | CardItem)[] {
+    const newList = [...list];
+
+    const getValue = (i: number) => {
+        const item = newList[i];
+        return typeof item === 'number' ? item : item.val;
+    };
+
+    const updateValue = (i: number, val: number) => {
+        if (typeof newList[i] === 'number') {
+            (newList as number[])[i] = val;
+        } else {
+            (newList as CardItem[])[i] = { ...(newList as CardItem[])[i], val };
+        }
+    };
 
     if (tool === 'purge') {
         newList.splice(index, 1);
@@ -256,24 +255,22 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
         newList.push(moved);
     }
     else if (tool === 'halve') {
-        newList[index] = { ...newList[index], val: Math.floor(newList[index].val / 2) };
+        updateValue(index, Math.floor(getValue(index) / 2));
     }
     else if (tool === 'merge') {
-         // App Mode: merge selection and index (must be adjacent)
-         // Solver Mode: merge index and index+1
          let firstIdx = index;
          if (selection !== undefined && selection !== null) {
              firstIdx = Math.min(index, selection);
-             // Ensure adjacency check happens in UI logic, here we just execute
          }
 
          if (firstIdx < newList.length - 1) {
-            const sum = newList[firstIdx].val + newList[firstIdx+1].val;
-            // Create new item, remove both
-            // We reuse the ID of the first one? Or create new?
-            // Reusing ID of first is fine for React keys as long as second is removed.
-            const newItem = { ...newList[firstIdx], val: sum };
-            newList.splice(firstIdx, 2, newItem);
+            const sum = getValue(firstIdx) + getValue(firstIdx+1);
+            if (typeof newList[firstIdx] === 'number') {
+                newList.splice(firstIdx, 2, sum);
+            } else {
+                const newItem = { ...(newList[firstIdx] as CardItem), val: sum };
+                newList.splice(firstIdx, 2, newItem);
+            }
          }
     }
     else if (tool === 'sink') {
@@ -286,9 +283,24 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
         }
 
         if (idx1 >= 0 && idx1 < newList.length && idx2 >= 0 && idx2 < newList.length) {
-            const min = Math.min(newList[idx1].val, newList[idx2].val);
-            newList[idx1] = { ...newList[idx1], val: min };
-            newList[idx2] = { ...newList[idx2], val: min };
+            const min = Math.min(getValue(idx1), getValue(idx2));
+            updateValue(idx1, min);
+            updateValue(idx2, min);
+        }
+    }
+    else if (tool === 'float') {
+        let idx1 = index;
+        let idx2 = index + 1;
+
+        if (selection !== undefined && selection !== null) {
+            idx1 = index;
+            idx2 = selection;
+        }
+
+        if (idx1 >= 0 && idx1 < newList.length && idx2 >= 0 && idx2 < newList.length) {
+            const max = Math.max(getValue(idx1), getValue(idx2));
+            updateValue(idx1, max);
+            updateValue(idx2, max);
         }
     }
     else if (tool === 'swap') {
@@ -303,21 +315,10 @@ export const applyMove = (list: CardItem[], tool: ToolType, index: number, selec
     else if (tool === 'longswap') {
         if (selection !== undefined && selection !== null) {
              [newList[selection], newList[index]] = [newList[index], newList[selection]];
-        } else {
-             // Solver passes targetIndex in `selection`?
-             // Wait, applyMove signature has `selection?: number`.
-             // In Solver loop: `index: i, targetIndex: j`.
-             // `findOptimalSolution` stores `targetIndex`.
-             // So when replaying moves (SolverApp), we should pass targetIndex as selection.
-             if (selection !== undefined && selection !== null) {
-                [newList[selection], newList[index]] = [newList[index], newList[selection]];
-             } else {
-                 // Fallback if no target provided (shouldn't happen for valid longswap move)
-             }
         }
     }
     return newList;
-};
+}
 
 // Generate 4 tools from the pool
 export const generateTools = (seed?: number): ToolInstance[] => {
