@@ -1,7 +1,7 @@
 import React from 'react';
 import { CardItem, CardStatus } from '../../types';
 
-import { ArrowBigRightDash } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 interface CardProps {
   item: CardItem;
@@ -83,21 +83,21 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
              absolute pointer-events-none text-amber-500/80
              transition-all duration-300 z-0 flex items-center justify-center
 
-             /* Mobile: Right (Gap 20px -> Center at 12px) */
-             ${mobileDirection === 'right' ? 'left-[calc(100%+12px)] top-1/2 -translate-y-1/2 -translate-x-1/2' : ''}
+             /* Mobile: Right (Gap 20px -> Center at 9px) */
+             ${mobileDirection === 'right' ? 'left-[calc(100%+9px)] top-1/2 -translate-y-1/2 -translate-x-1/2' : ''}
 
-             /* Mobile: Left (Gap 20px -> Center at 12px) */
-             ${mobileDirection === 'left' ? 'right-[calc(100%+12px)] top-1/2 -translate-y-1/2 translate-x-1/2 rotate-180' : ''}
+             /* Mobile: Left (Gap 20px -> Center at 9px) */
+             ${mobileDirection === 'left' ? 'right-[calc(100%+9px)] top-1/2 -translate-y-1/2 translate-x-1/2 rotate-180' : ''}
 
-             /* Mobile: Down (Gap 20px -> Center at 12px) */
-             ${mobileDirection === 'down' ? 'top-[calc(100%+12px)] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90' : ''}
+             /* Mobile: Down (Gap 20px -> Center at 9px) */
+             ${mobileDirection === 'down' ? 'top-[calc(100%+9px)] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90' : ''}
 
              /* Desktop Override: Always Right (Gap 24px -> Center at 14px) */
              sm:left-[calc(100%+14px)] sm:right-auto sm:top-1/2 sm:bottom-auto
              sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0
            `}
          >
-           <ArrowBigRightDash size={20} />
+           <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-amber-500" />
          </div>
       )}
 
