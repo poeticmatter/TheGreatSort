@@ -2,12 +2,15 @@ import { LucideIcon } from 'lucide-react';
 
 export type CardStatus = 'pending' | 'scanning' | 'safe' | 'eliminated';
 
-export interface CardItem {
-  id: string;
+export interface ISortable {
   val: number;
+  hasShield?: boolean;
+}
+
+export interface CardItem extends ISortable {
+  id: string;
   status: CardStatus;
   linkScore: number | null;
-  hasShield?: boolean;
 }
 
 export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'float' | 'halve' | 'shield' | 'grow' | 'shrink' | 'hop' | 'mirror';

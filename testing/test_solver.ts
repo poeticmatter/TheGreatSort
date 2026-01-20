@@ -7,23 +7,23 @@ const list: CardItem[] = [
     { id: '3', val: 5, status: 'pending', linkScore: null }
 ];
 
-const tools: ToolType[] = ['consolidate', 'equalize'];
+const tools: ToolType[] = ['merge', 'sink'];
 
 console.log("Starting test...");
 console.log("List:", list.map(i => i.val));
 console.log("Tools:", tools);
 
 // Expected:
-// Order Equalize(0) -> [10, 10, 5]. Then Consolidate(0) -> [20, 5]. Score 25.
-// Order Consolidate(0) -> [30, 5]. Then Equalize(0) -> [5, 5]. Score 10.
-// Max Score should be 25.
+// Order Sink(0) -> [10, 10, 5]. Then Merge(0) -> [20, 5]. Score 25.
+// Order Merge(0) -> [30, 5]. Score 35 (30 survives + 5 survives DESC).
+// Max Score should be 35.
 
 const solution = findOptimalSolution(list, tools);
 
 console.log('Found Score:', solution.score);
 console.log('Moves:', JSON.stringify(solution.moves, null, 2));
 
-if (solution.score === 25) {
+if (solution.score === 35) {
     console.log("SUCCESS: Solver found the optimal order.");
 } else {
     console.log("FAILURE: Solver missed the optimal order.");
