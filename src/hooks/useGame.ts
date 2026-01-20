@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CardItem, GamePhase, GameMode, ToolInstance, ToolType } from '../../types';
-import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, generateTools } from '../utils/gameLogic';
+import { generateLevel, findOptimalScore, lengthFromLevel, stringToSeed, applyMove, Move, DailyState, generateTools, createInspectionStream, InspectionYield } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 
@@ -32,9 +32,7 @@ export function useGame() {
 
   // --- Refs ---
   const inspectionIndex = useRef(0);
-  const lastSurvivorVal = useRef<number | null>(null);
-  const lastSurvivorHasShield = useRef(false);
-  const sortDirection = useRef<'ASC' | 'DESC' | null>(null);
+  const inspectionIterator = useRef<Generator<InspectionYield> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef(list);
 
@@ -248,8 +246,7 @@ export function useGame() {
     setSelectedToolInstanceId(null);
     setSelection(null);
     inspectionIndex.current = 0;
-    lastSurvivorVal.current = null;
-    sortDirection.current = null;
+    inspectionIterator.current = null;
   };
 
   const changeMode = (newMode: GameMode) => {
@@ -424,81 +421,69 @@ export function useGame() {
   // --- Inspection Logic ---
 
   const processNextStepWrapper = useCallback(() => {
-     if (inspectionIndex.current >= listRef.current.length) {
+     if (!inspectionIterator.current) return;
+
+     const result = inspectionIterator.current.next();
+
+     if (result.done) {
          setPhase(GamePhase.RESULTS);
          setDailyCompleted(prev => gameMode === 'DAILY' ? true : prev);
          return;
      }
 
-     const idx = inspectionIndex.current;
+     const { list: updatedList, scoreDelta, detectedMode: mode } = result.value;
 
-     setList(prev => prev.map((item, i) => i === idx ? { ...item, status: 'scanning' } : item));
+     setList(updatedList);
+     if (scoreDelta > 0) {
+        setLevelScore(prev => prev + scoreDelta);
+     }
+     if (mode !== null) {
+        setDetectedMode(mode);
+     }
 
-     timeoutRef.current = setTimeout(() => {
-         const currentItem = listRef.current[idx];
-         const currentVal = currentItem.val;
-         const currentHasShield = currentItem.hasShield || false;
-         let survived = false;
-         let pointsToAdd = 0;
+     // The generator yields twice per card (Scanning -> Result).
+     // We simply tick forward. The delay between states is controlled here.
+     // Scanning state delay is 400ms, Result state delay is 600ms (Total 1000ms per card)
+     // BUT, in the generator stream, we get 1 yield per state.
+     // So we need to alternate delays or just pick a fixed one?
+     //
+     // Previous Logic:
+     // 1. set scanning immediately.
+     // 2. setTimeout(400) -> compute result -> set safe/elim -> setTimeout(600) -> recurse.
+     //
+     // New Logic:
+     // Yield 1 (Scanning) -> Wait 400ms -> Yield 2 (Result) -> Wait 600ms -> Yield 3 (Next Scanning)...
 
-         if (idx === 0) {
-             survived = true;
-             lastSurvivorVal.current = currentVal;
-             lastSurvivorHasShield.current = currentHasShield;
-         } else if (idx === 1) {
-             survived = true;
-             const prevVal = lastSurvivorVal.current!;
-             if (currentVal >= prevVal) sortDirection.current = 'ASC';
-             else sortDirection.current = 'DESC';
-             lastSurvivorVal.current = currentVal;
-             setDetectedMode(sortDirection.current);
-         } else {
-             if (lastSurvivorHasShield.current) {
-                 survived = true;
-             } else {
-                 const threshold = lastSurvivorVal.current!;
-                 const mode = sortDirection.current || 'ASC';
-                 if (mode === 'ASC') {
-                     if (currentVal >= threshold) survived = true;
-                 } else {
-                     if (currentVal <= threshold) survived = true;
-                 }
-             }
+     // We can determine which delay to use based on the status of the CURRENT item being processed.
+     // But wait, the yield gives the WHOLE list.
+     // We can look at the item at the current `inspectionIndex`.
+     // OR simpler: we can toggle a delay.
 
-             if (survived) {
-                 lastSurvivorVal.current = currentVal;
-                 lastSurvivorHasShield.current = currentHasShield;
-             }
-         }
+     // Actually, we can check the status of the item at the *current inspection index*.
+     // Wait, `inspectionIndex` needs to be managed or derived.
+     // The yield returns `index`.
 
-         if (survived) {
-             pointsToAdd = currentVal;
-             setLevelScore(prev => prev + pointsToAdd);
-         }
+     const currentIndex = result.value.index;
+     const currentItem = updatedList[currentIndex];
 
-         setList(prevList => {
-             const newList = [...prevList];
-             if (survived) {
-                 newList[idx] = { ...currentItem, status: 'safe', linkScore: pointsToAdd };
-             } else {
-                 newList[idx] = { ...currentItem, status: 'eliminated' };
-             }
-             return newList;
-         });
+     let delay = 400;
+     if (currentItem.status === 'safe' || currentItem.status === 'eliminated') {
+         delay = 600;
+     }
 
-         inspectionIndex.current++;
-         timeoutRef.current = setTimeout(processNextStepWrapper, 600);
-     }, 400);
+     timeoutRef.current = setTimeout(processNextStepWrapper, delay);
 
   }, [gameMode]);
 
   const startInspection = () => {
     setPhase(GamePhase.INSPECTING);
     inspectionIndex.current = 0;
-    lastSurvivorVal.current = null;
-    lastSurvivorHasShield.current = false;
-    sortDirection.current = null;
     setDetectedMode(null);
+
+    // Initialize generator
+    inspectionIterator.current = createInspectionStream(listRef.current);
+
+    // Kick off
     processNextStepWrapper();
   };
 
