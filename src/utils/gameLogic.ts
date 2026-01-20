@@ -23,6 +23,84 @@ export interface Solution {
   moves: Move[];
 }
 
+export interface InspectionYield {
+  list: CardItem[];
+  index: number;
+  scoreDelta: number;
+  detectedMode: 'ASC' | 'DESC' | null;
+}
+
+export function* createInspectionStream(initialList: CardItem[]): Generator<InspectionYield> {
+  const list = initialList.map(item => ({ ...item }));
+  let lastSurvivorVal: number | null = null;
+  let lastSurvivorHasShield = false;
+  let sortDirection: 'ASC' | 'DESC' | null = null;
+
+  for (let i = 0; i < list.length; i++) {
+    // 1. Yield Scanning State
+    list[i] = { ...list[i], status: 'scanning' };
+    yield {
+      list: [...list],
+      index: i,
+      scoreDelta: 0,
+      detectedMode: sortDirection
+    };
+
+    // 2. Process Logic
+    const currentItem = list[i];
+    const currentVal = currentItem.val;
+    const currentHasShield = currentItem.hasShield || false;
+    let survived = false;
+    let pointsToAdd = 0;
+
+    if (i === 0) {
+      survived = true;
+      lastSurvivorVal = currentVal;
+      lastSurvivorHasShield = currentHasShield;
+    } else if (i === 1) {
+      survived = true;
+      const prevVal = lastSurvivorVal!;
+      if (currentVal >= prevVal) sortDirection = 'ASC';
+      else sortDirection = 'DESC';
+      lastSurvivorVal = currentVal;
+      lastSurvivorHasShield = currentHasShield; // Update to current
+    } else {
+      if (lastSurvivorHasShield) {
+        survived = true;
+      } else {
+        const threshold = lastSurvivorVal!;
+        const mode = sortDirection || 'ASC';
+        if (mode === 'ASC') {
+          if (currentVal >= threshold) survived = true;
+        } else {
+          if (currentVal <= threshold) survived = true;
+        }
+      }
+
+      if (survived) {
+        lastSurvivorVal = currentVal;
+        lastSurvivorHasShield = currentHasShield; // Update to current
+      }
+    }
+
+    // 3. Update Result State
+    if (survived) {
+      pointsToAdd = currentVal;
+      list[i] = { ...currentItem, status: 'safe', linkScore: pointsToAdd };
+    } else {
+      list[i] = { ...currentItem, status: 'eliminated' };
+    }
+
+    // 4. Yield Result
+    yield {
+      list: [...list],
+      index: i,
+      scoreDelta: pointsToAdd,
+      detectedMode: sortDirection
+    };
+  }
+}
+
 // Simple PRNG (Mulberry32)
 function mulberry32(a: number) {
   return function() {
@@ -93,54 +171,23 @@ export const calculateBatchScore = (numbers: SortableItem[]): number => {
 
 // Evaluate list to produce final scored items (for visual restoration)
 export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardItem[] } => {
-  const gradedList = list.map(item => ({ ...item })); // Clone
-  if (gradedList.length === 0) return { score: 0, gradedList };
+  if (list.length === 0) return { score: 0, gradedList: [] };
 
-  let score = 0;
-  let lastSurvivor = 0;
-  let lastSurvivorHasShield = false;
-  let mode: 'ASC' | 'DESC' | null = null;
+  const generator = createInspectionStream(list);
+  let finalYield: InspectionYield | null = null;
+  let totalScore = 0;
 
-  for (let i = 0; i < gradedList.length; i++) {
-    const item = gradedList[i];
-    const currentVal = item.val;
-    const currentHasShield = item.hasShield || false;
-    let survived = false;
-
-    if (i === 0) {
-      survived = true;
-      lastSurvivor = currentVal;
-      lastSurvivorHasShield = currentHasShield;
-    } else if (i === 1) {
-      survived = true;
-      if (currentVal >= lastSurvivor) mode = 'ASC';
-      else mode = 'DESC';
-    } else {
-      if (lastSurvivorHasShield) {
-          survived = true;
-      } else {
-          const effectiveMode = mode || 'ASC';
-          if (effectiveMode === 'ASC') {
-            if (currentVal >= lastSurvivor) survived = true;
-          } else {
-            if (currentVal <= lastSurvivor) survived = true;
-          }
-      }
-    }
-
-    if (survived) {
-      score += currentVal;
-      lastSurvivor = currentVal;
-      lastSurvivorHasShield = currentHasShield;
-      item.status = 'safe';
-      item.linkScore = currentVal;
-    } else {
-      item.status = 'eliminated';
-      item.linkScore = null;
-    }
+  let result = generator.next();
+  while (!result.done) {
+    finalYield = result.value;
+    totalScore += finalYield.scoreDelta;
+    result = generator.next();
   }
 
-  return { score, gradedList };
+  // Use the list from the last yield, or original if empty
+  const gradedList = finalYield ? finalYield.list : list;
+
+  return { score: totalScore, gradedList };
 };
 
 // Recursive Solver to find the theoretical maximum score
