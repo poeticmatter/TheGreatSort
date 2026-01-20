@@ -1,14 +1,14 @@
-import { CardItem, ToolType } from '../types';
+import { CardItem, ToolType, ISortable } from '../types';
 import { calculateBatchScore, Move } from '../src/utils/gameLogic';
 
 // Copy of findOptimalSolution with logging
 const findOptimalSolutionTrace = (startList: CardItem[], availableTools: ToolType[]): { maxScore: number, paths: string[] } => {
-  const initialNums = startList.map(item => item.val);
+  const initialNums: ISortable[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
   
   let maxScore = -1;
   const paths: string[] = [];
 
-  const search = (currentNums: number[], currentTools: ToolType[], currentMoves: Move[]) => {
+  const search = (currentNums: ISortable[], currentTools: ToolType[], currentMoves: Move[]) => {
     const currentScore = calculateBatchScore(currentNums);
     if (currentScore > maxScore) {
       maxScore = currentScore;
@@ -44,7 +44,7 @@ const list: CardItem[] = [
     { id: '1', val: 10, status: 'pending', linkScore: null }
 ];
 
-const tools: ToolType[] = ['consolidate', 'equalize'];
+const tools: ToolType[] = ['merge', 'sink'];
 
 console.log("Tracing solver exploration...");
 const result = findOptimalSolutionTrace(list, tools);
