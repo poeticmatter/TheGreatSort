@@ -59,6 +59,14 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       break;
   }
 
+  // Shield Visuals (Override)
+  if (item.hasShield) {
+    borderColor = "border-blue-500 border-4";
+    if (item.status !== 'eliminated') {
+         shadow = "shadow-[0_0_15px_rgba(59,130,246,0.6)]";
+    }
+  }
+
   return (
     <div 
       style={style}

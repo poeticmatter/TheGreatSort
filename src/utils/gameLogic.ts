@@ -1,6 +1,9 @@
 import { CardItem, ToolType, GamePhase, ToolInstance } from '../../types';
 import { ALL_TOOL_TYPES } from '../constants';
 
+export type SolverItem = { val: number; hasShield?: boolean };
+export type SortableItem = number | SolverItem;
+
 export interface Move {
   tool: ToolType;
   index: number;
@@ -39,39 +42,50 @@ export const stringToSeed = (str: string): number => {
 };
 
 // Pure function to calculate score for a given number array
-export const calculateBatchScore = (numbers: number[]): number => {
+// Pure function to calculate score for a given number array
+export const calculateBatchScore = (numbers: SortableItem[]): number => {
   if (!numbers || numbers.length === 0) return 0;
   
   let score = 0;
   let lastSurvivor = 0;
+  let lastSurvivorHasShield = false;
   let mode: 'ASC' | 'DESC' | null = null;
 
   // Iterate
   for (let i = 0; i < numbers.length; i++) {
-    const currentVal = numbers[i];
+    const item = numbers[i];
+    const currentVal = typeof item === 'number' ? item : item.val;
+    const currentHasShield = typeof item === 'number' ? false : (item.hasShield || false);
     let survived = false;
 
     if (i === 0) {
       survived = true;
       lastSurvivor = currentVal;
+      lastSurvivorHasShield = currentHasShield;
     } else if (i === 1) {
       survived = true;
       // Determine mode based on first two items
       if (currentVal >= lastSurvivor) mode = 'ASC';
       else mode = 'DESC';
     } else {
-      // i > 1
-      const effectiveMode = mode || 'ASC'; // Default to ASC if undefined (though i=1 handles it)
-      if (effectiveMode === 'ASC') {
-        if (currentVal >= lastSurvivor) survived = true;
+      // Check if protected by previous survivor
+      if (lastSurvivorHasShield) {
+          survived = true;
       } else {
-        if (currentVal <= lastSurvivor) survived = true;
+          // Normal logic
+          const effectiveMode = mode || 'ASC';
+          if (effectiveMode === 'ASC') {
+            if (currentVal >= lastSurvivor) survived = true;
+          } else {
+            if (currentVal <= lastSurvivor) survived = true;
+          }
       }
     }
 
     if (survived) {
       score += currentVal; // Scoring: Value of the survivor
       lastSurvivor = currentVal;
+      lastSurvivorHasShield = currentHasShield;
     }
   }
   return score;
@@ -84,32 +98,40 @@ export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardI
 
   let score = 0;
   let lastSurvivor = 0;
+  let lastSurvivorHasShield = false;
   let mode: 'ASC' | 'DESC' | null = null;
 
   for (let i = 0; i < gradedList.length; i++) {
     const item = gradedList[i];
     const currentVal = item.val;
+    const currentHasShield = item.hasShield || false;
     let survived = false;
 
     if (i === 0) {
       survived = true;
       lastSurvivor = currentVal;
+      lastSurvivorHasShield = currentHasShield;
     } else if (i === 1) {
       survived = true;
       if (currentVal >= lastSurvivor) mode = 'ASC';
       else mode = 'DESC';
     } else {
-      const effectiveMode = mode || 'ASC';
-      if (effectiveMode === 'ASC') {
-        if (currentVal >= lastSurvivor) survived = true;
+      if (lastSurvivorHasShield) {
+          survived = true;
       } else {
-        if (currentVal <= lastSurvivor) survived = true;
+          const effectiveMode = mode || 'ASC';
+          if (effectiveMode === 'ASC') {
+            if (currentVal >= lastSurvivor) survived = true;
+          } else {
+            if (currentVal <= lastSurvivor) survived = true;
+          }
       }
     }
 
     if (survived) {
       score += currentVal;
       lastSurvivor = currentVal;
+      lastSurvivorHasShield = currentHasShield;
       item.status = 'safe';
       item.linkScore = currentVal;
     } else {
@@ -134,12 +156,13 @@ export const findOptimalScore = (startList: CardItem[], availableTools?: ToolIns
 // Recursive Solver to find the optimal solution (score + path)
 // Note: availableTools here is a list of Types, representing the remaining usages.
 export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  const initialNums = startList.map(item => item.val);
+  // Convert to SolverItem for potentially rich state
+  const initialNums: SortableItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
   
   let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
   let bestMoves: Move[] = [];
 
-  const search = (currentNums: number[], currentTools: ToolType[], currentMoves: Move[]) => {
+  const search = (currentNums: SortableItem[], currentTools: ToolType[], currentMoves: Move[]) => {
     const currentScore = calculateBatchScore(currentNums);
     if (currentScore > maxScore) {
       maxScore = currentScore;
@@ -155,48 +178,48 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
 
       if (tool === 'purge') {
         for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'purge', i) as number[];
+          const nextNums = applyMove(currentNums, 'purge', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'purge', index: i, description: `Purge item at index ${i}` }]);
         }
       } 
       else if (tool === 'demote') { 
         for (let i = 1; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'demote', i) as number[];
+          const nextNums = applyMove(currentNums, 'demote', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'demote', index: i, description: `Demote item at index ${i}` }]);
         }
       }
       else if (tool === 'promote') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'promote', i) as number[];
+          const nextNums = applyMove(currentNums, 'promote', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'promote', index: i, description: `Promote item at index ${i}` }]);
         }
       }
       else if (tool === 'swap') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'swap', i) as number[];
+          const nextNums = applyMove(currentNums, 'swap', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
         }
       }
       else if (tool === 'halve') {
         for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'halve', i) as number[];
+          const nextNums = applyMove(currentNums, 'halve', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'halve', index: i, description: `Halve item at index ${i}` }]);
         }
       }
       else if (tool === 'merge') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'merge', i) as number[];
+          const nextNums = applyMove(currentNums, 'merge', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'merge', index: i, description: `Merge items at index ${i}` }]);
         }
       }
       else if (tool === 'sink') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'sink', i) as number[];
+          const nextNums = applyMove(currentNums, 'sink', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'sink', index: i, description: `Sink items at index ${i}` }]);
         }
       } else if (tool === 'float') {
         for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'float', i) as number[];
+          const nextNums = applyMove(currentNums, 'float', i) as SortableItem[];
           search(nextNums, nextTools, [...currentMoves, { tool: 'float', index: i, description: `Float items at index ${i}` }]);
         }
       }
@@ -206,10 +229,47 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
         // j from i+2 to N-1
         for (let i = 0; i < currentNums.length - 2; i++) {
           for (let j = i + 2; j < currentNums.length; j++) {
-             const nextNums = applyMove(currentNums, 'longswap', i, j) as number[];
+             const nextNums = applyMove(currentNums, 'longswap', i, j) as SortableItem[];
              search(nextNums, nextTools, [...currentMoves, { tool: 'longswap', index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` }]);
           }
         }
+      }
+      else if (tool === 'grow') {
+          for (let i = 0; i < currentNums.length; i++) {
+              const nextNums = applyMove(currentNums, 'grow', i) as SortableItem[];
+              search(nextNums, nextTools, [...currentMoves, { tool: 'grow', index: i, description: `Grow item at index ${i}` }]);
+          }
+      }
+      else if (tool === 'shrink') {
+          for (let i = 0; i < currentNums.length; i++) {
+              const nextNums = applyMove(currentNums, 'shrink', i) as SortableItem[];
+              search(nextNums, nextTools, [...currentMoves, { tool: 'shrink', index: i, description: `Shrink item at index ${i}` }]);
+          }
+      }
+      else if (tool === 'shield') {
+          for (let i = 0; i < currentNums.length; i++) {
+              const nextNums = applyMove(currentNums, 'shield', i) as SortableItem[];
+              search(nextNums, nextTools, [...currentMoves, { tool: 'shield', index: i, description: `Shield item at index ${i}` }]);
+          }
+      }
+      else if (tool === 'hop') {
+          // Can select any item NOT at start or end
+          for (let i = 1; i < currentNums.length - 1; i++) {
+              const nextNums = applyMove(currentNums, 'hop', i) as SortableItem[];
+              search(nextNums, nextTools, [...currentMoves, { tool: 'hop', index: i, description: `Hop around index ${i}` }]);
+          }
+      }
+      else if (tool === 'mirror') {
+          for (let i = 0; i < currentNums.length; i++) {
+              const mirrorIdx = currentNums.length - 1 - i;
+              if (i === mirrorIdx) continue; // Cannot mirror middle item
+              // Optimization: Mirror(i) and Mirror(mirrorIdx) are same result. Only search first half?
+              // However, user might click either. For solver, strictly we only need to branch once per unique state.
+              if (i > mirrorIdx) continue; 
+              
+              const nextNums = applyMove(currentNums, 'mirror', i) as SortableItem[];
+              search(nextNums, nextTools, [...currentMoves, { tool: 'mirror', index: i, description: `Mirror swp ${i} and ${mirrorIdx}` }]);
+          }
       }
     }
   };
@@ -225,21 +285,38 @@ export const lengthFromLevel = (level: number): number => {
 };
 
 // Apply a move to a list and return the new list
-export function applyMove(list: number[], tool: ToolType, index: number, selection?: number | null): number[];
 export function applyMove(list: CardItem[], tool: ToolType, index: number, selection?: number | null): CardItem[];
-export function applyMove(list: (number | CardItem)[], tool: ToolType, index: number, selection?: number | null): (number | CardItem)[] {
+export function applyMove(list: SortableItem[], tool: ToolType, index: number, selection?: number | null): SortableItem[];
+export function applyMove(list: (SortableItem | CardItem)[], tool: ToolType, index: number, selection?: number | null): (SortableItem | CardItem)[] {
     const newList = [...list];
 
     const getValue = (i: number) => {
         const item = newList[i];
-        return typeof item === 'number' ? item : item.val;
+        if (typeof item === 'number') return item;
+        return item.val;
     };
 
     const updateValue = (i: number, val: number) => {
-        if (typeof newList[i] === 'number') {
-            (newList as number[])[i] = val;
+        const item = newList[i];
+        if (typeof item === 'number') {
+            (newList as SortableItem[])[i] = val;
+        } else if ('id' in item) { // Check if CardItem
+             (newList as CardItem[])[i] = { ...item, val };
         } else {
-            (newList as CardItem[])[i] = { ...(newList as CardItem[])[i], val };
+             // SolverItem
+             (newList as SolverItem[])[i] = { ...(item as SolverItem), val };
+        }
+    };
+    
+    const updateShield = (i: number, hasShield: boolean) => {
+        const item = newList[i];
+        if (typeof item === 'number') {
+            (newList as SolverItem[])[i] = { val: item, hasShield };
+        } else if ('id' in item) { // CardItem
+            (newList as CardItem[])[i] = { ...item, hasShield };
+        } else {
+            // SolverItem
+            (newList as SolverItem[])[i] = { ...(item as SolverItem), hasShield };
         }
     };
 
@@ -315,6 +392,26 @@ export function applyMove(list: (number | CardItem)[], tool: ToolType, index: nu
     else if (tool === 'longswap') {
         if (selection !== undefined && selection !== null) {
              [newList[selection], newList[index]] = [newList[index], newList[selection]];
+        }
+    }
+    else if (tool === 'grow') {
+        updateValue(index, getValue(index) + 3);
+    }
+    else if (tool === 'shrink') {
+        updateValue(index, getValue(index) - 3);
+    }
+    else if (tool === 'shield') {
+        updateShield(index, true); 
+    }
+    else if (tool === 'hop') {
+        if (index > 0 && index < newList.length - 1) {
+             [newList[index - 1], newList[index + 1]] = [newList[index + 1], newList[index - 1]];
+        }
+    }
+    else if (tool === 'mirror') {
+        const mirrorIdx = newList.length - 1 - index;
+        if (mirrorIdx !== index) {
+             [newList[index], newList[mirrorIdx]] = [newList[mirrorIdx], newList[index]];
         }
     }
     return newList;

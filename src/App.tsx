@@ -81,7 +81,7 @@ export default function TheGreatSort() {
     const toolType = toolInstance.type;
     const diff = Math.abs(state.selection - idx);
 
-    if (toolType === 'swap' || toolType === 'consolidate' || toolType === 'equalize') {
+    if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'float') {
         // Adjacent only
         return diff === 1;
     } else if (toolType === 'longswap') {

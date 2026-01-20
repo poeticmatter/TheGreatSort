@@ -33,6 +33,7 @@ export function useGame() {
   // --- Refs ---
   const inspectionIndex = useRef(0);
   const lastSurvivorVal = useRef<number | null>(null);
+  const lastSurvivorHasShield = useRef(false);
   const sortDirection = useRef<'ASC' | 'DESC' | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef(list);
@@ -285,8 +286,8 @@ export function useGame() {
     let recordedMove: Move | null = null;
 
     // Check interaction type
-    // Two-step interactions: Swap, LongSwap, Consolidate, Equalize
-    const isTwoStep = ['swap', 'longswap', 'consolidate', 'equalize'].includes(toolType);
+    // Two-step interactions: Swap, LongSwap, Merge, Sink, Float
+    const isTwoStep = ['swap', 'longswap', 'merge', 'sink', 'float'].includes(toolType);
 
     if (isTwoStep) {
         if (selection === null) {
@@ -298,7 +299,7 @@ export function useGame() {
             const idx1 = selection;
             const idx2 = targetIndex;
 
-            if (toolType === 'swap' || toolType === 'consolidate' || toolType === 'equalize') {
+            if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'float') {
                 // Must be adjacent
                 if (Math.abs(idx1 - idx2) === 1) valid = true;
             } else if (toolType === 'longswap') {
@@ -326,7 +327,14 @@ export function useGame() {
             }
         }
     } else {
-        // One-step tools (Purge, Promote, Demote, Cut)
+        // One-step tools
+        if (toolType === 'hop') {
+             if (targetIndex <= 0 || targetIndex >= list.length - 1) return;
+        }
+        else if (toolType === 'mirror') {
+             if (targetIndex === list.length - 1 - targetIndex) return;
+        }
+
         newList = applyMove(list, toolType, targetIndex);
         recordedMove = {
             tool: toolType,
@@ -359,7 +367,7 @@ export function useGame() {
       // If it's a two-step tool, we select the tool and keep card selection?
       // Or if it's one-step, we execute immediately?
 
-      const isTwoStep = ['swap', 'longswap', 'consolidate', 'equalize'].includes(toolInstance.type);
+      const isTwoStep = ['swap', 'longswap', 'merge', 'sink', 'float'].includes(toolInstance.type);
 
       if (isTwoStep) {
          setSelectedToolInstanceId(toolInstanceId);
@@ -429,12 +437,14 @@ export function useGame() {
      timeoutRef.current = setTimeout(() => {
          const currentItem = listRef.current[idx];
          const currentVal = currentItem.val;
+         const currentHasShield = currentItem.hasShield || false;
          let survived = false;
          let pointsToAdd = 0;
 
          if (idx === 0) {
              survived = true;
              lastSurvivorVal.current = currentVal;
+             lastSurvivorHasShield.current = currentHasShield;
          } else if (idx === 1) {
              survived = true;
              const prevVal = lastSurvivorVal.current!;
@@ -443,15 +453,21 @@ export function useGame() {
              lastSurvivorVal.current = currentVal;
              setDetectedMode(sortDirection.current);
          } else {
-             const threshold = lastSurvivorVal.current!;
-             const mode = sortDirection.current || 'ASC';
-             if (mode === 'ASC') {
-                 if (currentVal >= threshold) survived = true;
+             if (lastSurvivorHasShield.current) {
+                 survived = true;
              } else {
-                 if (currentVal <= threshold) survived = true;
+                 const threshold = lastSurvivorVal.current!;
+                 const mode = sortDirection.current || 'ASC';
+                 if (mode === 'ASC') {
+                     if (currentVal >= threshold) survived = true;
+                 } else {
+                     if (currentVal <= threshold) survived = true;
+                 }
              }
+
              if (survived) {
                  lastSurvivorVal.current = currentVal;
+                 lastSurvivorHasShield.current = currentHasShield;
              }
          }
 
@@ -480,6 +496,7 @@ export function useGame() {
     setPhase(GamePhase.INSPECTING);
     inspectionIndex.current = 0;
     lastSurvivorVal.current = null;
+    lastSurvivorHasShield.current = false;
     sortDirection.current = null;
     setDetectedMode(null);
     processNextStepWrapper();

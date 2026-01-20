@@ -7,9 +7,10 @@ export interface CardItem {
   val: number;
   status: CardStatus;
   linkScore: number | null;
+  hasShield?: boolean;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'float' | 'halve';
+export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'float' | 'halve' | 'shield' | 'grow' | 'shrink' | 'hop' | 'mirror';
 
 export interface ToolDefinition {
   id: ToolType;
