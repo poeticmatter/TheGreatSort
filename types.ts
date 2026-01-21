@@ -35,3 +35,10 @@ export enum GamePhase {
 }
 
 export type GameMode = 'CAREER' | 'DAILY' | 'PRACTICE';
+
+export interface Move {
+  tool: ToolType;
+  index: number;
+  targetIndex?: number;
+  description: string;
+}
