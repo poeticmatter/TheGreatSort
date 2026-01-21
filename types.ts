@@ -20,6 +20,7 @@ export interface ToolDefinition {
   name: string;
   icon: LucideIcon;
   desc: string;
+  weight: number;
 }
 
 export interface ToolInstance {
