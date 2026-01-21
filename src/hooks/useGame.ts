@@ -180,7 +180,12 @@ export function useGame() {
               const seed = stringToSeed(today);
               let currentList = generateLevel(9, seed);
               let currentTools = loadedState.tools;
-              if (!currentTools) currentTools = generateTools(seed);
+              if (!currentTools) {
+                currentTools = generateTools(seed);
+              } else {
+                // Reset usage state to prevent double-counting during replay
+                currentTools = currentTools.map(t => ({ ...t, used: false }));
+              }
 
               // Replay
               loadedState.moves.forEach(move => {
