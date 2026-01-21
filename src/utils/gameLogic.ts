@@ -1,14 +1,8 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
 import { ALL_TOOL_TYPES } from '../constants';
+import { TOOL_REGISTRY } from '../tools';
 
 export type SolverItem = ISortable;
-
-export interface Move {
-  tool: ToolType;
-  index: number;
-  targetIndex?: number;
-  description: string;
-}
 
 export interface DailyState {
   date: string;
@@ -222,99 +216,13 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
       const nextTools = [...currentTools];
       nextTools.splice(t, 1); 
 
-      if (tool === 'purge') {
-        for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'purge', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'purge', index: i, description: `Purge item at index ${i}` }]);
-        }
-      } 
-      else if (tool === 'demote') { 
-        for (let i = 1; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'demote', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'demote', index: i, description: `Demote item at index ${i}` }]);
-        }
-      }
-      else if (tool === 'promote') {
-        for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'promote', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'promote', index: i, description: `Promote item at index ${i}` }]);
-        }
-      }
-      else if (tool === 'swap') {
-        for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'swap', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'swap', index: i, description: `Swap items at index ${i} and ${i+1}` }]);
-        }
-      }
-      else if (tool === 'halve') {
-        for (let i = 0; i < currentNums.length; i++) {
-          const nextNums = applyMove(currentNums, 'halve', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'halve', index: i, description: `Halve item at index ${i}` }]);
-        }
-      }
-      else if (tool === 'merge') {
-        for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'merge', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'merge', index: i, description: `Merge items at index ${i}` }]);
-        }
-      }
-      else if (tool === 'sink') {
-        for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'sink', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'sink', index: i, description: `Sink items at index ${i}` }]);
-        }
-      } else if (tool === 'float') {
-        for (let i = 0; i < currentNums.length - 1; i++) {
-          const nextNums = applyMove(currentNums, 'float', i);
-          search(nextNums, nextTools, [...currentMoves, { tool: 'float', index: i, description: `Float items at index ${i}` }]);
-        }
-      }
-      else if (tool === 'longswap') {
-        // Swap any non-adjacent items
-        // i from 0 to N-3
-        // j from i+2 to N-1
-        for (let i = 0; i < currentNums.length - 2; i++) {
-          for (let j = i + 2; j < currentNums.length; j++) {
-             const nextNums = applyMove(currentNums, 'longswap', i, j);
-             search(nextNums, nextTools, [...currentMoves, { tool: 'longswap', index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` }]);
-          }
-        }
-      }
-      else if (tool === 'grow') {
-          for (let i = 0; i < currentNums.length; i++) {
-              const nextNums = applyMove(currentNums, 'grow', i);
-              search(nextNums, nextTools, [...currentMoves, { tool: 'grow', index: i, description: `Grow item at index ${i}` }]);
-          }
-      }
-      else if (tool === 'shrink') {
-          for (let i = 0; i < currentNums.length; i++) {
-              const nextNums = applyMove(currentNums, 'shrink', i);
-              search(nextNums, nextTools, [...currentMoves, { tool: 'shrink', index: i, description: `Shrink item at index ${i}` }]);
-          }
-      }
-      else if (tool === 'shield') {
-          for (let i = 0; i < currentNums.length; i++) {
-              const nextNums = applyMove(currentNums, 'shield', i);
-              search(nextNums, nextTools, [...currentMoves, { tool: 'shield', index: i, description: `Shield item at index ${i}` }]);
-          }
-      }
-      else if (tool === 'hop') {
-          // Can select any item NOT at start or end
-          for (let i = 1; i < currentNums.length - 1; i++) {
-              const nextNums = applyMove(currentNums, 'hop', i);
-              search(nextNums, nextTools, [...currentMoves, { tool: 'hop', index: i, description: `Hop around index ${i}` }]);
-          }
-      }
-      else if (tool === 'mirror') {
-          for (let i = 0; i < currentNums.length; i++) {
-              const mirrorIdx = currentNums.length - 1 - i;
-              if (i === mirrorIdx) continue; // Cannot mirror middle item
-              // Optimization: Mirror(i) and Mirror(mirrorIdx) are same result. Only search first half?
-              // However, user might click either. For solver, strictly we only need to branch once per unique state.
-              if (i > mirrorIdx) continue; 
-              
-              const nextNums = applyMove(currentNums, 'mirror', i);
-              search(nextNums, nextTools, [...currentMoves, { tool: 'mirror', index: i, description: `Mirror swp ${i} and ${mirrorIdx}` }]);
+      const strategy = TOOL_REGISTRY[tool];
+      if (strategy) {
+          const possibleMoves = strategy.generateMoves(currentNums);
+          for (const move of possibleMoves) {
+              // Apply move using the strategy logic (note: move.targetIndex corresponds to selection)
+              const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
+              search(nextNums, nextTools, [...currentMoves, move]);
           }
       }
     }
@@ -332,106 +240,22 @@ export const lengthFromLevel = (level: number): number => {
 
 // Apply a move to a list and return the new list
 export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): T[] {
-    const newList = [...list];
+    const strategy = TOOL_REGISTRY[tool];
+    if (strategy) {
+        // We cast to ISortable[] for the strategy, and rely on it returning T[] implicitly (same structure)
+        // However, strategy.apply returns ISortable[]. We need to ensure types align.
+        // T extends ISortable. Strategy returns ISortable[].
+        // The strategies use `copy(list)` which maps `{...item}`. This preserves extra props like `id` if they exist on the input objects.
+        // So passing `list` (T[]) into `strategy.apply` works at runtime.
+        // TypeScript might complain about return type not being guaranteed T[].
+        // We can cast the result.
 
-    if (tool === 'purge') {
-        newList.splice(index, 1);
+        // Wait, strategy.apply takes ISortable[]. list is T[]. T extends ISortable. OK.
+        // Returns ISortable[]. We need T[].
+        // The implementation of strategies preserves properties via spread.
+        return strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
     }
-    else if (tool === 'demote') {
-        const [moved] = newList.splice(index, 1);
-        newList.unshift(moved);
-    }
-    else if (tool === 'promote') {
-        const [moved] = newList.splice(index, 1);
-        newList.push(moved);
-    }
-    else if (tool === 'halve') {
-        newList[index] = { ...newList[index], val: Math.floor(newList[index].val / 2) };
-    }
-    else if (tool === 'merge') {
-         let firstIdx = index;
-         if (selection !== undefined && selection !== null) {
-             firstIdx = Math.min(index, selection);
-         }
-
-         if (firstIdx < newList.length - 1) {
-            const sum = newList[firstIdx].val + newList[firstIdx+1].val;
-            // When merging, we conceptually merge two items into one.
-            // For CardItems, we need to preserve the identity of the first one?
-            // The instruction says "preserve other properties (e.g., newList[i] = { ...newList[i], val: newVal })"
-            // For merge, we are removing one item.
-            // For the remaining item (firstIdx), we update its value.
-            // And remove the next item.
-
-            newList[firstIdx] = { ...newList[firstIdx], val: sum };
-            newList.splice(firstIdx + 1, 1);
-         }
-    }
-    else if (tool === 'sink') {
-        let idx1 = index;
-        let idx2 = index + 1;
-
-        if (selection !== undefined && selection !== null) {
-            idx1 = index;
-            idx2 = selection;
-        }
-
-        if (idx1 >= 0 && idx1 < newList.length && idx2 >= 0 && idx2 < newList.length) {
-            const min = Math.min(newList[idx1].val, newList[idx2].val);
-            newList[idx1] = { ...newList[idx1], val: min };
-            newList[idx2] = { ...newList[idx2], val: min };
-        }
-    }
-    else if (tool === 'float') {
-        let idx1 = index;
-        let idx2 = index + 1;
-
-        if (selection !== undefined && selection !== null) {
-            idx1 = index;
-            idx2 = selection;
-        }
-
-        if (idx1 >= 0 && idx1 < newList.length && idx2 >= 0 && idx2 < newList.length) {
-            const max = Math.max(newList[idx1].val, newList[idx2].val);
-            newList[idx1] = { ...newList[idx1], val: max };
-            newList[idx2] = { ...newList[idx2], val: max };
-        }
-    }
-    else if (tool === 'swap') {
-        if (selection !== undefined && selection !== null) {
-             [newList[selection], newList[index]] = [newList[index], newList[selection]];
-        } else {
-            if (index < newList.length - 1) {
-                [newList[index], newList[index+1]] = [newList[index+1], newList[index]];
-            }
-        }
-    }
-    else if (tool === 'longswap') {
-        if (selection !== undefined && selection !== null) {
-             [newList[selection], newList[index]] = [newList[index], newList[selection]];
-        }
-    }
-    else if (tool === 'grow') {
-        newList[index] = { ...newList[index], val: newList[index].val + 3 };
-    }
-    else if (tool === 'shrink') {
-        newList[index] = { ...newList[index], val: newList[index].val - 3 };
-    }
-    else if (tool === 'shield') {
-        newList[index] = { ...newList[index], hasShield: true };
-    }
-    else if (tool === 'hop') {
-        if (index > 0 && index < newList.length - 1) {
-             [newList[index - 1], newList[index + 1]] = [newList[index + 1], newList[index - 1]];
-        }
-    }
-    else if (tool === 'mirror') {
-        const mirrorIdx = newList.length - 1 - index;
-        if (mirrorIdx !== index) {
-             [newList[index], newList[mirrorIdx]] = [newList[mirrorIdx], newList[index]];
-        }
-    }
-    return newList;
+    return list;
 }
 
 // Generate 4 tools from the pool

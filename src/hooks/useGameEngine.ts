@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CardItem, GamePhase, ToolInstance, ToolType } from '../../types';
-import { Move, applyMove } from '../utils/gameLogic';
+import { CardItem, GamePhase, ToolInstance, ToolType, Move } from '../../types';
+import { applyMove } from '../utils/gameLogic';
+import { TOOL_REGISTRY } from '../tools';
 
 export interface EngineState {
   level: number;
@@ -99,38 +100,40 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     if (!toolInstance || toolInstance.used) return;
 
     const toolType = toolInstance.type;
+    const strategy = TOOL_REGISTRY[toolType];
+
+    // Safety check if strategy exists (should always exist if types match)
+    if (!strategy) return;
+
     let newList = [...list];
     let recordedMove: Move | null = null;
 
-    const isTwoStep = ['swap', 'longswap', 'merge', 'sink', 'float'].includes(toolType);
-
-    if (isTwoStep) {
+    if (strategy.requiresSelection) {
         if (selection === null) {
             setSelection(targetIndex);
             return;
         } else {
-            // Validate move
-            let valid = false;
-            const idx1 = selection;
-            const idx2 = targetIndex;
+            // Validate move using strategy
+            const isValid = strategy.isValid(list, targetIndex, selection);
 
-            if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'float') {
-                if (Math.abs(idx1 - idx2) === 1) valid = true;
-            } else if (toolType === 'longswap') {
-                if (Math.abs(idx1 - idx2) > 1) valid = true;
-            }
-
-            if (valid) {
+            if (isValid) {
+                // Apply move using gameLogic (which delegates to strategy now)
                 newList = applyMove(list, toolType, targetIndex, selection);
                 recordedMove = {
                     tool: toolType,
                     index: targetIndex,
                     targetIndex: selection,
+                    // We can also use strategy to generate description if we wanted to be perfectly consistent,
+                    // but generateMoves creates ALL moves.
+                    // For now, we manually reconstruct the description string to match existing behavior.
+                    // Or we could add a `describe(index, selection)` method to strategy later.
+                    // For now, simple template string is fine as before.
                     description: `${toolType} ${selection} and ${targetIndex}`
                 };
                 commitMove(newList, toolInstanceId, recordedMove);
             } else {
-                // Invalid selection
+                // Invalid selection logic:
+                // If clicking same card, deselect. Else switch selection.
                 if (selection === targetIndex) {
                     setSelection(null);
                 } else {
@@ -140,12 +143,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
         }
     } else {
         // One-step tools checks
-        if (toolType === 'hop') {
-             if (targetIndex <= 0 || targetIndex >= list.length - 1) return;
-        }
-        else if (toolType === 'mirror') {
-             if (targetIndex === list.length - 1 - targetIndex) return;
-        }
+        if (!strategy.isValid(list, targetIndex)) return;
 
         newList = applyMove(list, toolType, targetIndex);
         recordedMove = {
@@ -162,9 +160,11 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     const toolInstance = toolsAvailable.find(t => t.instanceId === toolInstanceId);
     if (!toolInstance || toolInstance.used) return;
 
+    const strategy = TOOL_REGISTRY[toolInstance.type];
+    if (!strategy) return;
+
     if (selection !== null) {
-      const isTwoStep = ['swap', 'longswap', 'merge', 'sink', 'float'].includes(toolInstance.type);
-      if (isTwoStep) {
+      if (strategy.requiresSelection) {
          setSelectedToolInstanceId(toolInstanceId);
       } else {
          executeMove(toolInstanceId, selection);
@@ -193,22 +193,6 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
       setShakeTools(prev => prev + 1);
     } else {
       setSelection(index);
-      // We don't check localStorage here (pure), so we just increment shake.
-      // The Facade can conditionally block this or the UI ignores it if not needed?
-      // Actually, the original code checked localStorage 'hasUsedAction' to decide whether to shake.
-      // We'll leave shake incrementing. The UI can decide to ignore it or Facade can filter.
-      // But wait, the constraint is "No UI Changes".
-      // Original: if (!hasUsed) setShakeTools(prev + 1);
-      // Since Engine is pure, it doesn't know 'hasUsed'.
-      // We can pass `hasUsedAction` as a prop/argument to useGameEngine?
-      // Or just always shake and let UI/Logic elsewhere handle it?
-      // "Tool hint animations (shake) are disabled persistently via the `hasUsedAction`".
-      // I'll add `shouldShake` to handleCardClick? No, that's messy.
-      // I'll just always shake. If the user has used action, they ignore the shake visually?
-      // No, `shakeTools` is a number that triggers animation.
-      // I will expose `triggerShake` and let Facade handle the logic?
-      // No, `handleCardClick` is called by UI.
-      // I'll make `shakeTools` updates unconditional here.
       setShakeTools(prev => prev + 1);
     }
   };
