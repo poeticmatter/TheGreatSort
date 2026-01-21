@@ -51,18 +51,19 @@ const tests: TestCase[] = [
         expected: [{val: 7}]
     },
     {
-        name: "Grow adds 3",
-        input: [{val: 10}],
-        tool: 'grow',
-        index: 0,
-        expected: [{val: 13}]
-    },
-    {
         name: "Shrink subtracts 3",
         input: [{val: 10}],
         tool: 'shrink',
         index: 0,
         expected: [{val: 7}]
+    },
+    {
+        name: "Equalize averages two items (rounded down)",
+        input: [{val: 10}, {val: 50}, {val: 90}], // 10 and 90. Avg 50.
+        tool: 'equalize',
+        index: 0,
+        selection: 2,
+        expected: [{val: 50}, {val: 50}, {val: 50}]
     },
 
     // Complex
@@ -79,13 +80,6 @@ const tests: TestCase[] = [
         tool: 'sink',
         index: 0,
         expected: [{val: 10}, {val: 10}]
-    },
-    {
-        name: "Float sets adjacent items to max value",
-        input: [{val: 30}, {val: 10}],
-        tool: 'float',
-        index: 0,
-        expected: [{val: 30}, {val: 30}]
     },
 
     // Positional
@@ -110,6 +104,34 @@ const tests: TestCase[] = [
         tool: 'mirror',
         index: 0,
         expected: [{val: 40}, {val: 20}, {val: 30}, {val: 10}]
+    },
+
+    // Cycle
+    {
+        name: "Cycle Right (A->B, B->C, C->A)",
+        // Block: 10, 20, 30. Center 20 (idx 1).
+        // Click Center (1) then Right (2).
+        // 10 (Left), 20 (Mid), 30 (Right)
+        // Right Cycle: C(30) -> A(0), A(10) -> B(1), B(20) -> C(2)
+        // Result: [30, 10, 20]
+        input: [{val: 10}, {val: 20}, {val: 30}],
+        tool: 'cycle',
+        index: 2, // Second click (Target)
+        selection: 1, // First click (Center)
+        expected: [{val: 30}, {val: 10}, {val: 20}]
+    },
+    {
+        name: "Cycle Left (Inverse)",
+        // Block: 10, 20, 30. Center 20 (idx 1).
+        // Click Center (1) then Left (0).
+        // 10 (Left), 20 (Mid), 30 (Right)
+        // Left Cycle: B(20) -> A(0), C(30) -> B(1), A(10) -> C(2)
+        // Result: [20, 30, 10]
+        input: [{val: 10}, {val: 20}, {val: 30}],
+        tool: 'cycle',
+        index: 0, // Second click (Target)
+        selection: 1, // First click (Center)
+        expected: [{val: 20}, {val: 30}, {val: 10}]
     },
 
     // Status

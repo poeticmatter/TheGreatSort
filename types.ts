@@ -13,7 +13,7 @@ export interface CardItem extends ISortable {
   linkScore: number | null;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'float' | 'halve' | 'shield' | 'grow' | 'shrink' | 'hop' | 'mirror';
+export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize';
 
 export interface ToolDefinition {
   id: ToolType;
