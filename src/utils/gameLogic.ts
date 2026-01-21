@@ -1,5 +1,5 @@
 import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
-import { ALL_TOOL_TYPES } from '../constants';
+import { ALL_TOOL_TYPES, TOOLS } from '../constants';
 import { TOOL_REGISTRY } from '../tools';
 
 export type SolverItem = ISortable;
@@ -263,13 +263,30 @@ export const generateTools = (seed?: number): ToolInstance[] => {
     const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
     const tools: ToolInstance[] = [];
 
+    // Calculate total weight
+    const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
+        const def = TOOLS[toolId.toUpperCase()];
+        return sum + (def ? def.weight : 0);
+    }, 0);
+
     // Pick 4 tools allowing duplicates
     for (let i = 0; i < 4; i++) {
-        const typeIdx = Math.floor(random() * ALL_TOOL_TYPES.length);
-        const type = ALL_TOOL_TYPES[typeIdx] as ToolType;
+        let threshold = random() * totalWeight;
+        let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
+
+        for (const toolId of ALL_TOOL_TYPES) {
+            const def = TOOLS[toolId.toUpperCase()];
+            const weight = def ? def.weight : 0;
+            threshold -= weight;
+            if (threshold < 0) {
+                selectedType = toolId as ToolType;
+                break;
+            }
+        }
+
         tools.push({
             instanceId: `tool-${i}-${Math.random().toString(36).substr(2, 5)}`,
-            type: type,
+            type: selectedType,
             used: false
         });
     }
