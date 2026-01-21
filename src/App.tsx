@@ -81,10 +81,11 @@ export default function TheGreatSort() {
     const toolType = toolInstance.type;
     const diff = Math.abs(state.selection - idx);
 
-    if (toolType === 'swap' || toolType === 'consolidate' || toolType === 'equalize') {
+    if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'cycle') {
         // Adjacent only
+        // Cycle: Select middle (state.selection), then neighbor (idx)
         return diff === 1;
-    } else if (toolType === 'longswap') {
+    } else if (toolType === 'longswap' || toolType === 'equalize') {
         // Non-adjacent only
         return diff > 1;
     }

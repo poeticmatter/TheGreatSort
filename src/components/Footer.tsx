@@ -1,12 +1,12 @@
 import React from 'react';
-import { ToolsAvailable, GamePhase, GameMode } from '../../types';
+import { ToolInstance, GamePhase, GameMode } from '../../types';
 import ToolBelt from './ToolBelt';
 import SubmitButton from './SubmitButton';
 
 interface FooterProps {
   phase: GamePhase;
   gameMode: GameMode;
-  toolsAvailable: ToolsAvailable;
+  toolsAvailable: ToolInstance[];
   selectedTool: string | null;
   shakeTools: number;
   listLength: number;
