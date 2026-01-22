@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CardItem, ToolType, Move } from '../../types';
-import { generateLevel, generateTools, findOptimalSolution, stringToSeed, Solution } from '../utils/gameLogic';
+import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution } from '../utils/gameLogic';
 import { CheckCircle, AlertTriangle, X, ArrowRight, FileText } from 'lucide-react';
 import Card from './Card';
 
@@ -13,6 +13,7 @@ interface DailyAuditProps {
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose }) => {
   const [isCalculating, setIsCalculating] = useState(true);
   const [solution, setSolution] = useState<Solution | null>(null);
+  const [worstScore, setWorstScore] = useState<number>(0);
   const [initialList, setInitialList] = useState<CardItem[]>([]);
 
   useEffect(() => {
@@ -25,7 +26,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       const toolTypes = tools.map(t => t.type);
 
       const optimal = findOptimalSolution(list, toolTypes);
+      const worst = findWorstSolution(list, toolTypes);
+
       setSolution(optimal);
+      setWorstScore(worst.score);
       setInitialList(list);
       setIsCalculating(false);
     }, 100);
@@ -43,9 +47,9 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     );
   }
 
-  const passed = userHighScore >= solution.score;
-  const efficiency = solution.score > 0
-    ? Math.round((userHighScore / solution.score) * 100)
+  const passed = solution ? userHighScore >= solution.score : false;
+  const efficiency = solution
+    ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
     : 0;
 
   return (

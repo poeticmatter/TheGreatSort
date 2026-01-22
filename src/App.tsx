@@ -135,6 +135,7 @@ export default function TheGreatSort() {
           detectedMode={state.detectedMode}
           levelScore={state.levelScore}
           optimalScore={state.optimalScore}
+          worstScore={state.worstScore}
           gameMode={state.gameMode}
           onShareResult={actions.shareResult}
           onRetryPractice={actions.retryPractice}
