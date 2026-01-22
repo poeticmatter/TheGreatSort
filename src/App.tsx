@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from './components/Card';
+import SequenceDisplay from './components/SequenceDisplay';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
 import { useMusic } from './hooks/useMusic';
@@ -9,63 +10,6 @@ import StatusBar from './components/StatusBar';
 import { DailyAudit } from './components/DailyAudit';
 import { getDailyEntry } from './hooks/useGamePersistence';
 import { getYesterdayDateString } from './utils/dateUtils';
-
-const getSnakePosition = (index: number): React.CSSProperties => {
-  const cycle = Math.floor(index / 12);
-  const localIndex = index % 12;
-  const baseRow = cycle * 4;
-  let col = 0;
-  let row = 0;
-
-  if (localIndex < 5) {
-    // 0, 1, 2, 3, 4 -> Row 1, Col 1..5
-    row = 1;
-    col = localIndex + 1;
-  } else if (localIndex === 5) {
-    // 5 -> Row 2, Col 5
-    row = 2;
-    col = 5;
-  } else if (localIndex < 11) {
-    // 6, 7, 8, 9, 10 -> Row 3, Col 5..1
-    row = 3;
-    col = 11 - localIndex;
-  } else {
-    // 11 -> Row 4, Col 1
-    row = 4;
-    col = 1;
-  }
-
-  return {
-    gridColumn: col,
-    gridRow: baseRow + row,
-  };
-};
-
-const getSnakeDirection = (index: number, total: number): 'right' | 'left' | 'down' | null => {
-  if (index >= total - 1) return null; // No arrow for the last item
-
-  const localIndex = index % 12;
-
-  // Row 1: 0, 1, 2, 3 -> Right (4 is end of row)
-  if (localIndex < 4) return 'right';
-
-  // End of Row 1: 4 -> Down
-  if (localIndex === 4) return 'down';
-
-  // Row 2: 5 -> Down
-  if (localIndex === 5) return 'down';
-
-  // Row 3: 6, 7, 8, 9 -> Left (10 is end of row)
-  if (localIndex >= 6 && localIndex < 10) return 'left';
-
-  // End of Row 3: 10 -> Down
-  if (localIndex === 10) return 'down';
-
-  // Row 4: 11 -> Down
-  if (localIndex === 11) return 'down';
-
-  return 'right'; // Fallback
-};
 
 export default function TheGreatSort() {
   const { state, actions } = useGame();
@@ -98,6 +42,8 @@ export default function TheGreatSort() {
 
   // Check if audit is available for yesterday
   const isAuditAvailable = !!getDailyEntry(getYesterdayDateString());
+
+  const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
@@ -144,19 +90,12 @@ export default function TheGreatSort() {
         {/* --- CARDS GRID --- */}
         <div className="flex-1 flex items-center justify-center w-full">
             {state.list.length > 0 ? (
-              <div className="grid grid-cols-5 gap-x-7 gap-y-4 justify-items-center sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-6 max-w-5xl px-4 perspective-[1000px]">
-                {state.list.map((item, idx) => (
-                  <Card
-                    key={item.id}
-                    item={item}
-                    style={getSnakePosition(idx)}
-                    mobileDirection={getSnakeDirection(idx, state.list.length)}
-                    onClick={actions.handleCardClick}
-                    isSelected={state.selection === idx}
-                    isTargetCandidate={isCandidate(idx)}
-                  />
-                ))}
-              </div>
+              <SequenceDisplay
+                sequence={state.list}
+                selectedIndex={state.selection}
+                candidateIndices={candidateIndices}
+                onItemClick={actions.handleCardClick}
+              />
             ) : (
               state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
                  <div className="text-stone-600 italic font-serif opacity-50">
