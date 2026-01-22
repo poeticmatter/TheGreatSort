@@ -1,10 +1,12 @@
 import React from 'react';
 import { Award, Share2, Repeat } from 'lucide-react';
 import { GameMode } from '../../types';
+import { calculateRelativeEfficiency } from '../utils/gameLogic';
 
 interface ReportCardProps {
   levelScore: number;
   optimalScore: number | null;
+  worstScore: number | null;
   gameMode: GameMode;
   onShareResult: () => void;
   onRetryPractice: () => void;
@@ -13,12 +15,16 @@ interface ReportCardProps {
 const ReportCard: React.FC<ReportCardProps> = ({
   levelScore,
   optimalScore,
+  worstScore,
   gameMode,
   onShareResult,
   onRetryPractice
 }) => {
   const getEfficiency = () => {
     if (!optimalScore) return 0;
+    if (gameMode === 'DAILY' && worstScore !== null) {
+      return calculateRelativeEfficiency(levelScore, optimalScore, worstScore);
+    }
     return Math.min(100, Math.round((levelScore / optimalScore) * 100));
   };
 
@@ -40,10 +46,21 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
         <div className="flex flex-col items-center px-4">
           {gameMode === 'DAILY' ? (
-            <div className="text-stone-400 text-xs font-mono text-center max-w-[200px] leading-relaxed">
-              <span className="block text-amber-600 font-bold uppercase tracking-wider mb-1">Audit Pending</span>
-              Return tomorrow for verification.
-            </div>
+            <>
+              <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
+              {optimalScore === null ? (
+                <div className="text-stone-400 text-xs font-mono text-center max-w-[200px] leading-relaxed">
+                  <span className="block text-amber-600 font-bold uppercase tracking-wider mb-1">Calculating...</span>
+                </div>
+              ) : (
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
+                    {getEfficiency()}%
+                  </span>
+                  {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
+                </div>
+              )}
+            </>
           ) : (
             <>
               <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
@@ -83,9 +100,11 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </div>
       )}
 
-      {gameMode === 'DAILY' && (
+      {gameMode === 'DAILY' && optimalScore !== null && (
         <div className="mt-4 text-stone-500 text-xs font-serif italic">
-          Come back tomorrow for new orders, comrade.
+          {getEfficiency() === 100
+            ? "Quota Met perfectly."
+            : "Come back tomorrow for the solution."}
         </div>
       )}
 

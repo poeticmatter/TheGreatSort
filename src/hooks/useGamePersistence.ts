@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { GameMode, GamePhase, ToolInstance } from '../../types';
-import { DailyState, Move, generateLevel, generateTools, stringToSeed, gradeLevel } from '../utils/gameLogic';
+import { GameMode, GamePhase, ToolInstance, Move, CardItem } from '../../types';
+import { DailyState, generateLevel, generateTools, stringToSeed, gradeLevel } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
-import { CardItem } from '../../types';
 
 export interface PersistenceState {
   movesHistory: Move[];

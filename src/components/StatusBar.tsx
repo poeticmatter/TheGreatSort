@@ -13,13 +13,14 @@ interface StatusBarProps {
   detectedMode: 'ASC' | 'DESC' | null;
   levelScore: number;
   optimalScore: number | null;
+  worstScore: number | null;
   gameMode: GameMode;
   onShareResult: () => void;
   onRetryPractice: () => void;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
-  phase, selectedTool, selection, detectedMode, levelScore, optimalScore, gameMode,
+  phase, selectedTool, selection, detectedMode, levelScore, optimalScore, worstScore, gameMode,
   onShareResult, onRetryPractice
 }) => {
 
@@ -71,6 +72,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <ReportCard
           levelScore={levelScore}
           optimalScore={optimalScore}
+          worstScore={worstScore}
           gameMode={gameMode}
           onShareResult={onShareResult}
           onRetryPractice={onRetryPractice}
