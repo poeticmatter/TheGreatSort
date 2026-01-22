@@ -3,14 +3,13 @@ import { GamePhase } from '../../types';
 import { createInspectionStream, InspectionYield } from '../utils/gameLogic';
 import { useGameEngine } from './useGameEngine';
 
-export const useGameLoop = (engine: ReturnType<typeof useGameEngine>) => {
+export const useGameLoop = (
+  engine: ReturnType<typeof useGameEngine>,
+  onComplete?: () => void
+) => {
   const inspectionIndex = useRef(0);
   const inspectionIterator = useRef<Generator<InspectionYield> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // We need a ref to the list to ensure the generator gets the latest (or stable) version when starting
-  // However, `createInspectionStream` takes the list as argument.
-  // When `startInspection` is called, we pass `engine.state.list`.
 
   const processNextStepWrapper = useCallback(() => {
      if (!inspectionIterator.current) return;
@@ -18,14 +17,11 @@ export const useGameLoop = (engine: ReturnType<typeof useGameEngine>) => {
      const result = inspectionIterator.current.next();
 
      if (result.done) {
-         engine.actions.setPhase(GamePhase.RESULTS);
-         // If Daily mode, dailyCompleted will be handled by Facade or Engine logic?
-         // Engine has `setDailyCompleted`. The Loop doesn't know about "Daily".
-         // But the Loop knows the game ended.
-         // Facade should probably watch Phase change to Results and set DailyCompleted?
-         // Or Loop accepts a callback?
-         // Original: setDailyCompleted(prev => gameMode === 'DAILY' ? true : prev);
-         // The Loop is mode-agnostic.
+         if (onComplete) {
+            onComplete();
+         } else {
+            engine.actions.setPhase(GamePhase.RESULTS);
+         }
          return;
      }
 
@@ -47,7 +43,7 @@ export const useGameLoop = (engine: ReturnType<typeof useGameEngine>) => {
      }
 
      timeoutRef.current = setTimeout(processNextStepWrapper, delay);
-  }, [engine.actions]);
+  }, [engine.actions, onComplete]);
 
   const startInspection = () => {
     engine.actions.setPhase(GamePhase.INSPECTING);

@@ -31,8 +31,29 @@ export function useGame() {
 
   const { loadedState, dailyResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded);
 
+  // --- Loop Callback ---
+  const handleGameCompletion = useCallback(() => {
+      engine.actions.setPhase(GamePhase.RESULTS);
+
+      // Save Score Event
+      if (gameMode === 'DAILY') {
+          // Use the current score from engine state (closure or ref needed?)
+          // `engine.state` in `useCallback` dependency might be stale if loop calls it?
+          // No, `processNextStepWrapper` calls `onComplete`.
+          // `onComplete` is this function.
+          // This function depends on `engine.state.levelScore`.
+          // If `engine.state` changes, this callback identity changes.
+          // `useGameLoop` depends on `onComplete`.
+          // So if score updates, `useGameLoop` updates `processNextStepWrapper`.
+          // This is fine.
+
+          saveDailyScore(getTodayDateString(), engine.state.levelScore);
+          engine.actions.setDailyCompleted(true);
+      }
+  }, [gameMode, engine.state.levelScore, engine.actions]);
+
   // --- Loop ---
-  const loop = useGameLoop(engine);
+  const loop = useGameLoop(engine, handleGameCompletion);
 
   // --- Hydration & Initialization ---
   useEffect(() => {
@@ -173,19 +194,15 @@ export function useGame() {
     }
   }, [engine.state.list, engine.state.phase, engine.state.optimalScore, engine.state.toolsAvailable, gameMode]);
 
-  // Update Total Score on Results
+  // Update Total Score on Results (Removed Save Logic from here)
   useEffect(() => {
       if (engine.state.phase === GamePhase.RESULTS) {
           engine.actions.setTotalScore(prev => prev + engine.state.levelScore);
           engine.actions.setTotalOptimalScore(prev => prev + (engine.state.optimalScore || 0));
 
-          if (gameMode === 'DAILY') {
-              engine.actions.setDailyCompleted(true);
-              // Save Score on Completion
-              saveDailyScore(getTodayDateString(), engine.state.levelScore);
-          }
+          // Note: Daily Save logic moved to handleGameCompletion to avoid double count on re-render
       }
-  }, [engine.state.phase, gameMode, engine.state.levelScore, engine.state.optimalScore]);
+  }, [engine.state.phase, engine.state.levelScore, engine.state.optimalScore]);
 
 
   // --- Actions Wiring ---
