@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
 import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptimalScore, DailyState, applyMove } from '../utils/gameLogic';
-import { getTodayDateString } from '../utils/dateUtils';
+import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameEngine } from './useGameEngine';
-import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore } from './useGamePersistence';
+import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, DailyEntry } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
 
 export function useGame() {
   const [gameMode, setGameMode] = useState<GameMode>('DAILY');
   const [isGameLoaded, setIsGameLoaded] = useState(false);
+  const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
 
   // --- Engine ---
   const handleMoveCommitted = useCallback(() => {
@@ -38,6 +39,13 @@ export function useGame() {
     if (isGameLoaded) return;
 
     const today = getTodayDateString();
+
+    // Check for Yesterday's Audit on Load
+    const yesterday = getYesterdayDateString();
+    const entry = getDailyEntry(yesterday);
+    if (entry) {
+        setAuditState({ date: entry.date, userScore: entry.highScore });
+    }
 
     // Restore Daily State if available
     if (gameMode === 'DAILY') {
@@ -234,8 +242,23 @@ export function useGame() {
 
   const shareResult = async () => {
     const today = getTodayDateString();
+
+    if (gameMode === 'DAILY') {
+        const entry = getDailyEntry(today);
+        const attempts = entry ? entry.attempts : 1;
+        const text = `The Great Sort Daily ${today}\nScore: ${engine.state.levelScore}\nAttempts: ${attempts}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          alert('Result copied to clipboard!');
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          alert(text);
+        }
+        return;
+    }
+
     const efficiency = !engine.state.optimalScore ? 0 : Math.min(100, Math.round((engine.state.levelScore / engine.state.optimalScore) * 100));
-    const text = `The Great Sort Daily ${today}\nScore: ${engine.state.levelScore}\nEfficiency: ${efficiency}%`;
+    const text = `The Great Sort\nScore: ${engine.state.levelScore}\nEfficiency: ${efficiency}%`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -244,6 +267,18 @@ export function useGame() {
       console.error('Failed to copy:', err);
       alert(text);
     }
+  };
+
+  const openAudit = () => {
+      const yesterday = getYesterdayDateString();
+      const entry = getDailyEntry(yesterday);
+      if (entry) {
+          setAuditState({ date: entry.date, userScore: entry.highScore });
+      }
+  };
+
+  const closeAudit = () => {
+      setAuditState(null);
   };
 
   const handleCardClick = (item: CardItem) => {
@@ -256,6 +291,7 @@ export function useGame() {
     state: {
       ...engine.state,
       gameMode,
+      auditState,
       // Overwrite selectedTool to match original interface (string | null)
       selectedTool: engine.state.selectedToolInstanceId,
     },
@@ -270,7 +306,9 @@ export function useGame() {
       retryDaily,
       resetGame,
       shareResult,
-      toggleMusic: () => {} // Handled in App
+      toggleMusic: () => {}, // Handled in App
+      openAudit,
+      closeAudit
     }
   };
 }

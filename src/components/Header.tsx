@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, Volume2, VolumeX, TrendingUp, TrendingDown, Award, Share2, Repeat } from 'lucide-react';
+import { Star, ChevronDown, Volume2, VolumeX, ClipboardCheck } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
 
 interface HeaderProps {
@@ -12,16 +12,18 @@ interface HeaderProps {
   optimalScore: number | null;
   detectedMode: 'ASC' | 'DESC' | null;
   isPlaying: boolean;
+  isAuditAvailable: boolean;
   onToggleMusic: () => void;
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
+  onOpenAudit: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
-  phase, optimalScore, detectedMode, isPlaying, onToggleMusic,
-  onChangeMode, onShareResult, onRetryPractice
+  phase, optimalScore, detectedMode, isPlaying, isAuditAvailable, onToggleMusic,
+  onChangeMode, onShareResult, onRetryPractice, onOpenAudit
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -58,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({
              </button>
 
              {showModeMenu && (
-               <div className="absolute top-full left-0 mt-1 w-40 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1">
+               <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
                  {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
                    <button
                      key={m}
@@ -71,6 +73,22 @@ const Header: React.FC<HeaderProps> = ({
                      {m}
                    </button>
                  ))}
+
+                 {isAuditAvailable && (
+                   <>
+                     <div className="h-px bg-stone-800 my-1"></div>
+                     <button
+                       onClick={() => {
+                         onOpenAudit();
+                         setShowModeMenu(false);
+                       }}
+                       className="text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 text-stone-400 flex items-center gap-2"
+                     >
+                       <ClipboardCheck size={14} className="text-amber-600" />
+                       Yesterday's Audit
+                     </button>
+                   </>
+                 )}
                </div>
              )}
            </div>
