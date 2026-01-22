@@ -39,14 +39,23 @@ const ReportCard: React.FC<ReportCardProps> = ({
         <div className="w-px h-12 bg-stone-600 hidden md:block"></div>
 
         <div className="flex flex-col items-center px-4">
-          <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
-          <div className="flex items-baseline gap-1">
-            <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
-              {getEfficiency()}%
-            </span>
-            {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
-          </div>
-          <span className="text-amber-500 font-bold text-xl mt-1">Target: {optimalScore}</span>
+          {gameMode === 'DAILY' ? (
+            <div className="text-stone-400 text-xs font-mono text-center max-w-[200px] leading-relaxed">
+              <span className="block text-amber-600 font-bold uppercase tracking-wider mb-1">Audit Pending</span>
+              Return tomorrow for verification.
+            </div>
+          ) : (
+            <>
+              <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
+                  {getEfficiency()}%
+                </span>
+                {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
+              </div>
+              <span className="text-amber-500 font-bold text-xl mt-1">Target: {optimalScore}</span>
+            </>
+          )}
         </div>
 
         {/* Buttons for Daily */}

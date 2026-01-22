@@ -6,6 +6,9 @@ import { useMusic } from './hooks/useMusic';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
+import { DailyAudit } from './components/DailyAudit';
+import { getDailyEntry } from './hooks/useGamePersistence';
+import { getYesterdayDateString } from './utils/dateUtils';
 
 const getSnakePosition = (index: number): React.CSSProperties => {
   const cycle = Math.floor(index / 12);
@@ -93,6 +96,9 @@ export default function TheGreatSort() {
     return false;
   };
 
+  // Check if audit is available for yesterday
+  const isAuditAvailable = !!getDailyEntry(getYesterdayDateString());
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
 
@@ -106,10 +112,12 @@ export default function TheGreatSort() {
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
         isPlaying={isPlaying}
+        isAuditAvailable={isAuditAvailable}
         onToggleMusic={toggleMusic}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
+        onOpenAudit={actions.openAudit}
       />
 
       {/* --- MAIN AREA --- */}
@@ -171,8 +179,21 @@ export default function TheGreatSort() {
         shakeTools={state.shakeTools}
         listLength={state.list.length}
         onToolClick={actions.handleToolClick}
-        onActionClick={state.phase === GamePhase.RESULTS ? actions.nextLevel : actions.startInspection}
+        onActionClick={
+            state.phase === GamePhase.RESULTS
+              ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
+              : actions.startInspection
+        }
       />
+
+      {/* Audit Modal */}
+      {state.auditState && (
+        <DailyAudit
+            date={state.auditState.date}
+            userHighScore={state.auditState.userScore}
+            onClose={actions.closeAudit}
+        />
+      )}
 
       {/* Help / Rules Overlay (Desktop Only) */}
       <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">
