@@ -37,16 +37,6 @@ export function useGame() {
 
       // Save Score Event
       if (gameMode === 'DAILY') {
-          // Use the current score from engine state (closure or ref needed?)
-          // `engine.state` in `useCallback` dependency might be stale if loop calls it?
-          // No, `processNextStepWrapper` calls `onComplete`.
-          // `onComplete` is this function.
-          // This function depends on `engine.state.levelScore`.
-          // If `engine.state` changes, this callback identity changes.
-          // `useGameLoop` depends on `onComplete`.
-          // So if score updates, `useGameLoop` updates `processNextStepWrapper`.
-          // This is fine.
-
           saveDailyScore(getTodayDateString(), engine.state.levelScore);
           engine.actions.setDailyCompleted(true);
       }
@@ -70,23 +60,28 @@ export function useGame() {
 
     // Restore Daily State if available
     if (gameMode === 'DAILY') {
-        if (loadedState) {
+        const savedStateStr = localStorage.getItem(`daily_state_${today}`);
+        const savedResultStr = localStorage.getItem(`daily_result_${today}`);
+        const directLoadedState = savedStateStr ? JSON.parse(savedStateStr) : null;
+        const directDailyResult = savedResultStr ? JSON.parse(savedResultStr) : null;
+
+        if (directLoadedState) {
             // Restore
             const seed = stringToSeed(today);
             let currentList = generateLevel(9, seed);
-            let currentTools = loadedState.tools;
+            let currentTools = directLoadedState.tools;
             if (!currentTools) {
               currentTools = generateTools(seed);
             } else {
               // Reset usage state to prevent double-counting during replay
-              currentTools = currentTools.map(t => ({ ...t, used: false }));
+              currentTools = currentTools.map((t: ToolInstance) => ({ ...t, used: false }));
             }
 
             // Replay
-            loadedState.moves.forEach(move => {
+            directLoadedState.moves.forEach((move: any) => {
                 currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
                 // Mark tools used
-                const toolIndex = currentTools.findIndex(t => t.type === move.tool && !t.used);
+                const toolIndex = currentTools.findIndex((t: ToolInstance) => t.type === move.tool && !t.used);
                 if (toolIndex !== -1) currentTools[toolIndex].used = true;
             });
 
@@ -95,30 +90,30 @@ export function useGame() {
                 level: 1,
                 currentSeed: seed,
                 toolsAvailable: currentTools,
-                movesHistory: loadedState.moves,
-                phase: loadedState.phase,
+                movesHistory: directLoadedState.moves,
+                phase: directLoadedState.phase,
                 list: currentList
             });
 
-            if (loadedState.phase === GamePhase.RESULTS) {
+            if (directLoadedState.phase === GamePhase.RESULTS) {
                 engine.actions.setDailyCompleted(true);
                 const { score, gradedList } = gradeLevel(currentList);
                 engine.actions.setList(gradedList);
                 engine.actions.setLevelScore(score);
 
-                if (dailyResult) {
-                    engine.actions.setOptimalScore(dailyResult.optimal);
+                if (directDailyResult) {
+                    engine.actions.setOptimalScore(directDailyResult.optimal);
                 }
             } else {
                 engine.actions.setList(currentList);
                 engine.actions.setDailyCompleted(false);
             }
 
-        } else if (dailyResult) {
+        } else if (directDailyResult) {
              // Daily completed but state missing (legacy/cleared)
              engine.actions.setDailyCompleted(true);
-             engine.actions.setLevelScore(dailyResult.score);
-             engine.actions.setOptimalScore(dailyResult.optimal);
+             engine.actions.setLevelScore(directDailyResult.score);
+             engine.actions.setOptimalScore(directDailyResult.optimal);
              engine.actions.setPhase(GamePhase.RESULTS);
              engine.actions.startLevel(1, generateLevel(9, stringToSeed(today)), generateTools(stringToSeed(today)), stringToSeed(today));
              engine.actions.setPhase(GamePhase.RESULTS); // Force phase back to results after startLevel resets it
@@ -133,7 +128,7 @@ export function useGame() {
 
     setIsGameLoaded(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedState, dailyResult, isGameLoaded, gameMode]);
+  }, [isGameLoaded, gameMode]);
 
   // --- Helper: Start Level Logic ---
   const startLevel = (lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
