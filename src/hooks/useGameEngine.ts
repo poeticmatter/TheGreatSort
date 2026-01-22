@@ -9,6 +9,7 @@ export interface EngineState {
   totalScore: number;
   totalOptimalScore: number;
   optimalScore: number | null;
+  worstScore: number | null;
   list: CardItem[];
   movesHistory: Move[];
   phase: GamePhase;
@@ -27,6 +28,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
   const [totalScore, setTotalScore] = useState(0);
   const [totalOptimalScore, setTotalOptimalScore] = useState(0);
   const [optimalScore, setOptimalScore] = useState<number | null>(null);
+  const [worstScore, setWorstScore] = useState<number | null>(null);
 
   const [list, setList] = useState<CardItem[]>([]);
   const [movesHistory, setMovesHistory] = useState<Move[]>([]);
@@ -48,6 +50,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     if (state.totalScore !== undefined) setTotalScore(state.totalScore);
     if (state.totalOptimalScore !== undefined) setTotalOptimalScore(state.totalOptimalScore);
     if (state.optimalScore !== undefined) setOptimalScore(state.optimalScore);
+    if (state.worstScore !== undefined) setWorstScore(state.worstScore);
     if (state.list !== undefined) setList(state.list);
     if (state.movesHistory !== undefined) setMovesHistory(state.movesHistory);
     if (state.phase !== undefined) setPhase(state.phase);
@@ -73,6 +76,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     setPhase(GamePhase.PLANNING);
     setLevelScore(0);
     setOptimalScore(null);
+    setWorstScore(null);
     setDetectedMode(null);
     setSelectedToolInstanceId(null);
     setSelection(null);
@@ -208,7 +212,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     state: {
       level, levelScore, totalScore, totalOptimalScore, optimalScore, list, phase,
       detectedMode, toolsAvailable, selectedToolInstanceId, selection, shakeTools,
-      dailyCompleted, currentSeed, movesHistory
+      dailyCompleted, currentSeed, movesHistory, worstScore
     },
     actions: {
       loadState,
@@ -223,6 +227,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
       setDetectedMode,
       setDailyCompleted,
       setOptimalScore,
+      setWorstScore,
       setTotalScore,
       setTotalOptimalScore
     }

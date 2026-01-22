@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
-import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptimalScore, DailyState, applyMove } from '../utils/gameLogic';
+import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, DailyState, applyMove } from '../utils/gameLogic';
 import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameEngine } from './useGameEngine';
@@ -26,6 +26,7 @@ export function useGame() {
       toolsAvailable: engine.state.toolsAvailable,
       levelScore: engine.state.levelScore,
       optimalScore: engine.state.optimalScore,
+      worstScore: engine.state.worstScore,
       list: engine.state.list
   };
 
@@ -193,6 +194,26 @@ export function useGame() {
           engine.actions.setTotalOptimalScore(prev => prev + (engine.state.optimalScore || 0));
       }
   }, [engine.state.phase, engine.state.levelScore, engine.state.optimalScore]);
+
+  // Calculate Scores for Daily Mode on Results
+  useEffect(() => {
+    if (gameMode === 'DAILY' && engine.state.phase === GamePhase.RESULTS && engine.state.currentSeed !== undefined && engine.state.optimalScore === null) {
+       // Regenerate initial state to calculate benchmarks
+       const seed = engine.state.currentSeed;
+       const initialList = generateLevel(9, seed);
+       const initialTools = generateTools(seed);
+
+       const timer = setTimeout(() => {
+           const best = findOptimalScore(initialList, initialTools);
+           const worst = findWorstScore(initialList, initialTools);
+
+           engine.actions.setOptimalScore(best);
+           engine.actions.setWorstScore(worst);
+       }, 100);
+
+       return () => clearTimeout(timer);
+    }
+  }, [gameMode, engine.state.phase, engine.state.currentSeed, engine.state.optimalScore]);
 
 
   // --- Actions Wiring ---
