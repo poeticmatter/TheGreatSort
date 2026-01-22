@@ -13,6 +13,17 @@ export interface PersistenceState {
   list: CardItem[]; // Needed for restoring visual state if daily completed
 }
 
+export interface DailyEntry {
+  date: string;
+  highScore: number;
+  attempts: number;
+  lastPlayedAt: number; // timestamp
+}
+
+export type DailyHistory = Record<string, DailyEntry>;
+
+const DAILY_HISTORY_KEY = 'tgs_daily_history';
+
 export const loadCareerTools = (): ToolInstance[] | null => {
   try {
     const saved = localStorage.getItem('career_tools');
@@ -24,6 +35,49 @@ export const loadCareerTools = (): ToolInstance[] | null => {
 
 export const saveCareerTools = (tools: ToolInstance[]) => {
   localStorage.setItem('career_tools', JSON.stringify(tools));
+};
+
+export const getDailyEntry = (date: string): DailyEntry | null => {
+  try {
+    const historyStr = localStorage.getItem(DAILY_HISTORY_KEY);
+    if (!historyStr) return null;
+
+    const history: DailyHistory = JSON.parse(historyStr);
+    return history[date] || null;
+  } catch (e) {
+    console.error("Failed to load daily entry", e);
+    return null;
+  }
+};
+
+export const saveDailyScore = (date: string, score: number) => {
+  try {
+    const historyStr = localStorage.getItem(DAILY_HISTORY_KEY);
+    const history: DailyHistory = historyStr ? JSON.parse(historyStr) : {};
+
+    const existing = history[date];
+    const now = Date.now();
+
+    if (existing) {
+      history[date] = {
+        ...existing,
+        attempts: existing.attempts + 1,
+        highScore: Math.max(existing.highScore, score),
+        lastPlayedAt: now
+      };
+    } else {
+      history[date] = {
+        date,
+        highScore: score,
+        attempts: 1,
+        lastPlayedAt: now
+      };
+    }
+
+    localStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.error("Failed to save daily score", e);
+  }
 };
 
 export const useGamePersistence = (
