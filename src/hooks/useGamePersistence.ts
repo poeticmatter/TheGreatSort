@@ -135,7 +135,7 @@ export const useGamePersistence = (
     if (currentState.phase === GamePhase.RESULTS) {
       localStorage.setItem(`daily_result_${today}`, JSON.stringify({
         score: currentState.levelScore,
-        optimal: currentState.optimalScore
+        // Removed optimal score to prevent spoilers in storage
       }));
     }
 
@@ -156,7 +156,7 @@ export const useGamePersistence = (
     gameMode,
     currentState.phase,
     currentState.levelScore,
-    currentState.optimalScore,
+    // currentState.optimalScore, // Removed dependency as we don't save it
     currentState.movesHistory,
     currentState.toolsAvailable,
     isGameLoaded

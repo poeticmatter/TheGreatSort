@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { GamePhase } from '../../types';
 import { createInspectionStream, InspectionYield } from '../utils/gameLogic';
 import { useGameEngine } from './useGameEngine';
@@ -10,6 +10,12 @@ export const useGameLoop = (
   const inspectionIndex = useRef(0);
   const inspectionIterator = useRef<Generator<InspectionYield> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep ref updated to avoid stale closures in the recursive timeout
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   const processNextStepWrapper = useCallback(() => {
      if (!inspectionIterator.current) return;
@@ -17,11 +23,10 @@ export const useGameLoop = (
      const result = inspectionIterator.current.next();
 
      if (result.done) {
-         if (onComplete) {
-            onComplete();
-         } else {
-            engine.actions.setPhase(GamePhase.RESULTS);
+         if (onCompleteRef.current) {
+            onCompleteRef.current();
          }
+         // Removed direct setPhase call; delegated to onComplete
          return;
      }
 
@@ -43,7 +48,7 @@ export const useGameLoop = (
      }
 
      timeoutRef.current = setTimeout(processNextStepWrapper, delay);
-  }, [engine.actions, onComplete]);
+  }, [engine.actions]);
 
   const startInspection = () => {
     engine.actions.setPhase(GamePhase.INSPECTING);

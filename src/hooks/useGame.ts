@@ -33,13 +33,12 @@ export function useGame() {
 
   // --- Loop Callback ---
   const handleGameCompletion = useCallback(() => {
-      engine.actions.setPhase(GamePhase.RESULTS);
-
-      // Save Score Event
+      // Logic from legacy hook (saveScore)
       if (gameMode === 'DAILY') {
           saveDailyScore(getTodayDateString(), engine.state.levelScore);
           engine.actions.setDailyCompleted(true);
       }
+      engine.actions.setPhase(GamePhase.RESULTS);
   }, [gameMode, engine.state.levelScore, engine.actions]);
 
   // --- Loop ---
@@ -101,9 +100,7 @@ export function useGame() {
                 engine.actions.setList(gradedList);
                 engine.actions.setLevelScore(score);
 
-                if (directDailyResult) {
-                    engine.actions.setOptimalScore(directDailyResult.optimal);
-                }
+                // Note: removed engine.actions.setOptimalScore(dailyResult.optimal) per instruction
             } else {
                 engine.actions.setList(currentList);
                 engine.actions.setDailyCompleted(false);
@@ -113,7 +110,7 @@ export function useGame() {
              // Daily completed but state missing (legacy/cleared)
              engine.actions.setDailyCompleted(true);
              engine.actions.setLevelScore(directDailyResult.score);
-             engine.actions.setOptimalScore(directDailyResult.optimal);
+             // Note: removed engine.actions.setOptimalScore(dailyResult.optimal) per instruction
              engine.actions.setPhase(GamePhase.RESULTS);
              engine.actions.startLevel(1, generateLevel(9, stringToSeed(today)), generateTools(stringToSeed(today)), stringToSeed(today));
              engine.actions.setPhase(GamePhase.RESULTS); // Force phase back to results after startLevel resets it
@@ -189,13 +186,11 @@ export function useGame() {
     }
   }, [engine.state.list, engine.state.phase, engine.state.optimalScore, engine.state.toolsAvailable, gameMode]);
 
-  // Update Total Score on Results (Removed Save Logic from here)
+  // Update Total Score on Results
   useEffect(() => {
       if (engine.state.phase === GamePhase.RESULTS) {
           engine.actions.setTotalScore(prev => prev + engine.state.levelScore);
           engine.actions.setTotalOptimalScore(prev => prev + (engine.state.optimalScore || 0));
-
-          // Note: Daily Save logic moved to handleGameCompletion to avoid double count on re-render
       }
   }, [engine.state.phase, engine.state.levelScore, engine.state.optimalScore]);
 
