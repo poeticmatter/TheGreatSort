@@ -179,7 +179,11 @@ export default function TheGreatSort() {
         shakeTools={state.shakeTools}
         listLength={state.list.length}
         onToolClick={actions.handleToolClick}
-        onActionClick={state.phase === GamePhase.RESULTS ? actions.nextLevel : actions.startInspection}
+        onActionClick={
+            state.phase === GamePhase.RESULTS
+              ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
+              : actions.startInspection
+        }
       />
 
       {/* Audit Modal */}
