@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+// import { LucideIcon } from 'lucide-react';
 
 export type CardStatus = 'pending' | 'scanning' | 'safe' | 'eliminated';
 
@@ -18,7 +18,7 @@ export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'm
 export interface ToolDefinition {
   id: ToolType;
   name: string;
-  icon: LucideIcon;
+  icon: any; // LucideIcon
   desc: string;
   weight: number;
 }
