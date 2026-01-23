@@ -32,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({
     : 0;
 
   return (
-    <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 z-10 sticky top-0">
+    <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 z-50 sticky top-0">
       <div className="flex flex-col items-center md:items-start">
         <div className="flex items-center gap-3">
           <div className="relative">

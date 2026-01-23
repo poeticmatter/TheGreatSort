@@ -109,7 +109,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       </div>
 
       {/* Main Report Card */}
-      <div className="bg-stone-800/50 border border-stone-700 p-8 rounded-sm shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-full bg-transparent relative overflow-hidden">
         
         {/* Watermark */}
         <div className="absolute top-0 right-0 p-32 opacity-5 pointer-events-none">
@@ -157,13 +157,13 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                </div>
              </div>
           ) : (
-            <div className="bg-red-950/20 border border-red-900/30 p-8 rounded relative">
-                <div className="flex items-center gap-3 mb-8 text-red-500 border-b border-red-900/30 pb-2">
+            <div className="flex flex-col gap-12 mt-8 w-full">
+                <div className="bg-red-950/30 border border-red-900/50 px-6 py-3 rounded inline-flex items-center gap-3 text-red-500 mb-8 self-start">
                     <AlertTriangle size={24} />
                     <h3 className="uppercase font-bold tracking-wide text-lg">Corrective Action Plan</h3>
                 </div>
 
-                <div className="flex flex-col gap-0 items-center">
+                <div className="flex flex-col gap-0 items-center w-full">
                     {timeline.map((step, idx) => {
                         // Determine highlights based on the NEXT move (if current step has a move)
                         const highlightIndices = step.move 
@@ -173,13 +173,12 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                         return (
                             <React.Fragment key={idx}>
                                 {/* Board State */}
-                                <div className="w-full bg-stone-900/50 p-6 rounded border border-stone-800 flex flex-col items-center shadow-lg">
-                                    <div className="text-xs text-stone-500 uppercase tracking-widest mb-4 w-full text-left border-b border-stone-800 pb-1">
+                                <div className="w-full flex flex-col items-center">
+                                    <div className="text-xs text-stone-500 uppercase tracking-widest mb-6 w-full text-left">
                                         {idx === 0 ? "Initial State" : (step.move === null ? "Optimized State" : `Phase ${idx}`)}
                                     </div>
                                     <SequenceDisplay
                                         sequence={step.list}
-                                        isMobile={true}
                                         highlightIndices={highlightIndices}
                                     />
                                 </div>
@@ -191,9 +190,16 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                         <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
                                             <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
                                             <span className="text-stone-500">
-                                              {step.move.targetIndex !== undefined 
-                                                ? `${step.move.index} ↔ ${step.move.targetIndex}` 
-                                                : `Index ${step.move.index}`}
+                                              {(() => {
+                                                  const isAdjacent = ['swap', 'merge', 'sink', 'cycle'].includes(step.move.tool);
+                                                  if (isAdjacent && step.move.targetIndex === undefined) {
+                                                      return `Index ${step.move.index} & ${step.move.index + 1}`;
+                                                  }
+                                                  if (step.move.targetIndex !== undefined) {
+                                                      return `${step.move.index} ↔ ${step.move.targetIndex}`;
+                                                  }
+                                                  return `Index ${step.move.index}`;
+                                              })()}
                                             </span>
                                         </div>
                                         <div className="h-6 w-px bg-stone-600"></div>
@@ -203,6 +209,14 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                             </React.Fragment>
                         );
                     })}
+
+                    <button 
+                        onClick={onClose}
+                        className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)] mx-auto mt-12 mb-20"
+                    >
+                        <CheckCircle size={24} className="text-stone-900/80" />
+                        COMPLIANCE ACCEPTED
+                    </button>
                 </div>
             </div>
           )}
