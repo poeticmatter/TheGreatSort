@@ -219,6 +219,7 @@ export function useGame() {
   // --- Actions Wiring ---
 
   const changeMode = (newMode: GameMode) => {
+    setAuditState(null);
     loop.stopLoop();
 
     if (newMode === 'DAILY') {
