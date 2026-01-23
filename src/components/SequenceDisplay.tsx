@@ -83,8 +83,8 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
   // Default (Responsive): grid ... sm:flex ...
   // Force Mobile (Snake): grid ... (remove sm overrides)
   
-  const baseClasses = "grid grid-cols-5 gap-x-7 gap-y-4 justify-items-center px-4 perspective-[1000px]";
-  const desktopClasses = "sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-6 sm:max-w-5xl";
+  const baseClasses = "grid grid-cols-5 gap-x-2 gap-y-4 justify-items-center px-0 perspective-[1000px]";
+  const desktopClasses = "sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-4 sm:max-w-5xl";
   
   const containerClassName = isMobile 
     ? baseClasses 
