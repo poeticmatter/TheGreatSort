@@ -163,9 +163,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                             <React.Fragment key={idx}>
                                 {/* Board State */}
                                 <div className="w-full flex flex-col items-center">
-                                    <div className="text-xs text-stone-500 uppercase tracking-widest mb-6 w-full text-left">
-                                        {idx === 0 ? "Initial State" : (step.move === null ? "Optimized State" : `Phase ${idx}`)}
-                                    </div>
+
                                     <SequenceDisplay
                                         sequence={step.list}
                                         highlightIndices={highlightIndices}
