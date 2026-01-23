@@ -1,68 +1,16 @@
 import React from 'react';
 import Card from './components/Card';
+import SequenceDisplay from './components/SequenceDisplay';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
 import { useMusic } from './hooks/useMusic';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
-
-const getSnakePosition = (index: number): React.CSSProperties => {
-  const cycle = Math.floor(index / 12);
-  const localIndex = index % 12;
-  const baseRow = cycle * 4;
-  let col = 0;
-  let row = 0;
-
-  if (localIndex < 5) {
-    // 0, 1, 2, 3, 4 -> Row 1, Col 1..5
-    row = 1;
-    col = localIndex + 1;
-  } else if (localIndex === 5) {
-    // 5 -> Row 2, Col 5
-    row = 2;
-    col = 5;
-  } else if (localIndex < 11) {
-    // 6, 7, 8, 9, 10 -> Row 3, Col 5..1
-    row = 3;
-    col = 11 - localIndex;
-  } else {
-    // 11 -> Row 4, Col 1
-    row = 4;
-    col = 1;
-  }
-
-  return {
-    gridColumn: col,
-    gridRow: baseRow + row,
-  };
-};
-
-const getSnakeDirection = (index: number, total: number): 'right' | 'left' | 'down' | null => {
-  if (index >= total - 1) return null; // No arrow for the last item
-
-  const localIndex = index % 12;
-
-  // Row 1: 0, 1, 2, 3 -> Right (4 is end of row)
-  if (localIndex < 4) return 'right';
-
-  // End of Row 1: 4 -> Down
-  if (localIndex === 4) return 'down';
-
-  // Row 2: 5 -> Down
-  if (localIndex === 5) return 'down';
-
-  // Row 3: 6, 7, 8, 9 -> Left (10 is end of row)
-  if (localIndex >= 6 && localIndex < 10) return 'left';
-
-  // End of Row 3: 10 -> Down
-  if (localIndex === 10) return 'down';
-
-  // Row 4: 11 -> Down
-  if (localIndex === 11) return 'down';
-
-  return 'right'; // Fallback
-};
+import { DailyAudit } from './components/DailyAudit';
+import { getDailyEntry } from './hooks/useGamePersistence';
+import { getYesterdayDateString } from './utils/dateUtils';
+import { ResistanceLetter } from './components/ResistanceLetter';
 
 export default function TheGreatSort() {
   const { state, actions } = useGame();
@@ -93,6 +41,14 @@ export default function TheGreatSort() {
     return false;
   };
 
+  // Check if audit is available for yesterday
+  const isAuditAvailable = !!getDailyEntry(getYesterdayDateString());
+
+  const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
+  
+  // Route / View State Logic
+  const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
 
@@ -106,86 +62,103 @@ export default function TheGreatSort() {
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
         isPlaying={isPlaying}
+        isAuditAvailable={isAuditAvailable}
         onToggleMusic={toggleMusic}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
+        onOpenAudit={actions.openAudit}
       />
 
       {/* --- MAIN AREA --- */}
       <main
-        className="flex-1 flex flex-col items-center p-4 relative overflow-hidden"
+        className={`flex-1 flex flex-col items-center p-4 relative ${view === 'game' ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}
         onClick={actions.handleBackgroundClick}
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
-        <StatusBar
-          phase={state.phase}
-          selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
-          selection={state.selection}
-          detectedMode={state.detectedMode}
-          levelScore={state.levelScore}
-          optimalScore={state.optimalScore}
-          gameMode={state.gameMode}
-          onShareResult={actions.shareResult}
-          onRetryPractice={actions.retryPractice}
-        />
+        {view === 'resistance' ? (
+            <ResistanceLetter onClose={actions.closeResistance} />
+        ) : view === 'audit' ? (
+           <DailyAudit
+              date={state.auditState!.date}
+              userHighScore={state.auditState!.userScore}
+              onClose={actions.closeAudit}
+              onDetectResistance={actions.triggerResistance}
+           />
+        ) : (
+           <>
+              <StatusBar
+                phase={state.phase}
+                selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
+                selection={state.selection}
+                detectedMode={state.detectedMode}
+                levelScore={state.levelScore}
+                optimalScore={state.optimalScore}
+                worstScore={state.worstScore}
+                gameMode={state.gameMode}
+                onShareResult={actions.shareResult}
+                onRetryPractice={actions.retryPractice}
+              />
 
-        {/* --- CARDS GRID --- */}
-        <div className="flex-1 flex items-center justify-center w-full">
-            {state.list.length > 0 ? (
-              <div className="grid grid-cols-5 gap-x-7 gap-y-4 justify-items-center sm:flex sm:flex-wrap sm:justify-center sm:items-center sm:gap-6 max-w-5xl px-4 perspective-[1000px]">
-                {state.list.map((item, idx) => (
-                  <Card
-                    key={item.id}
-                    item={item}
-                    style={getSnakePosition(idx)}
-                    mobileDirection={getSnakeDirection(idx, state.list.length)}
-                    onClick={actions.handleCardClick}
-                    isSelected={state.selection === idx}
-                    isTargetCandidate={isCandidate(idx)}
-                  />
-                ))}
+              {/* --- CARDS GRID --- */}
+              <div className="flex-1 flex items-center justify-center w-full">
+                  {state.list.length > 0 ? (
+                    <SequenceDisplay
+                      sequence={state.list}
+                      selectedIndex={state.selection}
+                      candidateIndices={candidateIndices}
+                      onItemClick={actions.handleCardClick}
+                    />
+                  ) : (
+                    state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
+                       <div className="text-stone-600 italic font-serif opacity-50">
+                          Daily Quota Fulfilled.
+                       </div>
+                    )
+                  )}
+
+                  {state.list.length === 0 && state.phase === GamePhase.PLANNING && (
+                    <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
+                  )}
               </div>
-            ) : (
-              state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
-                 <div className="text-stone-600 italic font-serif opacity-50">
-                    Daily Quota Fulfilled.
-                 </div>
-              )
-            )}
-
-            {state.list.length === 0 && state.phase === GamePhase.PLANNING && (
-              <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
-            )}
-        </div>
+           </>
+        )}
 
       </main>
 
-      <Footer
-        phase={state.phase}
-        gameMode={state.gameMode}
-        toolsAvailable={state.toolsAvailable}
-        selectedTool={state.selectedTool}
-        shakeTools={state.shakeTools}
-        listLength={state.list.length}
-        onToolClick={actions.handleToolClick}
-        onActionClick={state.phase === GamePhase.RESULTS ? actions.nextLevel : actions.startInspection}
-      />
+      {view === 'game' && (
+        <Footer
+          phase={state.phase}
+          gameMode={state.gameMode}
+          toolsAvailable={state.toolsAvailable}
+          selectedTool={state.selectedTool}
+          shakeTools={state.shakeTools}
+          listLength={state.list.length}
+          onToolClick={actions.handleToolClick}
+          onActionClick={
+              state.phase === GamePhase.RESULTS
+                ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
+                : actions.startInspection
+          }
+        />
+      )}
 
-      {/* Help / Rules Overlay (Desktop Only) */}
-      <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">
-        <div className="bg-stone-950/90 p-4 rounded-sm border border-stone-700 shadow-2xl backdrop-blur-sm max-w-[200px]">
-           <p className="mb-2 text-amber-600 font-[Cinzel] uppercase tracking-wider text-xs border-b border-stone-800 pb-1">Scoring Protocol</p>
-           <ul className="text-xs text-stone-400 space-y-2 font-[Courier_Prime]">
-             <li><span className="text-amber-500 font-bold">1.</span> First item survives.</li>
-             <li><span className="text-amber-500 font-bold">2.</span> Second item sets Mode (Ascending/Descending).</li>
-             <li><span className="text-amber-500 font-bold">3.</span> Violators are purged.</li>
-             <li><span className="text-amber-500 font-bold">4.</span> Score = Sum of Survivors.</li>
-           </ul>
+      {/* Help / Rules Overlay (Desktop Only - Game Only) */}
+      {view === 'game' && (
+        <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">
+          <div className="bg-stone-950/90 p-4 rounded-sm border border-stone-700 shadow-2xl backdrop-blur-sm max-w-[200px]">
+             <p className="mb-2 text-amber-600 font-[Cinzel] uppercase tracking-wider text-xs border-b border-stone-800 pb-1">Scoring Protocol</p>
+             <ul className="text-xs text-stone-400 space-y-2 font-[Courier_Prime]">
+               <li><span className="text-amber-500 font-bold">1.</span> First item survives.</li>
+               <li><span className="text-amber-500 font-bold">2.</span> Second item sets Mode (Ascending/Descending).</li>
+               <li><span className="text-amber-500 font-bold">3.</span> Violators are purged.</li>
+               <li><span className="text-amber-500 font-bold">4.</span> Score = Sum of Survivors.</li>
+             </ul>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

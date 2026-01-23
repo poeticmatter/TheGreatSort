@@ -1,5 +1,5 @@
 import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
-import { ALL_TOOL_TYPES, TOOLS } from '../constants';
+import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 
 export type SolverItem = ISortable;
@@ -232,6 +232,63 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
   return { score: maxScore, moves: bestMoves };
 };
 
+// Recursive Solver to find the theoretical minimum score
+export const findWorstScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
+  // If no tools provided, default to standard set (legacy support or fallback)
+  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
+
+  const solution = findWorstSolution(startList, toolsToUse);
+  return solution.score;
+};
+
+// Recursive Solver to find the worst solution (score + path)
+export const findWorstSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
+  // Convert to SolverItem for potentially rich state
+  const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
+
+  let minScore = Infinity;
+  let worstMoves: Move[] = [];
+
+  const search = (currentNums: SolverItem[], currentTools: ToolType[], currentMoves: Move[]) => {
+    const currentScore = calculateBatchScore(currentNums);
+    if (currentScore < minScore) {
+      minScore = currentScore;
+      worstMoves = [...currentMoves];
+    }
+
+    if (currentTools.length === 0) return;
+
+    for (let t = 0; t < currentTools.length; t++) {
+      const tool = currentTools[t];
+      const nextTools = [...currentTools];
+      nextTools.splice(t, 1);
+
+      const strategy = TOOL_REGISTRY[tool];
+      if (strategy) {
+          const possibleMoves = strategy.generateMoves(currentNums);
+          for (const move of possibleMoves) {
+              const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
+              search(nextNums, nextTools, [...currentMoves, move]);
+          }
+      }
+    }
+  };
+
+  search(initialNums, availableTools, []);
+
+  // If initial score was never beaten (should be caught by first search call, but safety check)
+  if (minScore === Infinity) return { score: calculateBatchScore(initialNums), moves: [] };
+
+  return { score: minScore, moves: worstMoves };
+};
+
+export const calculateRelativeEfficiency = (userScore: number, optimal: number, worst: number): number => {
+    if (optimal === worst) return 100;
+    const efficiency = ((userScore - worst) / (optimal - worst)) * 100;
+    return Math.max(0, Math.min(100, Math.round(efficiency)));
+};
+
 // Calculate level length based on level number
 export const lengthFromLevel = (level: number): number => {
   // Cap length at 14 to prevent UI clutter and Solver blowout
@@ -265,7 +322,7 @@ export const generateTools = (seed?: number): ToolInstance[] => {
 
     // Calculate total weight
     const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
-        const def = TOOLS[toolId.toUpperCase()];
+        const def = TOOL_META[toolId.toUpperCase()];
         return sum + (def ? def.weight : 0);
     }, 0);
 
@@ -275,7 +332,7 @@ export const generateTools = (seed?: number): ToolInstance[] => {
         let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
 
         for (const toolId of ALL_TOOL_TYPES) {
-            const def = TOOLS[toolId.toUpperCase()];
+            const def = TOOL_META[toolId.toUpperCase()];
             const weight = def ? def.weight : 0;
             threshold -= weight;
             if (threshold < 0) {

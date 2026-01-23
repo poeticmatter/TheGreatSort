@@ -3,26 +3,27 @@ import {
   RefreshCcwDot, Divide, Shield, DiamondMinus, RedoDot, FlipHorizontal2, Recycle, Equal
 } from 'lucide-react';
 import { ToolDefinition } from '../types';
+import { TOOL_META } from './toolDefinitions';
+
+export { ALL_TOOL_TYPES } from './toolDefinitions';
 
 export const TOOLS: Record<string, ToolDefinition> = {
-  DEMOTE: { id: 'demote', name: 'Demote', icon: ArrowLeftToLine, desc: 'Move an item to the start (Left)', weight: 20 },
-  SWAP: { id: 'swap', name: 'Swap', icon: ArrowRightLeft, desc: 'Switch two adjacent items', weight: 20 },
-  PURGE: { id: 'purge', name: 'Purge', icon: Trash2, desc: 'Eliminate one item', weight: 10 },
-  PROMOTE: { id: 'promote', name: 'Promote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)', weight: 20 },
+  DEMOTE: { ...TOOL_META.DEMOTE, name: 'Demote', icon: ArrowLeftToLine, desc: 'Move an item to the start (Left)' },
+  SWAP: { ...TOOL_META.SWAP, name: 'Swap', icon: ArrowRightLeft, desc: 'Switch two adjacent items' },
+  PURGE: { ...TOOL_META.PURGE, name: 'Purge', icon: Trash2, desc: 'Eliminate one item' },
+  PROMOTE: { ...TOOL_META.PROMOTE, name: 'Promote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)' },
 
-  LONGSWAP: { id: 'longswap', name: 'Long Swap', icon: RefreshCcwDot, desc: 'Switch any two NON-adjacent items', weight: 10 },
-  MERGE: { id: 'merge', name: 'Merge', icon: Merge, desc: 'Combine two adjacent items (Sum)', weight: 5 },
-  SINK: { id: 'sink', name: 'Sink', icon: ArrowDownToLine, desc: 'Set adjacent items to the lower of the two', weight: 5 },
-  HALVE: { id: 'halve', name: 'Halve', icon: Divide, desc: 'Halve item value (round down)', weight: 5 },
+  LONGSWAP: { ...TOOL_META.LONGSWAP, name: 'Long Swap', icon: RefreshCcwDot, desc: 'Switch any two NON-adjacent items' },
+  MERGE: { ...TOOL_META.MERGE, name: 'Merge', icon: Merge, desc: 'Combine two adjacent items (Sum)' },
+  SINK: { ...TOOL_META.SINK, name: 'Sink', icon: ArrowDownToLine, desc: 'Set adjacent items to the lower of the two' },
+  HALVE: { ...TOOL_META.HALVE, name: 'Halve', icon: Divide, desc: 'Halve item value (round down)' },
   
-  SHIELD: { id: 'shield', name: 'Shield', icon: Shield, desc: 'Protects the NEXT item from elimination', weight: 2 },
-  SHRINK: { id: 'shrink', name: 'Shrink', icon: DiamondMinus, desc: 'Decrease value by 3', weight: 5 },
+  SHIELD: { ...TOOL_META.SHIELD, name: 'Shield', icon: Shield, desc: 'Protects the NEXT item from elimination' },
+  SHRINK: { ...TOOL_META.SHRINK, name: 'Shrink', icon: DiamondMinus, desc: 'Decrease value by 3' },
   
-  HOP: { id: 'hop', name: 'Hop', icon: RedoDot, desc: 'Swap the items adjacent to the selected item', weight: 10 },
-  MIRROR: { id: 'mirror', name: 'Mirror', icon: FlipHorizontal2, desc: 'Swap with item on opposite side', weight: 5 },
+  HOP: { ...TOOL_META.HOP, name: 'Hop', icon: RedoDot, desc: 'Swap the items adjacent to the selected item' },
+  MIRROR: { ...TOOL_META.MIRROR, name: 'Mirror', icon: FlipHorizontal2, desc: 'Swap with item on opposite side' },
 
-  CYCLE: { id: 'cycle', name: 'Cycle', icon: Recycle, desc: 'Select middle item, then direction to cycle block of 3', weight: 2 },
-  EQUALIZE: { id: 'equalize', name: 'Equalize', icon: Equal, desc: 'Average two non-adjacent items (round down)', weight: 5 },
+  CYCLE: { ...TOOL_META.CYCLE, name: 'Cycle', icon: Recycle, desc: 'Select middle item, then direction to cycle block of 3' },
+  EQUALIZE: { ...TOOL_META.EQUALIZE, name: 'Equalize', icon: Equal, desc: 'Average two non-adjacent items (round down)' },
 };
-
-export const ALL_TOOL_TYPES = ['demote', 'swap', 'purge', 'promote', 'longswap', 'merge', 'sink', 'halve', 'shield', 'shrink', 'hop', 'mirror', 'cycle', 'equalize'];

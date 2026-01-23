@@ -10,9 +10,10 @@ interface CardProps {
   isTargetCandidate: boolean;
   style?: React.CSSProperties;
   mobileDirection?: 'right' | 'left' | 'down' | null;
+  disableResponsiveOverrides?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -67,6 +68,10 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
     }
   }
 
+  const desktopArrowKeyClasses = disableResponsiveOverrides 
+    ? "" 
+    : "sm:left-[calc(100%+14px)] sm:right-auto sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0";
+
   return (
     <div 
       style={style}
@@ -101,8 +106,7 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
              ${mobileDirection === 'down' ? 'top-[calc(100%+9px)] left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90' : ''}
 
              /* Desktop Override: Always Right (Gap 24px -> Center at 14px) */
-             sm:left-[calc(100%+14px)] sm:right-auto sm:top-1/2 sm:bottom-auto
-             sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0
+             ${desktopArrowKeyClasses}
            `}
          >
            <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-amber-500" />
