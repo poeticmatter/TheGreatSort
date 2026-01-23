@@ -147,9 +147,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
              </div>
           ) : (
             <div className="flex flex-col gap-12 mt-8 w-full">
-                <div className="bg-red-950/30 border border-red-900/50 px-6 py-3 rounded inline-flex items-center gap-3 text-red-500 mb-8 self-start">
-                    <AlertTriangle size={24} />
-                    <h3 className="uppercase font-bold tracking-wide text-lg">Corrective Action Plan</h3>
+                <div className="w-full border-t-2 border-dashed border-red-900/30 my-8 relative">
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#1c1917] px-4 text-red-500 font-bold uppercase tracking-wide md:tracking-widest text-sm md:text-2xl flex items-center gap-3 whitespace-nowrap">
+                         <AlertTriangle className="w-6 h-6 md:w-8 md:h-8" />
+                         Corrective Action Plan
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-0 items-center w-full">
