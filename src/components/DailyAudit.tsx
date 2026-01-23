@@ -94,19 +94,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   return (
     <div className="w-full max-w-4xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
       
-      {/* Navigation / Header */}
-      <div className="flex items-center justify-between border-b-2 border-stone-700 pb-4">
-        <button 
-          onClick={onClose}
-          className="flex items-center gap-2 text-stone-400 hover:text-amber-500 transition-colors uppercase font-bold tracking-wider text-sm"
-        >
-          <ArrowLeft size={16} />
-          Return to Operations
-        </button>
-        <div className="text-xs font-mono text-stone-500">
-           REF: {stringToSeed(date).toString(16).toUpperCase()}
-        </div>
-      </div>
+
 
       {/* Main Report Card */}
       <div className="w-full max-w-full bg-transparent relative overflow-hidden">
