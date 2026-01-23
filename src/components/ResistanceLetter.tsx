@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { HandFist } from 'lucide-react';
-
-const NOISE_SVG = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.5'/%3E%3C/svg%3E`;
+import letterBg from '../assets/ResistanceLetter.png';
 
 interface ResistanceLetterProps {
   onClose: () => void;
@@ -12,65 +10,54 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) =
 
   const handleClose = () => {
     setClosing(true);
-    // Short delay for fade out if we were doing animations, 
-    // but for now immediate close matching spec instructions works fine
     setTimeout(onClose, 300);
   };
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center bg-stone-950 transition-opacity duration-1000 ${closing ? 'opacity-0' : 'opacity-100'}`}>
+      <style>{`
+        @keyframes text-pulse-to-black {
+          0%, 100% { color: #44403c; } 
+          50% { color: #000000; }
+        }
+      `}</style>
       <div 
-        className="relative w-full max-w-md text-stone-900 p-8 md:p-12 shadow-2xl rounded-sm transform rotate-1 overflow-hidden isolate bg-[#dcd8cf] shadow-[inset_0_0_60px_rgba(0,0,0,0.1)]"
+        className="relative w-full max-w-md text-stone-900 shadow-2xl rounded-sm transform rotate-1 overflow-hidden isolate"
         style={{
-          backgroundImage: `url("${NOISE_SVG}"), linear-gradient(to bottom right, #dcd8cf, #d4d0c5)`,
-          backgroundBlendMode: 'overlay'
+          backgroundImage: `url(${letterBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          aspectRatio: '3/4'
         }}
       >
-
-        <div className="relative z-10 font-[Courier_Prime] flex flex-col gap-6">
-          {/* Header */}
-          <div className="w-full flex justify-end">
-             <div className="border-2 border-red-800 text-red-800 px-2 py-1 transform -rotate-6 text-sm font-bold uppercase tracking-widest opacity-80 mix-blend-multiply">
-                 Eyes Only
-             </div>
+        <div className="relative z-10 font-['Courier_Prime'] flex flex-col h-full pt-20 px-12 pb-32">
+          
+          {/* Main Text Content */}
+          <div className="flex-grow flex">
+            <div className="space-y-4 text-sm md:text-[15px] leading-loose text-[#1c1917] mix-blend-multiply opacity-90 font-normal font-['Courier_Prime']">
+              <p>
+                We see you, and we appreciate your efforts. But the course of action you've taken is only going to get you punished.
+              </p>
+              <p>
+                Join the resistance, and we will guide your actions to be meaningful, but within the parameters that will keep you safe.
+              </p>
+              <p>
+                Stay vigilant, friends.
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-4 text-sm md:text-base leading-relaxed tracking-tight font-bold text-stone-900 drop-shadow-[0_0_1px_rgba(0,0,0,0.3)]">
-            <p>
-              We see you, and we appreciate your efforts. But the course of action you've taken is only going to get you punished.
-            </p>
-            <p>
-              Join the resistance, and we will guide your actions to be meaningful, but within the parameters that will keep you safe.
-            </p>
-            <p>
-              Stay vigilant, friends.
-            </p>
-          </div>
-
-          {/* Footer / Stamp */}
-          <div className="flex flex-col items-center gap-6 mt-8">
-             <div className="transform -rotate-12 mix-blend-multiply opacity-95">
-                <div 
-                  className="border-[6px] border-red-900 p-4 flex items-center justify-center rounded-[55%_45%_60%_40%_/_50%_60%_45%_55%]"
-                  style={{
-                    maskImage: `url("${NOISE_SVG}")`,
-                    maskMode: 'alpha',
-                    WebkitMaskImage: `url("${NOISE_SVG}")`,
-                    maskRepeat: 'repeat',
-                    maskSize: '100px'
-                  }}
-                >
-                    <HandFist size={64} strokeWidth={2.5} className="text-red-900 fill-red-900" />
-                </div>
-             </div>
-
+          {/* Footer Button - Positioned at bottom */}
+          <div className="absolute bottom-10 left-0 right-0 flex justify-center">
              <button 
                onClick={handleClose}
-               className="text-stone-500 text-xs uppercase tracking-widest hover:text-stone-900 hover:underline transition-all mt-4"
+               style={{ animation: 'text-pulse-to-black 2s ease-in-out infinite' }}
+               className="text-stone-700 text-xs uppercase tracking-widest hover:text-red-800 hover:animate-none hover:underline transition-all font-['Courier_Prime']"
              >
                [ Burn Message ]
              </button>
           </div>
+          
         </div>
       </div>
     </div>
