@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { CardItem, Move } from '../../types';
-import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
+import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, calculateBatchScore, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
 import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
 import SequenceDisplay from './SequenceDisplay';
@@ -49,6 +49,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const efficiency = solution
     ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
     : 0;
+
+  // Determine Interrogation Status
+  // If user score is worse than the initial board state score
+  const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
+  const isInterrogation = userHighScore < initialScore;
 
   useEffect(() => {
     if (!isCalculating && solution && efficiency === 0) {
@@ -157,6 +162,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                    {
                        efficiency >= 100 ? 'PASSED'
                        : efficiency >= 90 ? 'SATISFACTORY'
+                       : isInterrogation ? 'INTERROGATION'
                        : 'PROBATION'
                    }
                 </div>

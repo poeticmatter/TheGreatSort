@@ -172,6 +172,15 @@ export function useGame() {
     engine.actions.startLevel(lvl, list, tools, seed);
   };
 
+  const triggerResistance = useCallback(() => {
+      setResistanceActive(true);
+      setAuditState(null);
+  }, []);
+
+  const closeResistance = useCallback(() => {
+      setResistanceActive(false);
+  }, []);
+
   // --- Effects ---
 
   // Optimal Score Calculation
@@ -210,11 +219,112 @@ export function useGame() {
 
            engine.actions.setOptimalScore(best);
            engine.actions.setWorstScore(worst);
+
+           // Only trigger resistance if the game was just completed (phase became RESULTS)
+           // We can infer this if we are not already in a "loaded complete" state without recalculation
+           // But simpler: The user just finished playing.
+           // However, on load, optimalScore might be null, triggering this effect.
+           // We need to ensure we don't auto-trigger resistance just by viewing old results.
+           // For now, let's just trigger it. If it happens on load, it's because they have the worst score.
+           // EDIT: User reported it happens on load. We should check if we just transitioned.
+           // Or simpler: Only trigger if the levelScore is exactly the worst, AND we haven't already shown it (maybe?).
+           // Actually, "on load" means they entered the page. If their saved state is "Resistance capable", maybe they SHOULD see it?
+           // But user said "I'm still getting the resistance letter on load." implying they DON'T want it on every refresh.
+           
+           // If we want to avoid it on load, we need to know if this is a "fresh" result.
+           // But since we just calculated worst, we confirm they have the worst score.
+           // Maybe we should only trigger if !engine.state.dailyCompleted?
+           // No, setDailyCompleted(true) happens in handleGameCompletion before this effect.
+           
+           // Let's rely on a session flag or just not trigger if it's a reload?
+           // Ideally, the DailyAudit handles the "Interrogation" view.
+           // The "Resistance Letter" is the *Ending Cutscene*.
+           // If they reload, they should see the Audit, which HAS the button.
+           // So, maybe we REMOVE this auto-trigger here entirely?
+           // The user request was: "Move the Resistance trigger to the active game loop".
+           // But if it triggers on load, it's annoying.
+           
+           // Solution: The DailyAudit component calls `onDetectResistance` if efficiency is 0.
+           // That is likely what is triggering it on load, because DailyAudit is rendered if `auditState` matches?
+           // Wait, DailyAudit is used for YESTERDAY's result usually.
+           // TODAY's result is shown in the main view? No, usually main view stays in RESULTS phase.
+           
+           // Let's look at App.tsx. 
+           // If view === 'resistance', show letter.
+           // If view === 'audit', show DailyAudit.
+           // If view === 'game', show Game (or results).
+           
+           // If I just finished today's game, phase is RESULTS.
+           // I see the game board with "Daily Quota Fulfilled".
+           
+           // If I reload, `useGame` restores state. Phase is RESULTS.
+           // Then `useEffect` at line 209 runs. It calculates worst.
+           // It sees `levelScore <= worst`. It calls `triggerResistance()`.
+           // `triggerResistance` sets `resistanceActive = true`.
+           // App renders `ResistanceLetter`.
+           
+           // User wants to avoid this on load.
+           // Maybe only trigger if `!localStorage.getItem('resistance_shown')`?
+           // Or better: The prompt said "Move the Resistance trigger to the active game loop".
+           // Maybe we should only trigger it if the user explicitly clicked something?
+           // OR: Only trigger if the game was *active* recently.
+           
+           // Let's add a check: don't trigger if we are just restoring state.
+           // But `useGame` doesn't easily know if it's "just restoring" inside this effect.
+           
+           // BETTER FIX: logic is duplicated. `DailyAudit` has `onDetectResistance` effect.
+           // `DailyAudit` is only shown if `view === 'audit'`, i.e. we opened yesterday's report.
+           // So that one is fine.
+           
+           // The issue is definitely the `useEffect` in `useGame.ts`.
+           // We can remove the auto-trigger here and only let the user trigger it manually?
+           // OR, we only trigger it if we haven't saved that we triggered it.
+           
+           // Let's remove the auto-trigger from `useGame.ts` entirely.
+           // The user's previous instruction was: "Move the Resistance trigger to the active game loop... Inside the setTimeout... add a check".
+           // But the side effect is "It triggers on load".
+           // If we remove it, it won't trigger on finish either.
+           
+           // We need to distinguish "Just Finished" vs "Loaded Saved Result".
+           // We can check `engine.state.dailyCompleted`.
+           // On load of a completed game, `dailyCompleted` is true.
+           // When finishing a game, `setDailyCompleted(true)` is called in `handleGameCompletion`.
+           
+           // Use a Ref to track if we have already handled the result this session?
+           // const hasHandledResult = useRef(false);
+           // If phase changes to RESULTS, we handle it once.
+           // On load, phase initializes to RESULTS. 
+           
+           // Simple fix: Check if we are "hydrating".
+           // But we are active.
+           
+           // Providing a way to check if this is a "fresh" completion:
+           // In `handleGameCompletion`, we can set a temporary flag in state or ref.
+           // But simpler: The user probably ONLY wants the letter if they physically finish the game now.
+           // If they refresh, they should probably see the board or the audit button?
+           // Actually, if they refresh, they are stuck on the Results screen. 
+           // They can go to Audit from header?
+           
+           // Let's attempt to only trigger if the user interacts? 
+           // No, "Ending Cutscene" implies automatic.
+           
+           // Strategy: Use a sessionStorage flag `hasSeenResistance`.
+           // If `!sessionStorage.getItem('hasSeenResistance')`, trigger and set it.
+           // But that persists across refreshes in the same tab?
+           // If I refresh, I don't want to see it again. So sessionStorage is good.
+           
+           if (engine.state.levelScore <= worst) {
+               const key = `resistance_seen_${engine.state.currentSeed}`;
+               if (!sessionStorage.getItem(key)) {
+                    triggerResistance();
+                    sessionStorage.setItem(key, 'true');
+               }
+           }
        }, 100);
 
        return () => clearTimeout(timer);
     }
-  }, [gameMode, engine.state.phase, engine.state.currentSeed, engine.state.optimalScore]);
+  }, [gameMode, engine.state.phase, engine.state.currentSeed, engine.state.optimalScore, engine.state.levelScore, triggerResistance]);
 
 
   // --- Actions Wiring ---
@@ -311,14 +421,7 @@ export function useGame() {
       setAuditState(null);
   };
 
-  const triggerResistance = useCallback(() => {
-      setResistanceActive(true);
-      setAuditState(null);
-  }, []);
 
-  const closeResistance = useCallback(() => {
-      setResistanceActive(false);
-  }, []);
 
   const handleCardClick = (item: CardItem) => {
       const index = engine.state.list.findIndex(i => i.id === item.id);
