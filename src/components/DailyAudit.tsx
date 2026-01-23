@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { CardItem, Move } from '../../types';
 import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
+import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
 import SequenceDisplay from './SequenceDisplay';
 
@@ -176,6 +177,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                     <div className="flex flex-col items-center my-2 z-10">
                                         <div className="h-6 w-px bg-stone-600"></div>
                                         <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
+                                            {(() => {
+                                                const ToolIcon = TOOLS[step.move.tool.toUpperCase()]?.icon;
+                                                return ToolIcon ? <ToolIcon size={16} className="text-amber-500" /> : null;
+                                            })()}
                                             <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
                                             <span className="text-stone-500">
                                               {(() => {
