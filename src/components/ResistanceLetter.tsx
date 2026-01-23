@@ -42,7 +42,7 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) =
                 Join the resistance, and we will guide your actions to be meaningful, but within the parameters that will keep you safe.
               </p>
               <p>
-                Stay vigilant, friends.
+                Stay vigilant, friend.
               </p>
             </div>
           </div>
