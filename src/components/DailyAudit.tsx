@@ -9,6 +9,7 @@ interface DailyAuditProps {
   date: string;
   userHighScore: number;
   onClose: () => void;
+  onDetectResistance: () => void;
 }
 
 interface TimelineStep {
@@ -16,7 +17,7 @@ interface TimelineStep {
     move: Move | null;
 }
 
-export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose }) => {
+export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance }) => {
   const [isCalculating, setIsCalculating] = useState(true);
   const [solution, setSolution] = useState<Solution | null>(null);
   const [worstScore, setWorstScore] = useState<number>(0);
@@ -42,6 +43,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
     return () => clearTimeout(timer);
   }, [date]);
+
+  // Calculate Efficiency & Trigger Resistance
+  const passed = solution ? userHighScore >= solution.score : false;
+  const efficiency = solution
+    ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
+    : 0;
+
+  useEffect(() => {
+    if (!isCalculating && solution && efficiency === 0) {
+       onDetectResistance();
+    }
+  }, [isCalculating, solution, efficiency, onDetectResistance]);
 
   // Derive Timeline
   const timeline = useMemo(() => {
@@ -87,10 +100,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     );
   }
 
-  const passed = solution ? userHighScore >= solution.score : false;
-  const efficiency = solution
-    ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
-    : 0;
+
 
   return (
     <div className="w-full max-w-4xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">

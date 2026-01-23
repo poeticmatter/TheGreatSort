@@ -11,6 +11,7 @@ export function useGame() {
   const [gameMode, setGameMode] = useState<GameMode>('DAILY');
   const [isGameLoaded, setIsGameLoaded] = useState(false);
   const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
+  const [resistanceActive, setResistanceActive] = useState(false);
 
   // --- Engine ---
   const handleMoveCommitted = useCallback(() => {
@@ -310,6 +311,15 @@ export function useGame() {
       setAuditState(null);
   };
 
+  const triggerResistance = useCallback(() => {
+      setResistanceActive(true);
+      setAuditState(null);
+  }, []);
+
+  const closeResistance = useCallback(() => {
+      setResistanceActive(false);
+  }, []);
+
   const handleCardClick = (item: CardItem) => {
       const index = engine.state.list.findIndex(i => i.id === item.id);
       if (index === -1) return;
@@ -321,6 +331,7 @@ export function useGame() {
       ...engine.state,
       gameMode,
       auditState,
+      resistanceActive,
       // Overwrite selectedTool to match original interface (string | null)
       selectedTool: engine.state.selectedToolInstanceId,
     },
@@ -337,7 +348,9 @@ export function useGame() {
       shareResult,
       toggleMusic: () => {}, // Handled in App
       openAudit,
-      closeAudit
+      closeAudit,
+      triggerResistance,
+      closeResistance
     }
   };
 }

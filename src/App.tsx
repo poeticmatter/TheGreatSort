@@ -10,6 +10,7 @@ import StatusBar from './components/StatusBar';
 import { DailyAudit } from './components/DailyAudit';
 import { getDailyEntry } from './hooks/useGamePersistence';
 import { getYesterdayDateString } from './utils/dateUtils';
+import { ResistanceLetter } from './components/ResistanceLetter';
 
 export default function TheGreatSort() {
   const { state, actions } = useGame();
@@ -46,7 +47,7 @@ export default function TheGreatSort() {
   const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
   
   // Route / View State Logic
-  const view = state.auditState ? 'audit' : 'game';
+  const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
@@ -77,11 +78,14 @@ export default function TheGreatSort() {
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
-        {view === 'audit' ? (
+        {view === 'resistance' ? (
+            <ResistanceLetter onClose={actions.closeResistance} />
+        ) : view === 'audit' ? (
            <DailyAudit
               date={state.auditState!.date}
               userHighScore={state.auditState!.userScore}
               onClose={actions.closeAudit}
+              onDetectResistance={actions.triggerResistance}
            />
         ) : (
            <>
