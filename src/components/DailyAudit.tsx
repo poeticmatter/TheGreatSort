@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { CardItem, ToolType, Move } from '../../types';
-import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution } from '../utils/gameLogic';
-import { CheckCircle, AlertTriangle, X, ArrowRight, FileText } from 'lucide-react';
-import Card from './Card';
+import React, { useEffect, useState, useMemo } from 'react';
+import { CardItem, Move } from '../../types';
+import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
+import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
+import SequenceDisplay from './SequenceDisplay';
 
 interface DailyAuditProps {
   date: string;
   userHighScore: number;
   onClose: () => void;
+}
+
+interface TimelineStep {
+    list: CardItem[];
+    move: Move | null;
 }
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose }) => {
@@ -37,11 +42,45 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     return () => clearTimeout(timer);
   }, [date]);
 
+  // Derive Timeline
+  const timeline = useMemo(() => {
+      if (!solution || initialList.length === 0) return [];
+      
+      const steps: TimelineStep[] = [];
+      let currentList = initialList.map(i => ({ ...i })); // Deep copy to start
+
+      // 1. Initial State
+      // We process moves. Each step is (State Before) -> (Move) -> (State After)
+      // Actually, we want to render: State 0, Arrow (Move 0), State 1, Arrow (Move 1), ...
+      
+      // Push initial state paired with the first move
+      // Loop through moves
+      for (let i = 0; i < solution.moves.length; i++) {
+          const move = solution.moves[i];
+          steps.push({
+              list: currentList,
+              move: move
+          });
+
+          // Apply move to get next state
+          currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+      }
+
+      // 2. Final Result State
+      steps.push({
+          list: currentList,
+          move: null
+      });
+
+      return steps;
+  }, [solution, initialList]);
+
   if (isCalculating || !solution) {
     return (
-      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-        <div className="bg-stone-900 border-2 border-amber-900/50 p-8 rounded shadow-2xl animate-pulse">
-          <p className="text-amber-500 font-mono text-xl">AUDITING RECORDS...</p>
+      <div className="flex flex-col items-center justify-center p-12 w-full h-full min-h-[50vh]">
+        <div className="bg-stone-900/50 border-2 border-amber-900/30 p-8 rounded shadow-xl animate-pulse flex flex-col items-center">
+          <FileText className="w-12 h-12 text-amber-500/50 mb-4" />
+          <p className="text-amber-500 font-mono text-xl tracking-widest">AUDITING RECORDS...</p>
         </div>
       </div>
     );
@@ -53,119 +92,121 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-stone-900 border-2 border-stone-600 w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh] text-stone-100">
+    <div className="w-full max-w-4xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      
+      {/* Navigation / Header */}
+      <div className="flex items-center justify-between border-b-2 border-stone-700 pb-4">
+        <button 
+          onClick={onClose}
+          className="flex items-center gap-2 text-stone-400 hover:text-amber-500 transition-colors uppercase font-bold tracking-wider text-sm"
+        >
+          <ArrowLeft size={16} />
+          Return to Operations
+        </button>
+        <div className="text-xs font-mono text-stone-500">
+           REF: {stringToSeed(date).toString(16).toUpperCase()}
+        </div>
+      </div>
 
-        {/* Header - Bureaucratic Style */}
-        <div className="bg-stone-800 p-4 border-b-2 border-stone-600 flex items-center justify-between">
-          <div>
-              <h2 className="text-xs font-mono text-stone-400 tracking-widest uppercase mb-1">Bureau of Efficiency // Audit Report</h2>
-              <h1 className="text-2xl font-black uppercase tracking-wide text-amber-500 flex items-center gap-2">
-                 <FileText className="w-6 h-6" />
-                 {date}
-              </h1>
-          </div>
-          <div className="text-xs font-mono text-stone-500 text-right">
-             <div>REF: {stringToSeed(date).toString(16).toUpperCase()}</div>
-             <div>SEC: LEVEL-1</div>
-          </div>
+      {/* Main Report Card */}
+      <div className="bg-stone-800/50 border border-stone-700 p-8 rounded-sm shadow-2xl relative overflow-hidden">
+        
+        {/* Watermark */}
+        <div className="absolute top-0 right-0 p-32 opacity-5 pointer-events-none">
+           <FileText className="w-64 h-64 text-stone-100" />
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto font-mono custom-scrollbar">
+        <div className="relative z-10">
+          <h1 className="text-3xl font-black uppercase tracking-wide text-amber-500 mb-2 flex items-center gap-3">
+             <FileText className="w-8 h-8" />
+             Daily Audit: {date}
+          </h1>
+          <p className="text-stone-400 font-mono text-sm mb-8 max-w-2xl">
+            Official performance review of sorting efficiency for the designated cycle.
+          </p>
 
-          {/* Scores */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-stone-800 p-3 border-l-4 border-stone-500">
-              <div className="text-xs uppercase text-stone-400 mb-1">Citizen Yield</div>
-              <div className="text-2xl font-bold text-stone-100">{userHighScore}</div>
-            </div>
-            <div className="bg-stone-800 p-3 border-l-4 border-amber-500">
-              <div className="text-xs uppercase text-stone-400 mb-1">Optimal Yield</div>
-              <div className="text-2xl font-bold text-amber-500">{solution.score}</div>
-            </div>
-          </div>
-
-          {/* Verdict */}
-          <div className="flex flex-col items-center justify-center mb-8 p-6 border-2 border-dashed border-stone-700 bg-black/20 relative overflow-hidden min-h-[160px]">
-            <div className="text-sm text-stone-500 uppercase tracking-widest mb-2">Efficiency Rating</div>
-            <div className={`text-5xl font-black ${passed ? 'text-green-500' : 'text-red-500'} z-10`}>
-              {efficiency}%
-            </div>
-
-            {/* Stamp Overlay */}
-            <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -rotate-12 border-4 text-4xl font-black px-4 py-2 opacity-80 select-none pointer-events-none whitespace-nowrap z-20
-              ${passed ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>
-              {passed ? 'AUDIT PASSED' : 'PROBATION'}
-            </div>
-          </div>
-
-          {/* Solution Reveal (Only on Failure) */}
-          {!passed && (
-            <div className="mb-8 animate-in fade-in duration-500">
-              <div className="flex items-center gap-2 mb-4 text-red-500 border-b border-red-900/30 pb-1">
-                <AlertTriangle size={18} />
-                <h3 className="uppercase font-bold tracking-wide text-sm">Corrective Action Plan</h3>
-              </div>
-
-              {/* Initial Sequence Visualization */}
-              <div className="mb-4">
-                  <div className="text-xs text-stone-500 uppercase mb-2">Initial Sequence</div>
-                  <div className="flex flex-wrap justify-center gap-1 opacity-80 scale-90 origin-top">
-                      {initialList.map((item) => (
-                          <div key={item.id} className="transform scale-75 origin-center">
-                              <Card
-                                item={item}
-                                onClick={() => {}}
-                                isSelected={false}
-                                isTargetCandidate={false}
-                              />
-                          </div>
-                      ))}
-                  </div>
-              </div>
-
-              {/* Moves List */}
-              <div className="bg-stone-900 p-4 rounded text-sm space-y-2 border border-stone-800">
-                 {solution.moves.length === 0 ? (
-                     <div className="text-stone-500 italic">No moves required.</div>
-                 ) : (
-                    solution.moves.map((move, idx) => (
-                    <div key={idx} className="flex items-start gap-3 text-stone-300">
-                        <span className="text-stone-500 w-6 font-bold">{idx + 1}.</span>
-                        <div>
-                        <span className="text-amber-500 font-bold uppercase mr-2">{move.tool}</span>
-                        <span className="text-stone-400">
-                            Index {move.index}
-                            {move.targetIndex !== undefined && (
-                                <> <ArrowRight className="inline mx-1 w-3 h-3" /> Target {move.targetIndex}</>
-                            )}
-                        </span>
-                        </div>
-                    </div>
-                    ))
-                 )}
-              </div>
-            </div>
-          )}
-
-          {passed && (
-             <div className="text-center text-stone-500 text-sm italic mb-8">
-               <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600/50" />
-               No infractions detected. Productivity within acceptable parameters.
+          {/* KPI Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+             <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
+                <div className="text-xs uppercase text-stone-500 mb-1">Citizen Yield</div>
+                <div className="text-3xl font-bold text-stone-200">{userHighScore}</div>
              </div>
+             <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
+                <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
+                <div className="text-3xl font-bold text-amber-500">{solution.score}</div>
+             </div>
+             <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${passed ? 'border-green-900/50' : 'border-red-900/50'}`}>
+                <div className="text-xs uppercase text-stone-500 mb-1">Efficiency Rating</div>
+                <div className={`text-3xl font-black ${passed ? 'text-green-500' : 'text-red-500'}`}>
+                  {efficiency}%
+                </div>
+                {/* Stamp */}
+                <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
+                   ${passed ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>
+                   {passed ? 'PASSED' : 'FAIL'}
+                </div>
+             </div>
+          </div>
+
+          {passed ? (
+             <div className="bg-green-900/20 border border-green-900/30 p-6 rounded flex items-center gap-4">
+               <CheckCircle className="w-10 h-10 text-green-500" />
+               <div>
+                 <h3 className="text-green-500 font-bold uppercase tracking-wide">Audit Passed</h3>
+                 <p className="text-green-200/50 text-sm">No infractions detected. Productivity within acceptable parameters.</p>
+               </div>
+             </div>
+          ) : (
+            <div className="bg-red-950/20 border border-red-900/30 p-8 rounded relative">
+                <div className="flex items-center gap-3 mb-8 text-red-500 border-b border-red-900/30 pb-2">
+                    <AlertTriangle size={24} />
+                    <h3 className="uppercase font-bold tracking-wide text-lg">Corrective Action Plan</h3>
+                </div>
+
+                <div className="flex flex-col gap-0 items-center">
+                    {timeline.map((step, idx) => {
+                        // Determine highlights based on the NEXT move (if current step has a move)
+                        const highlightIndices = step.move 
+                            ? [step.move.index, step.move.targetIndex].filter(x => x !== undefined) as number[]
+                            : [];
+
+                        return (
+                            <React.Fragment key={idx}>
+                                {/* Board State */}
+                                <div className="w-full bg-stone-900/50 p-6 rounded border border-stone-800 flex flex-col items-center shadow-lg">
+                                    <div className="text-xs text-stone-500 uppercase tracking-widest mb-4 w-full text-left border-b border-stone-800 pb-1">
+                                        {idx === 0 ? "Initial State" : (step.move === null ? "Optimized State" : `Phase ${idx}`)}
+                                    </div>
+                                    <SequenceDisplay
+                                        sequence={step.list}
+                                        isMobile={true}
+                                        highlightIndices={highlightIndices}
+                                    />
+                                </div>
+
+                                {/* Arrow / Action */}
+                                {step.move && (
+                                    <div className="flex flex-col items-center my-2 z-10">
+                                        <div className="h-6 w-px bg-stone-600"></div>
+                                        <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
+                                            <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
+                                            <span className="text-stone-500">
+                                              {step.move.targetIndex !== undefined 
+                                                ? `${step.move.index} ↔ ${step.move.targetIndex}` 
+                                                : `Index ${step.move.index}`}
+                                            </span>
+                                        </div>
+                                        <div className="h-6 w-px bg-stone-600"></div>
+                                        <ArrowDown className="text-stone-600 -mt-2" size={16} />
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
+            </div>
           )}
 
-        </div>
-
-        {/* Footer */}
-        <div className="bg-stone-800 p-4 border-t-2 border-stone-600 flex justify-end">
-          <button
-            onClick={onClose}
-            className="bg-stone-700 hover:bg-stone-600 text-stone-200 font-bold py-2 px-6 uppercase tracking-wider text-sm transition-colors flex items-center gap-2 border border-stone-500"
-          >
-            <X size={16} />
-            Compliance Acknowledged
-          </button>
         </div>
       </div>
     </div>
