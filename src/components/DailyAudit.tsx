@@ -124,15 +124,31 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
                 <div className="text-3xl font-bold text-amber-500">{solution.score}</div>
              </div>
-             <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${passed ? 'border-green-900/50' : 'border-red-900/50'}`}>
+             <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${
+                 efficiency >= 100 ? 'border-green-900/50' 
+                 : efficiency >= 90 ? 'border-amber-900/50'
+                 : 'border-red-900/50'
+             }`}>
                 <div className="text-xs uppercase text-stone-500 mb-1">Efficiency Rating</div>
-                <div className={`text-3xl font-black ${passed ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`text-3xl font-black ${
+                    efficiency >= 100 ? 'text-green-500'
+                    : efficiency >= 90 ? 'text-amber-500'
+                    : 'text-red-500'
+                }`}>
                   {efficiency}%
                 </div>
                 {/* Stamp */}
                 <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
-                   ${passed ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>
-                   {passed ? 'PASSED' : 'PROBATION'}
+                   ${
+                       efficiency >= 100 ? 'border-green-600 text-green-600'
+                       : efficiency >= 90 ? 'border-amber-600 text-amber-600'
+                       : 'border-red-600 text-red-600'
+                   }`}>
+                   {
+                       efficiency >= 100 ? 'PASSED'
+                       : efficiency >= 90 ? 'SATISFACTORY'
+                       : 'PROBATION'
+                   }
                 </div>
              </div>
           </div>
