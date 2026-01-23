@@ -131,7 +131,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 {/* Stamp */}
                 <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
                    ${passed ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}`}>
-                   {passed ? 'PASSED' : 'FAIL'}
+                   {passed ? 'PASSED' : 'PROBATION'}
                 </div>
              </div>
           </div>
