@@ -4,7 +4,7 @@ import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptima
 import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameEngine } from './useGameEngine';
-import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, DailyEntry } from './useGamePersistence';
+import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, DailyEntry, markDailyAuditSeen } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
 
 export function useGame() {
@@ -55,7 +55,7 @@ export function useGame() {
     // Check for Yesterday's Audit on Load
     const yesterday = getYesterdayDateString();
     const entry = getDailyEntry(yesterday);
-    if (entry) {
+    if (entry && !entry.auditSeen) {
         setAuditState({ date: entry.date, userScore: entry.highScore });
     }
 
@@ -330,6 +330,9 @@ export function useGame() {
   // --- Actions Wiring ---
 
   const changeMode = (newMode: GameMode) => {
+    if (auditState) {
+        markDailyAuditSeen(auditState.date);
+    }
     setAuditState(null);
     loop.stopLoop();
 
@@ -418,6 +421,9 @@ export function useGame() {
   };
 
   const closeAudit = () => {
+      if (auditState) {
+          markDailyAuditSeen(auditState.date);
+      }
       setAuditState(null);
   };
 
