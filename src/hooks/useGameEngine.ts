@@ -1,32 +1,63 @@
-import { useReducer } from 'react';
-import { CardItem, GamePhase, ToolInstance, Move, ToolType } from '../../types';
+import { useState } from 'react';
+import { CardItem, GamePhase, ToolInstance, ToolType, Move } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 import { TOOL_REGISTRY } from '../tools';
-import { gameReducer, initialEngineState, EngineState } from '../reducers/gameReducer';
 
-// Re-export EngineState to maintain API compatibility
-export type { EngineState };
-
-type SetStateAction<S> = S | ((prevState: S) => S);
-
-function resolveState<S>(action: SetStateAction<S>, currentState: S): S {
-    return typeof action === 'function' ? (action as any)(currentState) : action;
+export interface EngineState {
+  level: number;
+  levelScore: number;
+  totalScore: number;
+  totalOptimalScore: number;
+  optimalScore: number | null;
+  worstScore: number | null;
+  list: CardItem[];
+  movesHistory: Move[];
+  phase: GamePhase;
+  toolsAvailable: ToolInstance[];
+  detectedMode: 'ASC' | 'DESC' | null;
+  selection: number | null;
+  selectedToolInstanceId: string | null;
+  shakeTools: number;
+  dailyCompleted: boolean;
+  currentSeed: number | undefined;
 }
 
 export const useGameEngine = (onMoveCommitted?: () => void) => {
-  const [state, dispatch] = useReducer(gameReducer, initialEngineState);
+  const [level, setLevel] = useState(1);
+  const [levelScore, setLevelScore] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
+  const [totalOptimalScore, setTotalOptimalScore] = useState(0);
+  const [optimalScore, setOptimalScore] = useState<number | null>(null);
+  const [worstScore, setWorstScore] = useState<number | null>(null);
 
-  // Destructure for internal use and to match return structure
-  const {
-      level, levelScore, totalScore, totalOptimalScore, optimalScore, worstScore,
-      list, movesHistory, phase, toolsAvailable, detectedMode,
-      selection, selectedToolInstanceId, shakeTools, dailyCompleted, currentSeed
-  } = state;
+  const [list, setList] = useState<CardItem[]>([]);
+  const [movesHistory, setMovesHistory] = useState<Move[]>([]);
+  const [phase, setPhase] = useState<GamePhase>(GamePhase.PLANNING);
+  const [detectedMode, setDetectedMode] = useState<'ASC' | 'DESC' | null>(null);
+
+  const [toolsAvailable, setToolsAvailable] = useState<ToolInstance[]>([]);
+  const [selectedToolInstanceId, setSelectedToolInstanceId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<number | null>(null);
+  const [shakeTools, setShakeTools] = useState(0);
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [currentSeed, setCurrentSeed] = useState<number | undefined>(undefined);
 
   // --- Actions ---
 
-  const loadState = (partialState: Partial<EngineState>) => {
-    dispatch({ type: 'LOAD_STATE', payload: partialState });
+  const loadState = (state: Partial<EngineState>) => {
+    if (state.level !== undefined) setLevel(state.level);
+    if (state.levelScore !== undefined) setLevelScore(state.levelScore);
+    if (state.totalScore !== undefined) setTotalScore(state.totalScore);
+    if (state.totalOptimalScore !== undefined) setTotalOptimalScore(state.totalOptimalScore);
+    if (state.optimalScore !== undefined) setOptimalScore(state.optimalScore);
+    if (state.worstScore !== undefined) setWorstScore(state.worstScore);
+    if (state.list !== undefined) setList(state.list);
+    if (state.movesHistory !== undefined) setMovesHistory(state.movesHistory);
+    if (state.phase !== undefined) setPhase(state.phase);
+    if (state.toolsAvailable !== undefined) setToolsAvailable(state.toolsAvailable);
+    if (state.detectedMode !== undefined) setDetectedMode(state.detectedMode);
+    if (state.dailyCompleted !== undefined) setDailyCompleted(state.dailyCompleted);
+    if (state.currentSeed !== undefined) setCurrentSeed(state.currentSeed);
   };
 
   const startLevel = (
@@ -35,24 +66,36 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     newTools: ToolInstance[],
     seed?: number
   ) => {
-    dispatch({
-        type: 'START_LEVEL',
-        payload: { level: newLevel, list: newList, tools: newTools, seed }
-    });
+    setLevel(newLevel);
+    setList(newList);
+    setToolsAvailable(newTools);
+    setCurrentSeed(seed);
+
+    // Reset Level State
+    setMovesHistory([]);
+    setPhase(GamePhase.PLANNING);
+    setLevelScore(0);
+    setOptimalScore(null);
+    setWorstScore(null);
+    setDetectedMode(null);
+    setSelectedToolInstanceId(null);
+    setSelection(null);
   };
 
   const resetStats = () => {
-    dispatch({
-        type: 'SET_SCORES',
-        payload: { totalScore: 0, totalOptimalScore: 0 }
-    });
+    setTotalScore(0);
+    setTotalOptimalScore(0);
   };
 
   const commitMove = (newList: CardItem[], toolInstanceId: string, move: Move) => {
-    dispatch({
-        type: 'COMMIT_MOVE',
-        payload: { newList, toolInstanceId, move }
-    });
+    setList(newList);
+    setToolsAvailable(prev => prev.map(t =>
+        t.instanceId === toolInstanceId ? { ...t, used: true } : t
+    ));
+    setMovesHistory(prev => [...prev, move]);
+    setSelectedToolInstanceId(null);
+    setSelection(null);
+
     if (onMoveCommitted) onMoveCommitted();
   };
 
@@ -62,37 +105,43 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
 
     const toolType = toolInstance.type;
     const strategy = TOOL_REGISTRY[toolType];
-    
+
+    // Safety check if strategy exists (should always exist if types match)
     if (!strategy) return;
 
     let newList = [...list];
     let recordedMove: Move | null = null;
-    let newSelection: number | null = selection;
 
     if (strategy.requiresSelection) {
         if (selection === null) {
-            dispatch({ type: 'SET_SELECTION', payload: { selection: targetIndex } });
+            setSelection(targetIndex);
             return;
         } else {
             // Validate move using strategy
             const isValid = strategy.isValid(list, targetIndex, selection);
 
             if (isValid) {
-                // Apply move using gameLogic
+                // Apply move using gameLogic (which delegates to strategy now)
                 newList = applyMove(list, toolType, targetIndex, selection);
                 recordedMove = {
                     tool: toolType,
                     index: targetIndex,
                     targetIndex: selection,
+                    // We can also use strategy to generate description if we wanted to be perfectly consistent,
+                    // but generateMoves creates ALL moves.
+                    // For now, we manually reconstruct the description string to match existing behavior.
+                    // Or we could add a `describe(index, selection)` method to strategy later.
+                    // For now, simple template string is fine as before.
                     description: `${toolType} ${selection} and ${targetIndex}`
                 };
                 commitMove(newList, toolInstanceId, recordedMove);
             } else {
                 // Invalid selection logic:
+                // If clicking same card, deselect. Else switch selection.
                 if (selection === targetIndex) {
-                    dispatch({ type: 'SET_SELECTION', payload: { selection: null } });
+                    setSelection(null);
                 } else {
-                    dispatch({ type: 'SET_SELECTION', payload: { selection: targetIndex } });
+                     setSelection(targetIndex);
                 }
             }
         }
@@ -120,7 +169,7 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
 
     if (selection !== null) {
       if (strategy.requiresSelection) {
-         dispatch({ type: 'SET_SELECTION', payload: { toolId: toolInstanceId } });
+         setSelectedToolInstanceId(toolInstanceId);
       } else {
          executeMove(toolInstanceId, selection);
       }
@@ -128,9 +177,11 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     }
 
     if (selectedToolInstanceId === toolInstanceId) {
-      dispatch({ type: 'SET_SELECTION', payload: { selection: null, toolId: null } });
+      setSelectedToolInstanceId(null);
+      setSelection(null);
     } else {
-      dispatch({ type: 'SET_SELECTION', payload: { selection: null, toolId: toolInstanceId } });
+      setSelectedToolInstanceId(toolInstanceId);
+      setSelection(null);
     }
   };
 
@@ -143,49 +194,26 @@ export const useGameEngine = (onMoveCommitted?: () => void) => {
     }
 
     if (selection === index) {
-      dispatch({ type: 'TRIGGER_SHAKE' });
+      setShakeTools(prev => prev + 1);
     } else {
-      dispatch({ type: 'SET_SELECTION', payload: { selection: index } });
-      dispatch({ type: 'TRIGGER_SHAKE' });
+      setSelection(index);
+      setShakeTools(prev => prev + 1);
     }
   };
 
   const handleBackgroundClick = () => {
     if (phase === GamePhase.PLANNING) {
-      dispatch({ type: 'SET_SELECTION', payload: { selection: null, toolId: null } });
+      setSelection(null);
+      setSelectedToolInstanceId(null);
     }
   };
 
-  // State setters wrappers handling functional updates to strict API compatibility
-  const setList = (action: SetStateAction<CardItem[]>) => 
-      dispatch({ type: 'SET_LIST', payload: resolveState(action, list) });
-
-  const setLevelScore = (action: SetStateAction<number>) => 
-      dispatch({ type: 'SET_SCORES', payload: { levelScore: resolveState(action, levelScore) } });
-
-  const setPhase = (action: SetStateAction<GamePhase>) => 
-      dispatch({ type: 'SET_PHASE', payload: resolveState(action, phase) });
-
-  const setDetectedMode = (action: SetStateAction<'ASC' | 'DESC' | null>) => 
-      dispatch({ type: 'SET_DETECTED_MODE', payload: resolveState(action, detectedMode) });
-
-  const setDailyCompleted = (action: SetStateAction<boolean>) => 
-      dispatch({ type: 'SET_DAILY_COMPLETED', payload: resolveState(action, dailyCompleted) });
-
-  const setOptimalScore = (action: SetStateAction<number | null>) => 
-      dispatch({ type: 'SET_SCORES', payload: { optimalScore: resolveState(action, optimalScore) } });
-
-  const setWorstScore = (action: SetStateAction<number | null>) => 
-      dispatch({ type: 'SET_SCORES', payload: { worstScore: resolveState(action, worstScore) } });
-
-  const setTotalScore = (action: SetStateAction<number>) => 
-      dispatch({ type: 'SET_SCORES', payload: { totalScore: resolveState(action, totalScore) } });
-
-  const setTotalOptimalScore = (action: SetStateAction<number>) => 
-      dispatch({ type: 'SET_SCORES', payload: { totalOptimalScore: resolveState(action, totalOptimalScore) } });
-
   return {
-    state,
+    state: {
+      level, levelScore, totalScore, totalOptimalScore, optimalScore, list, phase,
+      detectedMode, toolsAvailable, selectedToolInstanceId, selection, shakeTools,
+      dailyCompleted, currentSeed, movesHistory, worstScore
+    },
     actions: {
       loadState,
       startLevel,

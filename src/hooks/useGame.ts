@@ -71,7 +71,7 @@ export function useGame() {
             const seed = stringToSeed(today);
             let currentList = generateLevel(9, seed);
             let currentTools = directLoadedState.tools;
-            if (!currentTools || currentTools.length === 0) {
+            if (!currentTools) {
               currentTools = generateTools(seed);
             } else {
               // Reset usage state to prevent double-counting during replay
