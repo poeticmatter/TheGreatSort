@@ -239,13 +239,19 @@ export function useGame() {
            if (worstScore !== undefined) {
                dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
            }
+
+           // Cache solution
+           if (id !== undefined && gameMode === 'DAILY') {
+              const cacheKey = `tgs_solution_${id}`;
+              localStorage.setItem(cacheKey, JSON.stringify({ optimalScore, worstScore }));
+           }
       }
     };
 
     return () => {
       workerRef.current?.terminate();
     };
-  }, [dispatch, state.currentSeed]); // Re-binding listener if seed changes isn't needed, but dispatch might change. Actually we can keep the worker stable.
+  }, [dispatch, state.currentSeed, gameMode]); // Re-binding listener if seed changes isn't needed, but dispatch might change. Actually we can keep the worker stable.
 
   // --- Resistance Check ---
   useEffect(() => {
@@ -279,6 +285,25 @@ export function useGame() {
     // Only calculate if we haven't already and we are in a valid state
     // We prioritize using currentSeed as the ID.
     if (state.list.length > 0 && state.optimalScore === null && workerRef.current) {
+        
+        // Cache Check
+        if (state.currentSeed !== undefined && gameMode === 'DAILY') {
+            const cacheKey = `tgs_solution_${state.currentSeed}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const { optimalScore, worstScore } = JSON.parse(cached);
+                    dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: optimalScore } });
+                    if (worstScore !== undefined) {
+                        dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
+                    }
+                    return; // Skip calculation
+                } catch (e) {
+                   console.error("Failed to parse cached solution", e);
+                }
+            }
+        }
+
         // Determine mode
         const mode = (gameMode === 'DAILY' || gameMode === 'RESULTS') ? 'BOTH' : 'OPTIMAL';
         
