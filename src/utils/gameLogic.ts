@@ -289,11 +289,7 @@ export const calculateRelativeEfficiency = (userScore: number, optimal: number, 
     return Math.max(0, Math.min(100, Math.round(efficiency)));
 };
 
-// Calculate level length based on level number
-export const lengthFromLevel = (level: number): number => {
-  // Cap length at 14 to prevent UI clutter and Solver blowout
-  return Math.min(7 + Math.floor((level - 1) / 2), 14);
-};
+
 
 // Apply a move to a list and return the new list
 export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): T[] {

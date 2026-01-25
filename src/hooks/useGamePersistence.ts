@@ -110,6 +110,7 @@ export const useGamePersistence = (
 
   // Cleanup old daily states on mount
   useEffect(() => {
+    localStorage.removeItem('career_tools');
     const today = getTodayDateString();
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {

@@ -341,9 +341,7 @@ export function useGame() {
   };
 
   const nextLevel = () => {
-      if (gameMode === 'PRACTICE') {
-          startLevel(1, 'PRACTICE');
-      }
+      startLevel(1, 'PRACTICE');
   };
 
   const retryPractice = () => {
