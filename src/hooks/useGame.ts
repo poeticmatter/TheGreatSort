@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
-import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
+import { stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
 import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameContext } from '../context/GameContext';
-import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, markDailyAuditSeen } from './useGamePersistence';
+import { useGamePersistence, saveDailyScore, getDailyEntry, markDailyAuditSeen } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
 
 export function useGame() {
@@ -167,25 +167,7 @@ export function useGame() {
     let seed: number | undefined = undefined;
     let tools: ToolInstance[] = [];
 
-    if (activeMode === 'CAREER') {
-      len = lengthFromLevel(lvl);
-      seed = undefined;
-
-      if (lvl === 1) {
-          tools = generateTools();
-          saveCareerTools(tools);
-      } else {
-          const savedTools = loadCareerTools();
-          if (savedTools) {
-              tools = savedTools;
-              tools = tools.map(t => ({ ...t, used: false }));
-          } else {
-              tools = generateTools();
-              saveCareerTools(tools);
-          }
-      }
-
-    } else if (activeMode === 'DAILY') {
+    if (activeMode === 'DAILY') {
       len = 9;
       seed = stringToSeed(getTodayDateString());
       tools = generateTools(seed);
@@ -359,9 +341,7 @@ export function useGame() {
   };
 
   const nextLevel = () => {
-      if (gameMode === 'CAREER') {
-          startLevel(state.level + 1);
-      } else if (gameMode === 'PRACTICE') {
+      if (gameMode === 'PRACTICE') {
           startLevel(1, 'PRACTICE');
       }
   };

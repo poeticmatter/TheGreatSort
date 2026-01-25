@@ -24,18 +24,7 @@ export type DailyHistory = Record<string, DailyEntry>;
 
 const DAILY_HISTORY_KEY = 'tgs_daily_history';
 
-export const loadCareerTools = (): ToolInstance[] | null => {
-  try {
-    const saved = localStorage.getItem('career_tools');
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
-};
 
-export const saveCareerTools = (tools: ToolInstance[]) => {
-  localStorage.setItem('career_tools', JSON.stringify(tools));
-};
 
 export const getDailyEntry = (date: string): DailyEntry | null => {
   try {

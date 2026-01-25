@@ -61,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({
 
              {showModeMenu && (
                <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
-                 {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
+                 {(['DAILY', 'PRACTICE'] as GameMode[]).map(m => (
                    <button
                      key={m}
                      onClick={() => {
@@ -104,21 +104,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {gameMode === 'CAREER' && (
-        <div className="flex gap-4 sm:gap-8 text-sm font-['Courier_Prime'] border border-red-900/50 bg-stone-950/40 p-3 rounded-md shadow-inner">
-          <div className="flex flex-col items-center">
-            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Day</span>
-            <span className="text-xl text-stone-200 font-bold">{level}</span>
-          </div>
-          <div className="w-px bg-stone-700 h-8 self-center"></div>
-          <div className="flex flex-col items-center">
-            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Overall Eff.</span>
-            <span className={`text-xl font-bold ${totalEfficiency >= 100 ? 'text-amber-500' : 'text-stone-300'}`}>
-              {totalEfficiency}%
-            </span>
-          </div>
-        </div>
-      )}
+
     </header>
   );
 };
