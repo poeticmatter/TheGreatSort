@@ -12,7 +12,17 @@ import { getDailyEntry } from './hooks/useGamePersistence';
 import { getYesterdayDateString } from './utils/dateUtils';
 import { ResistanceLetter } from './components/ResistanceLetter';
 
+import { GameProvider } from './context/GameContext';
+
 export default function TheGreatSort() {
+  return (
+    <GameProvider>
+       <TheGreatSortContent />
+    </GameProvider>
+  );
+}
+
+function TheGreatSortContent() {
   const { state, actions } = useGame();
   const { isPlaying, toggleMusic } = useMusic();
 

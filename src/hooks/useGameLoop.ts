@@ -1,10 +1,11 @@
-import { useRef, useCallback, useEffect } from 'react';
-import { GamePhase } from '../../types';
+import { useRef, useCallback, useEffect, Dispatch } from 'react';
+import { GamePhase, CardItem } from '../../types';
 import { createInspectionStream, InspectionYield } from '../utils/gameLogic';
-import { useGameEngine } from './useGameEngine';
+import { GameAction } from '../reducers/gameState';
 
 export const useGameLoop = (
-  engine: ReturnType<typeof useGameEngine>,
+  currentList: CardItem[],
+  dispatch: Dispatch<GameAction>,
   onComplete?: () => void
 ) => {
   const inspectionIndex = useRef(0);
@@ -26,19 +27,20 @@ export const useGameLoop = (
          if (onCompleteRef.current) {
             onCompleteRef.current();
          }
-         // Removed direct setPhase call; delegated to onComplete
          return;
      }
 
      const { list: updatedList, scoreDelta, detectedMode: mode, index } = result.value;
 
-     engine.actions.setList(updatedList);
-     if (scoreDelta > 0) {
-        engine.actions.setLevelScore(prev => prev + scoreDelta);
-     }
-     if (mode !== null) {
-        engine.actions.setDetectedMode(mode);
-     }
+     // Dispatch single atomic update
+     dispatch({
+       type: 'INSPECTION_STEP',
+       payload: {
+         list: updatedList,
+         scoreDelta: scoreDelta,
+         detectedMode: mode
+       }
+     });
 
      // Timing Logic
      const currentItem = updatedList[index];
@@ -48,15 +50,16 @@ export const useGameLoop = (
      }
 
      timeoutRef.current = setTimeout(processNextStepWrapper, delay);
-  }, [engine.actions]);
+  }, [dispatch]);
 
   const startInspection = () => {
-    engine.actions.setPhase(GamePhase.INSPECTING);
+    dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.INSPECTING } });
+    dispatch({ type: 'SET_DETECTED_MODE', payload: { mode: null } });
+    
     inspectionIndex.current = 0;
-    engine.actions.setDetectedMode(null);
-
-    // Initialize generator
-    inspectionIterator.current = createInspectionStream(engine.state.list);
+    
+    // Initialize generator from the passed list
+    inspectionIterator.current = createInspectionStream(currentList);
 
     // Kick off
     processNextStepWrapper();

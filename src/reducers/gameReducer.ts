@@ -78,8 +78,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return {
         ...state,
         selectedToolInstanceId: toolInstanceId,
-         // Note: We don't necessarily clear selection here, 
-         // as some interactoins might be Select Card -> Select Tool -> Execute
       };
     }
     
@@ -134,7 +132,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return {
         ...state,
         shakeTools: state.shakeTools + 1,
-        // Optionally clear selection if desired, but usually we just shake
       };
     }
 
@@ -158,6 +155,34 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...state,
         dailyCompleted: action.payload.completed,
       };
+    }
+
+    case 'SET_TOTAL_SCORE': {
+      return { ...state, totalScore: action.payload.score };
+    }
+
+    case 'SET_TOTAL_OPTIMAL_SCORE': {
+      return { ...state, totalOptimalScore: action.payload.score };
+    }
+
+    case 'SET_OPTIMAL_SCORE': {
+      return { ...state, optimalScore: action.payload.score };
+    }
+
+    case 'SET_WORST_SCORE': {
+      return { ...state, worstScore: action.payload.score };
+    }
+
+    case 'SET_LIST': {
+        return { ...state, list: action.payload.list };
+    }
+
+    case 'SET_DETECTED_MODE': {
+        return { ...state, detectedMode: action.payload.mode };
+    }
+
+    case 'SET_LEVEL_SCORE': {
+        return { ...state, levelScore: action.payload.score };
     }
 
     default:

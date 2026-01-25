@@ -17,8 +17,6 @@ export interface GameState {
   shakeTools: number;
   dailyCompleted: boolean;
   currentSeed: number | undefined;
-  
-  // Added for granular inspection/grading state if needed, though mostly covered by 'list' updates
 }
 
 export type GameAction =
@@ -54,7 +52,14 @@ export type GameAction =
         detectedMode?: 'ASC' | 'DESC' | null;
       } 
     }
-  | { type: 'TRIGGER_INVALID_MOVE'; payload: { shake: boolean } } // Using shake to just imply invalid feedback
+  | { type: 'TRIGGER_INVALID_MOVE'; payload: { shake: boolean } }
   | { type: 'RESET_STATS' }
   | { type: 'SET_PHASE'; payload: { phase: GamePhase } }
-  | { type: 'SET_DAILY_COMPLETED'; payload: { completed: boolean } };
+  | { type: 'SET_DAILY_COMPLETED'; payload: { completed: boolean } }
+  | { type: 'SET_TOTAL_SCORE'; payload: { score: number } }
+  | { type: 'SET_TOTAL_OPTIMAL_SCORE'; payload: { score: number } }
+  | { type: 'SET_OPTIMAL_SCORE'; payload: { score: number } }
+  | { type: 'SET_WORST_SCORE'; payload: { score: number } }
+  | { type: 'SET_LIST'; payload: { list: CardItem[] } }
+  | { type: 'SET_DETECTED_MODE'; payload: { mode: 'ASC' | 'DESC' | null } }
+  | { type: 'SET_LEVEL_SCORE'; payload: { score: number } };
