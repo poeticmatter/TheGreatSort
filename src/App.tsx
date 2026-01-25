@@ -11,6 +11,7 @@ import { DailyAudit } from './components/DailyAudit';
 import { getDailyEntry } from './hooks/useGamePersistence';
 import { getYesterdayDateString } from './utils/dateUtils';
 import { ResistanceLetter } from './components/ResistanceLetter';
+import { TOOL_REGISTRY } from './tools';
 
 import { GameProvider } from './context/GameContext';
 
@@ -27,28 +28,22 @@ function TheGreatSortContent() {
   const { isPlaying, toggleMusic } = useMusic();
 
   // Helper to determine if we should highlight candidates
+  // Helper to determine if we should highlight candidates
   const isCandidate = (idx: number) => {
+    // Basic checks
     if (state.phase !== GamePhase.PLANNING) return false;
     if (state.selection === null) return false;
     if (!state.selectedTool) return false; // Tool ID (instance)
 
-    // Find tool type
+    // Find tool instance
     const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedTool);
     if (!toolInstance) return false;
 
-    const toolType = toolInstance.type;
-    const diff = Math.abs(state.selection - idx);
+    // Ask the Strategy: "Is 'idx' a valid second click given 'state.selection' was the first?"
+    const strategy = TOOL_REGISTRY[toolInstance.type];
+    if (!strategy || !strategy.requiresSelection) return false;
 
-    if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'cycle') {
-        // Adjacent only
-        // Cycle: Select middle (state.selection), then neighbor (idx)
-        return diff === 1;
-    } else if (toolType === 'longswap' || toolType === 'equalize') {
-        // Non-adjacent only
-        return diff > 1;
-    }
-
-    return false;
+    return strategy.isValid(state.list, idx, state.selection);
   };
 
   // Check if audit is available for yesterday
