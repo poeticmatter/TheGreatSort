@@ -68,7 +68,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         currentSeed: action.payload.seed,
         optimalScore: action.payload.optimalScore ?? null,
         worstScore: action.payload.worstScore ?? null,
-        movesHistory: [],
+        movesHistory: action.payload.movesHistory || [],
         phase: GamePhase.PLANNING,
         levelScore: 0,
         detectedMode: null,

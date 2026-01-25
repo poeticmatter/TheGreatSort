@@ -114,7 +114,8 @@ export function useGame() {
                     level: 1,
                     list: currentList,
                     tools: currentTools,
-                    seed: seed
+                    seed: seed,
+                    movesHistory: directLoadedState.moves
                 }
             });
             

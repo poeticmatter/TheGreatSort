@@ -29,6 +29,7 @@ export type GameAction =
         seed?: number; 
         optimalScore?: number;
         worstScore?: number;
+        movesHistory?: Move[];
       } 
     }
   | { type: 'INTERACT_TILE'; payload: { index: number } }
