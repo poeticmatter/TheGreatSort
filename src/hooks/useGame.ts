@@ -423,7 +423,7 @@ export function useGame() {
       retryDaily,
       resetGame,
       shareResult,
-      toggleMusic: () => {}, 
+ 
       openAudit,
       closeAudit,
       triggerResistance,

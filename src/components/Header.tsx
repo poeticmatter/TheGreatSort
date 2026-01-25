@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, Volume2, VolumeX, ClipboardCheck } from 'lucide-react';
+import { Star, ChevronDown, ClipboardCheck } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
 
 interface HeaderProps {
@@ -11,9 +11,7 @@ interface HeaderProps {
   phase: GamePhase;
   optimalScore: number | null;
   detectedMode: 'ASC' | 'DESC' | null;
-  isPlaying: boolean;
   isAuditAvailable: boolean;
-  onToggleMusic: () => void;
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
@@ -22,7 +20,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
-  phase, optimalScore, detectedMode, isPlaying, isAuditAvailable, onToggleMusic,
+  phase, optimalScore, detectedMode, isAuditAvailable,
   onChangeMode, onShareResult, onRetryPractice, onOpenAudit
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -93,14 +91,7 @@ const Header: React.FC<HeaderProps> = ({
              )}
            </div>
 
-           {/* Sound Toggle */}
-           <button
-             onClick={onToggleMusic}
-             className={`flex items-center gap-2 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${isPlaying ? 'text-amber-500' : 'text-stone-400 hover:text-amber-500'}`}
-             title={isPlaying ? "Mute Music" : "Play Music"}
-           >
-             Sound {isPlaying ? <Volume2 size={14} /> : <VolumeX size={14} />}
-           </button>
+
         </div>
       </div>
 

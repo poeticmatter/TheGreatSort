@@ -3,7 +3,7 @@ import Card from './components/Card';
 import SequenceDisplay from './components/SequenceDisplay';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
-import { useMusic } from './hooks/useMusic';
+
 import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
@@ -25,7 +25,7 @@ export default function TheGreatSort() {
 
 function TheGreatSortContent() {
   const { state, actions } = useGame();
-  const { isPlaying, toggleMusic } = useMusic();
+
 
   // Helper to determine if we should highlight candidates
   // Helper to determine if we should highlight candidates
@@ -66,9 +66,7 @@ function TheGreatSortContent() {
         phase={state.phase}
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
-        isPlaying={isPlaying}
         isAuditAvailable={isAuditAvailable}
-        onToggleMusic={toggleMusic}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
