@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { gameReducer, initialState } from '../gameReducer';
-import { GameAction } from '../gameState';
+import { GameAction, GameState } from '../gameState';
 import { GamePhase, ToolInstance, CardItem } from '../../../types';
 
 describe('gameReducer', () => {
 
   it('should return initial state', () => {
-    // @ts-ignore - passing empty action to test default param/case
+    // @ts-ignore
     const state = gameReducer(initialState, {} as GameAction);
     expect(state).toEqual(initialState);
   });
@@ -38,114 +38,123 @@ describe('gameReducer', () => {
     expect(newState.phase).toBe(GamePhase.PLANNING);
   });
 
-  describe('SELECT_CARD', () => {
-    it('should select a card if none selected', () => {
+  describe('INTERACT_TILE (Selection)', () => {
+    it('should select a card if no tool is selected', () => {
       const state = { ...initialState, phase: GamePhase.PLANNING };
       const action: GameAction = {
-        type: 'SELECT_CARD',
+        type: 'INTERACT_TILE',
         payload: { index: 2 }
       };
       const result = gameReducer(state, action);
       expect(result.selection).toBe(2);
     });
 
-    it('should deselect if same card clicked (toggle)', () => {
+    it('should deselect if same card clicked', () => {
       const state = { ...initialState, phase: GamePhase.PLANNING, selection: 2 };
       const action: GameAction = {
-        type: 'SELECT_CARD',
+        type: 'INTERACT_TILE',
         payload: { index: 2 }
       };
       const result = gameReducer(state, action);
       expect(result.selection).toBeNull();
     });
+  });
 
-    it('should switch selection to new card', () => {
-      const state = { ...initialState, phase: GamePhase.PLANNING, selection: 2 };
-      const action: GameAction = {
-        type: 'SELECT_CARD',
-        payload: { index: 5 }
-      };
-      const result = gameReducer(state, action);
-      expect(result.selection).toBe(5);
+  describe('INTERACT_TOOL', () => {
+    it('should select a tool', () => {
+        const tool: ToolInstance = { instanceId: 't1', type: 'swap', used: false };
+        const state = { 
+            ...initialState, 
+            phase: GamePhase.PLANNING,
+            toolsAvailable: [tool] 
+        };
+
+        const action: GameAction = {
+            type: 'INTERACT_TOOL',
+            payload: { toolInstanceId: 't1' }
+        };
+
+        const result = gameReducer(state, action);
+        expect(result.selectedToolInstanceId).toBe('t1');
     });
   });
 
-  describe('COMMIT_MOVE', () => {
-    // Setup a scenario
+  describe('INTERACT_TILE (Execution - Valid)', () => {
+    // Setup state
     const startingList: CardItem[] = [
       { id: 'a', val: 10, status: 'pending', linkScore: null },
-      { id: 'b', val: 5, status: 'pending', linkScore: null }
+      { id: 'b', val: 20, status: 'pending', linkScore: null }
     ];
-    const startingTools: ToolInstance[] = [
-      { instanceId: 'tool-swap-1', type: 'swap', used: false }
-    ];
+    const tool: ToolInstance = { instanceId: 't1', type: 'swap', used: false };
     
-    const readyState = {
+    const readyState: GameState = {
       ...initialState,
       list: startingList,
-      toolsAvailable: startingTools,
-      selectedToolInstanceId: 'tool-swap-1',
-      selection: 0
+      toolsAvailable: [tool],
+      selectedToolInstanceId: 't1',
+      selection: 0 // First card selected
     };
 
-    it('should apply move, mark tool used, and reset selection', () => {
-      // We expect 'swap' to swap index 0 and 1
+    it('should execute swap when clicking valid adjacent target', () => {
       const action: GameAction = {
-        type: 'COMMIT_MOVE',
-        payload: {
-          toolInstanceId: 'tool-swap-1',
-          toolType: 'swap',
-          targetIndex: 1,
-          selectionIndex: 0,
-          description: 'Swap 0 and 1'
-        }
+        type: 'INTERACT_TILE',
+        payload: { index: 1 } // Click second card
       };
 
       const newState = gameReducer(readyState, action);
 
-      // Verify List Mutation (Swap happened)
-      expect(newState.list[0].val).toBe(5);
+      // Verify Swap
+      expect(newState.list[0].val).toBe(20);
       expect(newState.list[1].val).toBe(10);
 
-      // Verify Tool Consumption
-      const usedTool = newState.toolsAvailable.find(t => t.instanceId === 'tool-swap-1');
+      // Verify Tool Used
+      const usedTool = newState.toolsAvailable.find(t => t.instanceId === 't1');
       expect(usedTool?.used).toBe(true);
 
-      // Verify History
-      expect(newState.movesHistory).toHaveLength(1);
-      expect(newState.movesHistory[0].description).toBe('Swap 0 and 1');
-
-      // Verify Reset
+      // Verify Selection Cleared
       expect(newState.selection).toBeNull();
       expect(newState.selectedToolInstanceId).toBeNull();
+      
+      // Verify History
+      expect(newState.movesHistory).toHaveLength(1);
     });
   });
 
-  describe('INSPECTION_STEP', () => {
-    it('should accumulate score and update list', () => {
-        const state = { 
-            ...initialState, 
-            levelScore: 100 
-        };
+  describe('INTERACT_TILE (Execution - Invalid)', () => {
+    const startingList: CardItem[] = [
+      { id: 'a', val: 10, status: 'pending', linkScore: null },
+      { id: 'b', val: 20, status: 'pending', linkScore: null },
+      { id: 'c', val: 30, status: 'pending', linkScore: null }
+    ];
+    const tool: ToolInstance = { instanceId: 't1', type: 'swap', used: false };
+    
+    // Swap requires adjacency. 0 and 2 are not adjacent.
+    const readyState: GameState = {
+      ...initialState,
+      list: startingList,
+      toolsAvailable: [tool],
+      selectedToolInstanceId: 't1',
+      selection: 0
+    };
 
-        const newList: CardItem[] = [
-            { id: 'a', val: 10, status: 'safe', linkScore: 10 }
-        ];
+    it('should not change list and should shake tools on invalid move', () => {
+      const action: GameAction = {
+        type: 'INTERACT_TILE',
+        payload: { index: 2 }
+      };
 
-        const action: GameAction = {
-            type: 'INSPECTION_STEP',
-            payload: {
-                list: newList,
-                scoreDelta: 50,
-                detectedMode: 'ASC'
-            }
-        };
+      const newState = gameReducer(readyState, action);
 
-        const newState = gameReducer(state, action);
+      // List Unchanged
+      expect(newState.list[0].val).toBe(10);
+      expect(newState.list[2].val).toBe(30);
 
-        expect(newState.levelScore).toBe(150); // 100 + 50
-        expect(newState.list).toEqual(newList);
-        expect(newState.detectedMode).toBe('ASC');
+      // Tool Not Used
+      const usedTool = newState.toolsAvailable.find(t => t.instanceId === 't1');
+      expect(usedTool?.used).toBe(false);
+
+      // Shake Triggered
+      expect(newState.shakeTools).toBeGreaterThan(readyState.shakeTools);
     });
   });
 
