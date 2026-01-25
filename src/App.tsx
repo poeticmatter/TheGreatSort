@@ -140,6 +140,7 @@ function TheGreatSortContent() {
           shakeTools={state.shakeTools}
           listLength={state.list.length}
           onToolClick={actions.handleToolClick}
+          lastUsedToolId={state.movesHistory.length > 0 ? state.movesHistory[state.movesHistory.length - 1].toolInstanceId : undefined}
           onActionClick={
               state.phase === GamePhase.RESULTS
                 ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)

@@ -11,6 +11,7 @@ export const initialState: GameState = {
   optimalScore: null,
   worstScore: null,
   list: [],
+  initialList: [],
   movesHistory: [],
   phase: GamePhase.PLANNING,
   toolsAvailable: [],
@@ -42,6 +43,7 @@ const executeMove = (
 
   const newMove: Move = {
       tool: toolType,
+      toolInstanceId: toolInstanceId,
       index: targetIndex,
       targetIndex: selectionIndex ?? undefined,
       description
@@ -64,6 +66,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...state,
         level: action.payload.level,
         list: action.payload.list,
+        initialList: [...action.payload.list],
         toolsAvailable: action.payload.tools,
         currentSeed: action.payload.seed,
         optimalScore: action.payload.optimalScore ?? null,
@@ -227,6 +230,36 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
     case 'SET_LEVEL_SCORE': {
         return { ...state, levelScore: action.payload.score };
+    }
+
+    case 'UNDO_MOVE': {
+        if (state.movesHistory.length === 0) return state;
+
+        const newHistory = state.movesHistory.slice(0, -1);
+        
+        // Replay Logic
+        let currentList = state.initialList.map(item => ({ ...item })); // Deepish copy
+        const currentTools = state.toolsAvailable.map(t => ({ ...t, used: false }));
+
+        newHistory.forEach(move => {
+             // Apply move logic
+             currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+             
+             // Mark tool as used
+             const toolIdx = currentTools.findIndex(t => t.instanceId === move.toolInstanceId);
+             if (toolIdx !== -1) {
+                 currentTools[toolIdx].used = true;
+             }
+        });
+
+        return {
+            ...state,
+            list: currentList,
+            toolsAvailable: currentTools,
+            movesHistory: newHistory,
+            selection: null,
+            selectedToolInstanceId: null
+        };
     }
 
     default:

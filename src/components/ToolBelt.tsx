@@ -9,6 +9,7 @@ interface ToolBeltProps {
   shakeTools: number;
   phase: GamePhase;
   onToolClick: (toolInstanceId: string) => void;
+  lastUsedToolId?: string;
 }
 
 const ToolBelt: React.FC<ToolBeltProps> = ({
@@ -16,7 +17,8 @@ const ToolBelt: React.FC<ToolBeltProps> = ({
   selectedTool,
   shakeTools,
   phase,
-  onToolClick
+  onToolClick,
+  lastUsedToolId
 }) => {
   return (
     <div
@@ -27,6 +29,7 @@ const ToolBelt: React.FC<ToolBeltProps> = ({
         const toolDef = TOOLS[toolInstance.type.toUpperCase()];
         const isActive = selectedTool === toolInstance.instanceId;
         const isUsed = toolInstance.used;
+        const isUndoable = lastUsedToolId === toolInstance.instanceId;
 
         return (
           <ActionButton
@@ -35,7 +38,8 @@ const ToolBelt: React.FC<ToolBeltProps> = ({
             instanceId={toolInstance.instanceId}
             isActive={isActive}
             isUsed={isUsed}
-            isDisabled={isUsed || phase !== GamePhase.PLANNING}
+            isDisabled={isUsed && !isUndoable || phase !== GamePhase.PLANNING}
+            isUndoable={isUndoable}
             onClick={onToolClick}
           />
         );

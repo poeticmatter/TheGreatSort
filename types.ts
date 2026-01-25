@@ -39,6 +39,7 @@ export type GameMode = 'DAILY' | 'PRACTICE';
 
 export interface Move {
   tool: ToolType;
+  toolInstanceId: string;
   index: number;
   targetIndex?: number;
   description: string;

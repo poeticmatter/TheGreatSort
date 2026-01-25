@@ -12,11 +12,12 @@ interface FooterProps {
   listLength: number;
   onToolClick: (toolId: string) => void;
   onActionClick: () => void;
+  lastUsedToolId?: string;
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shakeTools, listLength,
-  onToolClick, onActionClick
+  onToolClick, onActionClick, lastUsedToolId
 }) => {
   return (
     <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
@@ -29,6 +30,7 @@ const Footer: React.FC<FooterProps> = ({
           shakeTools={shakeTools}
           phase={phase}
           onToolClick={onToolClick}
+          lastUsedToolId={lastUsedToolId}
         />
 
         {/* Action Buttons */}

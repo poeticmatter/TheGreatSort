@@ -8,6 +8,7 @@ export interface GameState {
   optimalScore: number | null;
   worstScore: number | null;
   list: CardItem[];
+  initialList: CardItem[];
   movesHistory: Move[];
   phase: GamePhase;
   toolsAvailable: ToolInstance[];
@@ -53,4 +54,5 @@ export type GameAction =
   | { type: 'SET_WORST_SCORE'; payload: { score: number } }
   | { type: 'SET_LIST'; payload: { list: CardItem[] } }
   | { type: 'SET_DETECTED_MODE'; payload: { mode: 'ASC' | 'DESC' | null } }
-  | { type: 'SET_LEVEL_SCORE'; payload: { score: number } };
+  | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
+  | { type: 'UNDO_MOVE' };
