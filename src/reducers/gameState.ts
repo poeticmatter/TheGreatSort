@@ -31,19 +31,9 @@ export type GameAction =
         worstScore?: number;
       } 
     }
-  | { type: 'SELECT_CARD'; payload: { index: number } }
-  | { type: 'SELECT_TOOL'; payload: { toolInstanceId: string } }
-  | { type: 'DESELECT_TOOL' }
-  | { 
-      type: 'COMMIT_MOVE'; 
-      payload: { 
-        toolInstanceId: string; 
-        toolType: ToolType;
-        targetIndex: number; 
-        selectionIndex?: number | null; 
-        description: string;
-      } 
-    }
+  | { type: 'INTERACT_TILE'; payload: { index: number } }
+  | { type: 'INTERACT_TOOL'; payload: { toolInstanceId: string } }
+  | { type: 'CANCEL_SELECTION' }
   | { 
       type: 'INSPECTION_STEP'; 
       payload: { 

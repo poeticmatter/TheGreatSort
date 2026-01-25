@@ -1,6 +1,7 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move } from '../../types';
+import { GamePhase, ToolInstance, Move, ToolType } from '../../types';
 import { applyMove } from '../utils/gameLogic';
+import { TOOL_REGISTRY } from '../tools';
 
 export const initialState: GameState = {
   level: 1,
@@ -21,6 +22,41 @@ export const initialState: GameState = {
   currentSeed: undefined,
 };
 
+// Helper to execute a valid move
+const executeMove = (
+  state: GameState, 
+  toolInstanceId: string, 
+  toolType: ToolType, 
+  targetIndex: number, 
+  selectionIndex?: number | null
+): GameState => {
+  const newList = applyMove(state.list, toolType, targetIndex, selectionIndex);
+
+  const newTools = state.toolsAvailable.map(t => 
+      t.instanceId === toolInstanceId ? { ...t, used: true } : t
+  );
+
+  const description = selectionIndex !== undefined && selectionIndex !== null
+       ? `${toolType} ${selectionIndex} and ${targetIndex}` 
+       : `${toolType} at ${targetIndex}`;
+
+  const newMove: Move = {
+      tool: toolType,
+      index: targetIndex,
+      targetIndex: selectionIndex ?? undefined,
+      description
+  };
+
+  return {
+    ...state,
+    list: newList,
+    toolsAvailable: newTools,
+    movesHistory: [...state.movesHistory, newMove],
+    selection: null,
+    selectedToolInstanceId: null,
+  };
+};
+
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'START_LEVEL': {
@@ -32,7 +68,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         currentSeed: action.payload.seed,
         optimalScore: action.payload.optimalScore ?? null,
         worstScore: action.payload.worstScore ?? null,
-        // Reset Level State
         movesHistory: [],
         phase: GamePhase.PLANNING,
         levelScore: 0,
@@ -42,79 +77,101 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
 
-    case 'SELECT_CARD': {
-      const { index } = action.payload;
+    case 'INTERACT_TOOL': {
       if (state.phase !== GamePhase.PLANNING) return state;
-
-      // Toggle behavior
-      if (state.selection === index) {
-        return {
-          ...state,
-          selection: null, // Deselect
-        };
-      }
-      return {
-        ...state,
-        selection: index,
-      };
-    }
-
-    case 'SELECT_TOOL': {
       const { toolInstanceId } = action.payload;
-      if (state.phase !== GamePhase.PLANNING) return state;
+      
+      const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
+      if (!toolInstance || toolInstance.used) return state;
 
-      const tool = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
-      if (!tool || tool.used) return state;
-
-      // Toggle behavior if already selected
+      // 1. If same tool selected -> Deselect
       if (state.selectedToolInstanceId === toolInstanceId) {
         return {
           ...state,
           selectedToolInstanceId: null,
-          selection: null, 
+          selection: null,
         };
       }
 
+      // 2. Switching to new tool
+      const strategy = TOOL_REGISTRY[toolInstance.type];
+      if (!strategy) return state;
+
+      // 3. Immediate Execution Check
+      // If a card is already selected, and we click a ONE-STEP tool (requiresSelection=false),
+      // does the user imply "Use this tool on the currently selected card"?
+      // The prompt says: "If a card was selected and the new tool is an 'Immediate Action' ... execute"
+      if (state.selection !== null && !strategy.requiresSelection) {
+         if (strategy.isValid(state.list, state.selection)) {
+             return executeMove(state, toolInstanceId, toolInstance.type, state.selection);
+         } else {
+             // Invalid move, shake but select tool? Or just shake?
+             // Fallback: Just select the tool.
+             return {
+                 ...state,
+                 selectedToolInstanceId: toolInstanceId
+             };
+         }
+      }
+
+      // 4. Default: Select the tool
       return {
         ...state,
         selectedToolInstanceId: toolInstanceId,
+        // Keep existing card selection if any, as 2-step tools might use it
       };
     }
-    
-    case 'DESELECT_TOOL': {
+
+    case 'INTERACT_TILE': {
+      if (state.phase !== GamePhase.PLANNING) return state;
+      const { index } = action.payload;
+
+      // Case A: No Tool Selected -> Toggle Selection
+      if (!state.selectedToolInstanceId) {
+        if (state.selection === index) {
+          return { ...state, selection: null };
+        }
+        return { ...state, selection: index };
+      }
+
+      // Case B: Tool Selected -> Attempt Move
+      const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedToolInstanceId);
+      if (!toolInstance || toolInstance.used) return { ...state, selectedToolInstanceId: null };
+      
+      const strategy = TOOL_REGISTRY[toolInstance.type];
+      
+      // B.1 One-Step Tool (Clicking card executes it)
+      if (!strategy.requiresSelection) {
+          if (strategy.isValid(state.list, index)) {
+              return executeMove(state, toolInstance.instanceId, toolInstance.type, index);
+          } else {
+              return { ...state, shakeTools: state.shakeTools + 1 };
+          }
+      }
+
+      // B.2 Two-Step Tool (Requires Selection)
+      // If nothing selected yet, select this as the "first" card
+      if (state.selection === null) {
+          return { ...state, selection: index };
+      }
+
+      // If we have a selection, this click is the "target" (second click)
+      // Note: state.selection is NOT guaranteed to be the 'index' arg unless user clicked same card
+      if (strategy.isValid(state.list, index, state.selection)) {
+           return executeMove(state, toolInstance.instanceId, toolInstance.type, index, state.selection);
+      } else {
+           // Invalid (e.g. non-adjacent for swap, or same card)
+           // If clicked same card, deselect? Or jsut shake?
+           // Prompt says: "If false, shakeTools."
+           return { ...state, shakeTools: state.shakeTools + 1 };
+      }
+    }
+
+    case 'CANCEL_SELECTION': {
       return {
         ...state,
         selectedToolInstanceId: null,
         selection: null
-      };
-    }
-
-    case 'COMMIT_MOVE': {
-      const { toolInstanceId, toolType, targetIndex, selectionIndex, description } = action.payload;
-      
-      // Calculate new list state
-      const newList = applyMove(state.list, toolType, targetIndex, selectionIndex);
-      
-      // Mark tool as used
-      const newTools = state.toolsAvailable.map(t => 
-        t.instanceId === toolInstanceId ? { ...t, used: true } : t
-      );
-      
-      const newMove: Move = {
-        tool: toolType,
-        index: targetIndex,
-        targetIndex: selectionIndex ?? undefined,
-        description
-      };
-
-      return {
-        ...state,
-        list: newList,
-        toolsAvailable: newTools,
-        movesHistory: [...state.movesHistory, newMove],
-        // Reset selection state
-        selection: null,
-        selectedToolInstanceId: null,
       };
     }
 
@@ -129,32 +186,19 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
 
     case 'TRIGGER_INVALID_MOVE': {
-      return {
-        ...state,
-        shakeTools: state.shakeTools + 1,
-      };
+      return { ...state, shakeTools: state.shakeTools + 1 };
     }
 
     case 'RESET_STATS': {
-      return {
-        ...state,
-        totalScore: 0,
-        totalOptimalScore: 0,
-      };
+      return { ...state, totalScore: 0, totalOptimalScore: 0 };
     }
 
     case 'SET_PHASE': {
-      return {
-        ...state,
-        phase: action.payload.phase,
-      };
+      return { ...state, phase: action.payload.phase };
     }
 
     case 'SET_DAILY_COMPLETED': {
-      return {
-        ...state,
-        dailyCompleted: action.payload.completed,
-      };
+      return { ...state, dailyCompleted: action.payload.completed };
     }
 
     case 'SET_TOTAL_SCORE': {

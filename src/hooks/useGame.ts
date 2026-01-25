@@ -6,7 +6,6 @@ import { gradeLevel } from '../utils/gameLogic';
 import { useGameContext } from '../context/GameContext';
 import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, markDailyAuditSeen } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
-import { TOOL_REGISTRY } from '../tools';
 
 export function useGame() {
   const { state, dispatch } = useGameContext();
@@ -15,109 +14,32 @@ export function useGame() {
   const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
   const [resistanceActive, setResistanceActive] = useState(false);
 
-  // --- Logic Wiring Reimplementation ---
+  // --- Handlers (Pass-Through) ---
 
   const handleToolClick = (toolInstanceId: string) => {
-    if (state.phase !== GamePhase.PLANNING) return;
-    const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
-    if (!toolInstance || toolInstance.used) return;
-
-    const strategy = TOOL_REGISTRY[toolInstance.type];
-    if (!strategy) return;
-
-    if (state.selection !== null) {
-      if (strategy.requiresSelection) {
-         dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
-      } else {
-         executeMove(toolInstanceId, state.selection);
-      }
-      return;
-    }
-
-    if (state.selectedToolInstanceId === toolInstanceId) {
-       dispatch({ type: 'DESELECT_TOOL' });
-    } else {
-       dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
-    }
+    dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
   };
 
   const handleCardClick = (item: CardItem) => {
     const index = state.list.findIndex(i => i.id === item.id);
     if (index === -1) return;
-
-    if (state.phase !== GamePhase.PLANNING) return;
-
-    if (state.selectedToolInstanceId) {
-      executeMove(state.selectedToolInstanceId, index);
-      return;
-    }
-
-    dispatch({ type: 'SELECT_CARD', payload: { index } });
-  };
-
-  const executeMove = (toolInstanceId: string, targetIndex: number) => {
-    const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
-    if (!toolInstance || toolInstance.used) return;
-
-    const toolType = toolInstance.type;
-    const strategy = TOOL_REGISTRY[toolType];
-    if (!strategy) return;
-
-    if (strategy.requiresSelection) {
-        if (state.selection === null) {
-            dispatch({ type: 'SELECT_CARD', payload: { index: targetIndex } });
-            return;
-        } else {
-            const isValid = strategy.isValid(state.list, targetIndex, state.selection);
-            if (isValid) {
-                const description = `${toolType} ${state.selection} and ${targetIndex}`;
-                
-                dispatch({
-                    type: 'COMMIT_MOVE',
-                    payload: {
-                        toolInstanceId,
-                        toolType,
-                        targetIndex,
-                        selectionIndex: state.selection,
-                        description
-                    }
-                });
-                localStorage.setItem('hasUsedAction', 'true');
-            } else {
-                if (state.selection === targetIndex) {
-                     dispatch({ type: 'SELECT_CARD', payload: { index: targetIndex } });
-                } else {
-                     dispatch({ type: 'SELECT_CARD', payload: { index: targetIndex } });
-                }
-                dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
-            }
-        }
-    } else {
-        if (!strategy.isValid(state.list, targetIndex)) {
-            dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
-            return;
-        }
-
-        const description = `${toolType} at ${targetIndex}`;
-        dispatch({
-            type: 'COMMIT_MOVE',
-            payload: {
-                toolInstanceId,
-                toolType,
-                targetIndex,
-                selectionIndex: undefined, 
-                description
-            }
-        });
-        localStorage.setItem('hasUsedAction', 'true');
-    }
+    dispatch({ type: 'INTERACT_TILE', payload: { index } });
   };
   
   const handleBackgroundClick = () => {
-    if (state.phase === GamePhase.PLANNING) {
-       dispatch({ type: 'DESELECT_TOOL' });
-    }
+     dispatch({ type: 'CANCEL_SELECTION' });
   };
+
+  // --- Side Effect: Track Move Usage ---
+  // The reducer is pure, so we track side-effects in the hook reacting to state changes.
+  useEffect(() => {
+     if (state.movesHistory.length > 0) {
+         // Optimization: Only set if not set, or blindly set. 
+         // Since this effect runs on every move, straightforward setting is fine.
+         localStorage.setItem('hasUsedAction', 'true');
+     }
+  }, [state.movesHistory]);
+
 
   // --- Persistence ---
   const persistenceState = {
@@ -147,6 +69,7 @@ export function useGame() {
   }, [gameMode, state.levelScore, dispatch, state.totalScore, state.totalOptimalScore, state.optimalScore]);
 
   // --- Loop ---
+  // Note: useGameLoop logic remains the same (Inspection Logic)
   const loop = useGameLoop(state.list, dispatch, handleGameCompletion);
 
   // --- Hydration & Initialization ---
