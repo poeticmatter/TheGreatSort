@@ -137,7 +137,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
         <div className="mt-4 text-stone-500 text-xs font-serif italic animate-in fade-in">
           {adherence === 100
             ? "Quota Met perfectly."
-            : "Reviewing performance protocol..."}
+            : "Inefficiency detected. Compliance is mandatory."}
         </div>
       )}
 
