@@ -18,7 +18,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
   SINK: { ...TOOL_META.SINK, name: 'Sink', icon: ArrowDownToLine, desc: 'Set adjacent items to the lower of the two' },
   HALVE: { ...TOOL_META.HALVE, name: 'Halve', icon: Divide, desc: 'Halve item value (round down)' },
   
-  SHIELD: { ...TOOL_META.SHIELD, name: 'Shield', icon: Shield, desc: 'Protects the NEXT item from elimination' },
+  SHIELD: { ...TOOL_META.SHIELD, name: 'Shield', icon: Shield, desc: 'Select an item to PROTECT. Left neighbor will be sacrificed.' },
   SHRINK: { ...TOOL_META.SHRINK, name: 'Shrink', icon: DiamondMinus, desc: 'Decrease value by 3' },
   
   HOP: { ...TOOL_META.HOP, name: 'Hop', icon: RedoDot, desc: 'Swap the items adjacent to the selected item' },

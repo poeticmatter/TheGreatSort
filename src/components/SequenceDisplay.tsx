@@ -12,6 +12,7 @@ interface SequenceDisplayProps {
   candidateIndices?: number[];
   onItemClick?: (item: CardItem) => void;
   disabled?: boolean;
+  disabledIndices?: number[];
 }
 
 const getSnakePosition = (index: number): React.CSSProperties => {
@@ -78,7 +79,8 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
   selectedIndex = null, 
   candidateIndices = [],
   onItemClick,
-  disabled
+  disabled,
+  disabledIndices = []
 }) => {
   
   // Logic to determine container classes
@@ -109,6 +111,7 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
               onClick={(itm) => !disabled && onItemClick && onItemClick(itm)}
               isSelected={isSelected}
               isTargetCandidate={isCandidate}
+              isDisabled={disabledIndices.includes(idx)}
             />
           );
         })}

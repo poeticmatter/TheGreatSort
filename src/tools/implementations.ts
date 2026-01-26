@@ -243,20 +243,27 @@ export class ShieldTool implements ToolStrategy {
 
     apply(list: ISortable[], index: number): ISortable[] {
         const newList = copy(list);
-        if (index >= 0 && index < newList.length) {
+        // Valid if index > 0 (can sacrifice left neighbor)
+        if (index > 0 && index < newList.length) {
+            // Apply shield to the target item BEFORE removing the neighbor
+            // This ensures the item we want to keep gets the shield
             newList[index] = { ...newList[index], hasShield: true };
+            
+            // Remove the left neighbor (index - 1)
+            newList.splice(index - 1, 1);
         }
         return newList;
     }
 
     isValid(list: ISortable[], index: number): boolean {
-        return index >= 0 && index < list.length;
+        // Must have a left neighbor to sacrifice
+        return index > 0 && index < list.length;
     }
 
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
-        for (let i = 0; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Shield item at index ${i}` });
+        for (let i = 1; i < list.length; i++) {
+             moves.push({ tool: this.type, index: i, description: `Shield item at index ${i} (Sacrifice ${i-1})` });
         }
         return moves;
     }

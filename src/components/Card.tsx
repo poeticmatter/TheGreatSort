@@ -11,15 +11,34 @@ interface CardProps {
   style?: React.CSSProperties;
   mobileDirection?: 'right' | 'left' | 'down' | null;
   disableResponsiveOverrides?: boolean;
+  isDisabled?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
   let scale = "scale-100";
   let opacity = "opacity-100";
   let shadow = "shadow-lg";
+
+  // Disabled State
+  if (isDisabled) {
+    return (
+      <div 
+        style={style}
+        className={`
+          flex flex-col items-center justify-center 
+          w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 
+          rounded-sm border-2 border-stone-800 bg-stone-900/50 text-stone-700
+          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold text-2xl sm:text-3xl
+        `}
+      >
+          {/* Minimal Content for Disabled State */}
+          {item.val}
+      </div>
+    );
+  }
 
   // Status Styles
   switch (item.status) {

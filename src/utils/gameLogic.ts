@@ -58,8 +58,10 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
       lastSurvivorVal = currentVal;
       lastSurvivorHasShield = currentHasShield; // Update to current
     } else {
-      if (lastSurvivorHasShield) {
-        survived = true;
+      // Logic for new Shield mechanic: "Select item to PROTECT"
+      // Check Current Item Shield (Self-Protection)
+      if (currentHasShield) {
+         survived = true;
       } else {
         const threshold = lastSurvivorVal!;
         const mode = sortDirection || 'ASC';
@@ -72,7 +74,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
 
       if (survived) {
         lastSurvivorVal = currentVal;
-        lastSurvivorHasShield = currentHasShield; // Update to current
+        lastSurvivorHasShield = currentHasShield;
       }
     }
 
@@ -139,8 +141,8 @@ export const calculateBatchScore = (numbers: ISortable[]): number => {
       if (currentVal >= lastSurvivor) mode = 'ASC';
       else mode = 'DESC';
     } else {
-      // Check if protected by previous survivor
-      if (lastSurvivorHasShield) {
+      // Check if protected by SELF shield
+      if (currentHasShield) {
           survived = true;
       } else {
           // Normal logic

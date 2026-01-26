@@ -59,6 +59,11 @@ function TheGreatSortContent() {
 
 
   const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
+
+  // Logic to disable specific indices based on tool rules (e.g. Shield cannot target index 0)
+  const selectedToolInstance = state.selectedTool ? state.toolsAvailable.find(t => t.instanceId === state.selectedTool) : null;
+  const isShieldSelected = selectedToolInstance?.type === 'shield';
+  const disabledIndices = isShieldSelected ? [0] : [];
   
   // Route / View State Logic
   const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
@@ -157,6 +162,7 @@ function TheGreatSortContent() {
                       candidateIndices={candidateIndices}
                       onItemClick={handleCardClickWrapper}
                       disabled={isGameDisabled}
+                      disabledIndices={disabledIndices}
                     />
                   ) : (
                     state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
