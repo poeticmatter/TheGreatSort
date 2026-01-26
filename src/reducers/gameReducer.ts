@@ -129,13 +129,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (state.phase !== GamePhase.PLANNING) return state;
       const { index } = action.payload;
 
-      // Case A: No Tool Selected -> Toggle Selection
+      // Strict Tool-First Requirement
       if (!state.selectedToolInstanceId) {
-        if (state.selection === index) {
-          return { ...state, selection: null };
-        }
-        return { ...state, selection: index };
+          return state;
       }
+
 
       // Case B: Tool Selected -> Attempt Move
       const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedToolInstanceId);

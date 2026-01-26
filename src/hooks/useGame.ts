@@ -41,13 +41,7 @@ export function useGame() {
 
   // --- Side Effect: Track Move Usage ---
   // The reducer is pure, so we track side-effects in the hook reacting to state changes.
-  useEffect(() => {
-     if (state.movesHistory.length > 0) {
-         // Optimization: Only set if not set, or blindly set. 
-         // Since this effect runs on every move, straightforward setting is fine.
-         localStorage.setItem('hasUsedAction', 'true');
-     }
-  }, [state.movesHistory]);
+
 
 
   // --- Persistence ---

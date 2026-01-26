@@ -9,7 +9,7 @@ interface FooterProps {
   gameMode: GameMode;
   toolsAvailable: ToolInstance[];
   selectedTool: string | null;
-  shakeTools: number;
+  shouldShake: boolean;
   listLength: number;
   onToolClick: (toolId: string) => void;
   onActionClick: () => void;
@@ -20,7 +20,7 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({
-  phase, gameMode, toolsAvailable, selectedTool, shakeTools, listLength,
+  phase, gameMode, toolsAvailable, selectedTool, shouldShake, listLength,
   onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked
 }) => {
   return (
@@ -33,7 +33,7 @@ const Footer: React.FC<FooterProps> = ({
              <ToolBelt
                 toolsAvailable={toolsAvailable}
                 selectedTool={selectedTool}
-                shakeTools={shakeTools}
+                shouldShake={shouldShake}
                 phase={phase}
                 onToolClick={onToolClick}
              />

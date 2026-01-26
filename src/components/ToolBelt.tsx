@@ -6,7 +6,7 @@ import ActionButton from './ActionButton';
 interface ToolBeltProps {
   toolsAvailable: ToolInstance[];
   selectedTool: string | null;
-  shakeTools: number;
+  shouldShake: boolean;
   phase: GamePhase;
   onToolClick: (toolInstanceId: string) => void;
 }
@@ -14,14 +14,13 @@ interface ToolBeltProps {
 const ToolBelt: React.FC<ToolBeltProps> = ({
   toolsAvailable,
   selectedTool,
-  shakeTools,
+  shouldShake,
   phase,
   onToolClick,
 }) => {
   return (
     <div
-      key={shakeTools}
-      className={`flex gap-3 sm:gap-5 ${shakeTools > 0 ? 'shake-animation' : ''}`}
+      className={`flex gap-3 sm:gap-5 ${shouldShake ? 'shake-animation' : ''}`}
     >
       {toolsAvailable.map((toolInstance) => {
         const toolDef = TOOLS[toolInstance.type.toUpperCase()];

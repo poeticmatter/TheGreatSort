@@ -64,6 +64,29 @@ function TheGreatSortContent() {
   const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
 
   // Lock condition: Locked only applies to DAILY mode interactions
+  // Visual Feedback for Invalid Actions
+  const [isShaking, setIsShaking] = React.useState(false);
+  const triggerShake = React.useCallback(() => {
+     setIsShaking(true);
+     setTimeout(() => setIsShaking(false), 500);
+  }, []);
+
+  // Effect: Shake on Invalid Move Signal from Reducer
+  React.useEffect(() => {
+     if (state.shakeTools > 0) {
+         triggerShake();
+     }
+  }, [state.shakeTools, triggerShake]);
+
+  const handleCardClickWrapper = (item: any) => {
+     // STRICT CHECK: Tool must be selected
+     if (!state.selectedTool) {
+         triggerShake();
+         return;
+     }
+     actions.handleCardClick(item);
+  };
+
   const isGameDisabled = state.gameMode === 'DAILY' && isLocked;
 
   return (
@@ -132,7 +155,7 @@ function TheGreatSortContent() {
                       sequence={state.list}
                       selectedIndex={state.selection}
                       candidateIndices={candidateIndices}
-                      onItemClick={actions.handleCardClick}
+                      onItemClick={handleCardClickWrapper}
                       disabled={isGameDisabled}
                     />
                   ) : (
@@ -158,7 +181,7 @@ function TheGreatSortContent() {
           gameMode={state.gameMode}
           toolsAvailable={state.toolsAvailable}
           selectedTool={state.selectedTool}
-          shakeTools={state.shakeTools}
+          shouldShake={isShaking}
           listLength={state.list.length}
           onToolClick={actions.handleToolClick}
           onUndo={actions.handleUndo}
