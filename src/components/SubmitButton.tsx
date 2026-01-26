@@ -7,13 +7,15 @@ interface SubmitButtonProps {
   gameMode: GameMode;
   listLength: number;
   onActionClick: () => void;
+  disabled?: boolean;
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({
   phase,
   gameMode,
   listLength,
-  onActionClick
+  onActionClick,
+  disabled
 }) => {
   const isRetry = phase === GamePhase.RESULTS && gameMode === 'DAILY';
 
@@ -21,6 +23,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     <button
       onClick={onActionClick}
       disabled={
+        disabled ||
         (phase === GamePhase.PLANNING && listLength === 0) ||
         phase === GamePhase.INSPECTING
       }

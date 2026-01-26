@@ -11,6 +11,7 @@ interface SequenceDisplayProps {
   selectedIndex?: number | null;
   candidateIndices?: number[];
   onItemClick?: (item: CardItem) => void;
+  disabled?: boolean;
 }
 
 const getSnakePosition = (index: number): React.CSSProperties => {
@@ -76,7 +77,8 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
   highlightIndices = [], 
   selectedIndex = null, 
   candidateIndices = [],
-  onItemClick 
+  onItemClick,
+  disabled
 }) => {
   
   // Logic to determine container classes
@@ -91,7 +93,7 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
     : `${baseClasses} ${desktopClasses}`;
 
   return (
-    <div className={`w-full flex items-center justify-center`}>
+    <div className={`w-full flex items-center justify-center ${disabled ? 'grayscale pointer-events-none opacity-50' : ''}`}>
        <div className={containerClassName}>
         {sequence.map((item, idx) => {
           const isSelected = (selectedIndex === idx) || highlightIndices.includes(idx);
@@ -104,7 +106,7 @@ export const SequenceDisplay: React.FC<SequenceDisplayProps> = ({
               style={getSnakePosition(idx)}
               mobileDirection={getSnakeDirection(idx, sequence.length)}
               disableResponsiveOverrides={isMobile}
-              onClick={(itm) => onItemClick && onItemClick(itm)}
+              onClick={(itm) => !disabled && onItemClick && onItemClick(itm)}
               isSelected={isSelected}
               isTargetCandidate={isCandidate}
             />

@@ -3,12 +3,14 @@ import Card from './components/Card';
 import SequenceDisplay from './components/SequenceDisplay';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
+import { useDailyLock } from './hooks/useDailyLock';
+import { getTodayDateString } from './utils/dateUtils';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
+import AuditWarningModal from './components/AuditWarningModal';
 import { DailyAudit } from './components/DailyAudit';
-
 import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
 
@@ -24,6 +26,16 @@ export default function TheGreatSort() {
 
 function TheGreatSortContent() {
   const { state, actions } = useGame();
+  
+  // Daily Lock Integration
+  const today = getTodayDateString();
+  const { 
+    isLocked, 
+    isWarningOpen, 
+    requestAudit, 
+    confirmAuditLock, 
+    cancelAuditLock 
+  } = useDailyLock(today, actions.triggerCurrentAudit);
 
 
   // Helper to determine if we should highlight candidates
@@ -46,14 +58,22 @@ function TheGreatSortContent() {
   };
 
 
-
   const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
   
   // Route / View State Logic
   const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
 
+  // Lock condition: Locked only applies to DAILY mode interactions
+  const isGameDisabled = state.gameMode === 'DAILY' && isLocked;
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
+
+      <AuditWarningModal 
+          isOpen={isWarningOpen}
+          onConfirm={confirmAuditLock}
+          onCancel={cancelAuditLock}
+      />
 
       <Header
         level={state.level}
@@ -99,7 +119,7 @@ function TheGreatSortContent() {
                 gameMode={state.gameMode}
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
-                onViewAudit={actions.triggerCurrentAudit}
+                onViewAudit={requestAudit} // Intercept with Lock Request
               />
 
               {/* --- CARDS GRID --- */}
@@ -110,6 +130,7 @@ function TheGreatSortContent() {
                       selectedIndex={state.selection}
                       candidateIndices={candidateIndices}
                       onItemClick={actions.handleCardClick}
+                      disabled={isGameDisabled}
                     />
                   ) : (
                     state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
@@ -144,6 +165,7 @@ function TheGreatSortContent() {
                 ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
                 : actions.startInspection
           }
+          disabled={isGameDisabled}
         />
       )}
 

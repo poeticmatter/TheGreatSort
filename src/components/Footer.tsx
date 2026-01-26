@@ -15,18 +15,19 @@ interface FooterProps {
   onActionClick: () => void;
   onUndo: () => void;
   canUndo: boolean;
+  disabled?: boolean;
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shakeTools, listLength,
-  onToolClick, onActionClick, onUndo, canUndo
+  onToolClick, onActionClick, onUndo, canUndo, disabled
 }) => {
   return (
     <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
 
-        <div className="flex items-center gap-4">
-             <UndoButton onClick={onUndo} disabled={!canUndo} />
+        <div className={`flex items-center gap-4 ${disabled ? 'grayscale pointer-events-none opacity-50' : ''}`}>
+             <UndoButton onClick={onUndo} disabled={!canUndo || disabled} />
              
              <ToolBelt
                 toolsAvailable={toolsAvailable}
@@ -45,6 +46,7 @@ const Footer: React.FC<FooterProps> = ({
              gameMode={gameMode}
              listLength={listLength}
              onActionClick={onActionClick}
+             disabled={disabled}
            />
         </div>
 
