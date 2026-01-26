@@ -1,5 +1,5 @@
-import React from 'react';
-import { Award, Share2, Repeat } from 'lucide-react';
+import React, { useState } from 'react';
+import { Award, Repeat } from 'lucide-react';
 import { GameMode } from '../../types';
 import { calculateRelativeEfficiency } from '../utils/gameLogic';
 
@@ -8,7 +8,6 @@ interface ReportCardProps {
   optimalScore: number | null;
   worstScore: number | null;
   gameMode: GameMode;
-  onShareResult: () => void;
   onRetryPractice: () => void;
   onViewAudit: () => void;
   isLocked?: boolean;
@@ -23,9 +22,9 @@ const ReportCard: React.FC<ReportCardProps> = ({
   onViewAudit,
   isLocked
 }) => {
-  const [showHint, setShowHint] = React.useState(false);
+  const [showTarget, setShowTarget] = useState(false);
 
-  const getEfficiency = () => {
+  const getAdherence = () => {
     if (!optimalScore) return 0;
     if (gameMode === 'DAILY' && worstScore !== null) {
       return calculateRelativeEfficiency(levelScore, optimalScore, worstScore);
@@ -33,74 +32,97 @@ const ReportCard: React.FC<ReportCardProps> = ({
     return Math.min(100, Math.round((levelScore / optimalScore) * 100));
   };
 
+  const adherence = getAdherence();
+
   return (
     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
 
-      <div className="flex flex-col md:flex-row items-center gap-6 bg-stone-800 p-6 rounded-sm border-2 border-stone-600 shadow-2xl relative">
-        {/* Decor */}
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-stone-900 px-3 text-stone-500 text-xs font-bold uppercase tracking-widest border border-stone-700 rounded-sm">
+      <div className="relative w-full max-w-md">
+        {/* Label */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-stone-900 px-3 text-stone-500 text-xs font-bold uppercase tracking-widest border border-stone-700 rounded-sm z-10">
           Report Card
         </div>
 
-        <div className="flex flex-col items-center px-4">
-          <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Total Yield</span>
-          <span className="text-4xl text-amber-500 font-[Cinzel] font-bold drop-shadow-lg">{levelScore}</span>
-        </div>
+        {/* Card Container */}
+        <div className="flex flex-col md:flex-row items-stretch gap-0 bg-stone-800 rounded-sm border-2 border-stone-600 shadow-2xl relative overflow-hidden w-full">
+          
+          {/* Decor Header */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-stone-700/50"></div>
 
-        <div className="w-px h-12 bg-stone-600 hidden md:block"></div>
+          {/* Total Yield Section */}
+          <div className="flex flex-col items-center justify-center p-6 min-w-[140px] bg-stone-800/50">
+            <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Total Yield</span>
+            <span className="text-4xl text-amber-500 font-[Cinzel] font-bold drop-shadow-lg">{levelScore}</span>
+          </div>
 
-        <div className="flex flex-col items-center px-4">
-          {gameMode === 'DAILY' ? (
-            <>
-              <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
-              {optimalScore === null ? (
-                <div className="text-stone-400 text-xs font-mono text-center max-w-[200px] leading-relaxed">
-                  <span className="block text-amber-600 font-bold uppercase tracking-wider mb-1">Calculating...</span>
-                </div>
-              ) : !showHint ? (
-                  <button 
-                    onClick={() => setShowHint(true)}
-                    className="text-stone-400 text-xs font-mono underline hover:text-amber-500 transition-colors"
-                  >
-                    Reveal Target
-                  </button>
-              ) : (
-                <div className="flex items-baseline gap-1 animate-in fade-in">
-                  <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
-                    {getEfficiency()}%
-                  </span>
-                  {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">Efficiency</span>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
-                  {getEfficiency()}%
-                </span>
-                {getEfficiency() === 100 && <Award size={18} className="text-green-500 mb-1" />}
+          <div className="w-px bg-stone-600 hidden md:block self-stretch"></div>
+
+          {/* Adherence & Controls Section */}
+          <div className="flex flex-col p-6 gap-6 min-w-[300px] flex-1">
+            
+            {/* Adherence Bar */}
+            <div className="flex flex-col w-full">
+              <div className="flex justify-between items-end mb-1">
+                 <span className="text-[10px] text-stone-500 uppercase tracking-widest">Adherence</span>
+                 <span className={`text-sm font-bold font-mono ${adherence === 100 ? 'text-green-500' : 'text-stone-300'}`}>{adherence}%</span>
               </div>
-              <span className="text-amber-500 font-bold text-xl mt-1">Target: {optimalScore}</span>
-            </>
-          )}
-        </div>
+              
+              <div className="w-full h-3 bg-stone-700 rounded-full overflow-hidden border border-stone-600 relative">
+                 <div 
+                    className="h-full bg-amber-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${adherence}%` }}
+                 ></div>
+              </div>
 
-        {/* Buttons for Daily */}
-        <div className="flex gap-2">
-          {gameMode === 'DAILY' && (
-             <button
-                onClick={onViewAudit}
-                className="ml-2 bg-amber-600 hover:bg-amber-500 text-stone-900 border border-amber-700 px-4 py-2 rounded font-bold uppercase tracking-wider text-xs shadow-lg transition-all active:translate-y-0.5"
-             >
-               {isLocked ? 'Review Audit' : 'Submit to Audit'}
-             </button>
-          )}
+              <div className="flex justify-between mt-1 text-[9px] text-stone-600 font-bold uppercase tracking-widest px-1">
+                <span>Anarchy</span>
+                <span>Order</span>
+              </div>
+            </div>
+
+            <div className="h-px bg-stone-700 w-full"></div>
+
+            {/* Bottom Row: Target & Action */}
+            <div className="flex justify-between items-center gap-4">
+              
+              {/* Optimal Yield Display */}
+              <div className="flex flex-col">
+                 <span className="text-[9px] text-stone-500 uppercase tracking-widest mb-0.5">Optimal Yield</span>
+                 {gameMode === 'DAILY' ? (
+                    optimalScore === null ? (
+                       <span className="text-xs text-stone-500 animate-pulse">Calculating...</span>
+                    ) : showTarget ? (
+                       <span className="text-lg font-bold text-stone-300 font-[Cinzel] animate-in fade-in">{optimalScore}</span>
+                    ) : (
+                       <button 
+                         onClick={() => setShowTarget(true)}
+                         className="text-xs text-amber-600 hover:text-amber-500 underline font-mono text-left"
+                       >
+                         Reveal Target
+                       </button>
+                    )
+                 ) : (
+                    <span className="text-lg font-bold text-stone-300 font-[Cinzel]">{optimalScore}</span>
+                 )}
+              </div>
+
+              {/* Daily Action Button */}
+              {gameMode === 'DAILY' && (
+                  <button
+                      onClick={onViewAudit}
+                      className="bg-amber-700 hover:bg-amber-600 text-stone-900 border border-amber-800 px-4 py-2 rounded font-bold uppercase tracking-wider text-[10px] shadow-md transition-all active:translate-y-0.5 whitespace-nowrap"
+                  >
+                      {isLocked ? 'Review Audit' : 'Submit to Audit'}
+                  </button>
+              )}
+
+            </div>
+
+          </div>
         </div>
       </div>
 
-      {gameMode === 'PRACTICE' && getEfficiency() < 100 && (
+      {gameMode === 'PRACTICE' && adherence < 100 && (
         <div className="mt-4 flex flex-col items-center">
           <button
             onClick={onRetryPractice}
@@ -111,9 +133,9 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </div>
       )}
 
-      {gameMode === 'DAILY' && optimalScore !== null && showHint && (
+      {gameMode === 'DAILY' && optimalScore !== null && showTarget && (
         <div className="mt-4 text-stone-500 text-xs font-serif italic animate-in fade-in">
-          {getEfficiency() === 100
+          {adherence === 100
             ? "Quota Met perfectly."
             : "Reviewing performance protocol..."}
         </div>
