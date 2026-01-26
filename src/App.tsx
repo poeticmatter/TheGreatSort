@@ -8,8 +8,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
 import { DailyAudit } from './components/DailyAudit';
-import { getDailyEntry } from './hooks/useGamePersistence';
-import { getYesterdayDateString } from './utils/dateUtils';
+
 import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
 
@@ -46,8 +45,7 @@ function TheGreatSortContent() {
     return strategy.isValid(state.list, idx, state.selection);
   };
 
-  // Check if audit is available for yesterday
-  const isAuditAvailable = !!getDailyEntry(getYesterdayDateString());
+
 
   const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
   
@@ -66,11 +64,9 @@ function TheGreatSortContent() {
         phase={state.phase}
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
-        isAuditAvailable={isAuditAvailable}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
-        onOpenAudit={actions.openAudit}
       />
 
       {/* --- MAIN AREA --- */}

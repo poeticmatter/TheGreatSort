@@ -17,7 +17,6 @@ export interface DailyEntry {
   highScore: number;
   attempts: number;
   lastPlayedAt: number; // timestamp
-  auditSeen?: boolean;
 }
 
 export type DailyHistory = Record<string, DailyEntry>;
@@ -39,19 +38,7 @@ export const getDailyEntry = (date: string): DailyEntry | null => {
   }
 };
 
-export const markDailyAuditSeen = (date: string) => {
-  try {
-    const historyStr = localStorage.getItem(DAILY_HISTORY_KEY);
-    const history: DailyHistory = historyStr ? JSON.parse(historyStr) : {};
 
-    if (history[date]) {
-      history[date].auditSeen = true;
-      localStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(history));
-    }
-  } catch (e) {
-    console.error("Failed to mark audit seen", e);
-  }
-};
 
 export const saveDailyScore = (date: string, score: number) => {
   try {

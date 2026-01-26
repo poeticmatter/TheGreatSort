@@ -11,17 +11,15 @@ interface HeaderProps {
   phase: GamePhase;
   optimalScore: number | null;
   detectedMode: 'ASC' | 'DESC' | null;
-  isAuditAvailable: boolean;
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
-  onOpenAudit: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
-  phase, optimalScore, detectedMode, isAuditAvailable,
-  onChangeMode, onShareResult, onRetryPractice, onOpenAudit
+  phase, optimalScore, detectedMode,
+  onChangeMode, onShareResult, onRetryPractice
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -72,22 +70,7 @@ const Header: React.FC<HeaderProps> = ({
                    </button>
                  ))}
 
-                 {isAuditAvailable && (
-                   <>
-                     <div className="h-px bg-stone-800 my-1"></div>
-                     <button
-                       onClick={() => {
-                         onOpenAudit();
-                         setShowModeMenu(false);
-                       }}
-                       className="text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 text-stone-400 flex items-center gap-2"
-                     >
-                       <ClipboardCheck size={14} className="text-amber-600" />
-                       Yesterday's Audit
-                     </button>
-                   </>
-                 )}
-               </div>
+                 </div>
              )}
            </div>
 

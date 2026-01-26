@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
 import { stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
-import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
+import { getTodayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameContext } from '../context/GameContext';
-import { useGamePersistence, saveDailyScore, getDailyEntry, markDailyAuditSeen } from './useGamePersistence';
+import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
 
 export function useGame() {
@@ -87,12 +87,6 @@ export function useGame() {
     if (isGameLoaded) return;
 
     const today = getTodayDateString();
-
-    const yesterday = getYesterdayDateString();
-    const entry = getDailyEntry(yesterday);
-    if (entry && !entry.auditSeen) {
-        setAuditState({ date: entry.date, userScore: entry.highScore });
-    }
 
     if (gameMode === 'DAILY') {
         const savedStateStr = localStorage.getItem(`daily_state_${today}`);
@@ -318,9 +312,6 @@ export function useGame() {
   }, [state.list, state.toolsAvailable, state.optimalScore, state.currentSeed, gameMode]);
 
   const changeMode = (newMode: GameMode) => {
-    if (auditState) {
-        markDailyAuditSeen(auditState.date);
-    }
     setAuditState(null);
     loop.stopLoop();
 
@@ -396,24 +387,12 @@ export function useGame() {
     }
   };
 
-  const openAudit = () => {
-      const yesterday = getYesterdayDateString();
-      const entry = getDailyEntry(yesterday);
-      if (entry) {
-          setAuditState({ date: entry.date, userScore: entry.highScore });
-      }
-  };
-
   const closeAudit = () => {
-      if (auditState) {
-          markDailyAuditSeen(auditState.date);
-      }
       setAuditState(null);
   };
 
   const triggerCurrentAudit = useCallback(() => {
     const today = getTodayDateString();
-    markDailyAuditSeen(today);
     setAuditState({ date: today, userScore: state.levelScore });
   }, [state.levelScore]);
 
@@ -438,7 +417,6 @@ export function useGame() {
       resetGame,
       shareResult,
  
-      openAudit,
       closeAudit,
       triggerCurrentAudit,
       triggerResistance,
