@@ -51,8 +51,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
     case 'eliminated':
       bgColor = "bg-red-950/40";
       borderColor = "border-red-900";
-      textColor = "text-red-900/50 decoration-line-through decoration-4 decoration-red-900";
-      opacity = "opacity-60";
+      textColor = "text-red-800 decoration-red-900 decoration-2 line-through opacity-70"; // Changed text color and removed generic opacity
+      opacity = "opacity-100"; // Keep container opaque so number is legible
       scale = "scale-95";
       shadow = "shadow-none";
       break;
@@ -142,8 +142,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
 
       {/* Rubber Stamp Effect for Eliminated */}
       {item.status === 'eliminated' && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-80 pointer-events-none rotate-[-20deg]">
-          <div className="border-2 border-red-800 text-red-800 px-1 py-0 text-[10px] sm:text-xs font-black uppercase tracking-widest">
+        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none rotate-[-20deg]">
+          <div className="border-4 border-red-900 text-red-900 px-1 py-1 text-xs sm:text-sm font-black uppercase tracking-widest">
             VOID
           </div>
         </div>
