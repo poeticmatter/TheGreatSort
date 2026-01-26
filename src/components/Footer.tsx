@@ -23,12 +23,15 @@ const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shouldShake, listLength,
   onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked
 }) => {
+  // Controls are disabled if global disable is on OR if we are not in the planning phase (Inspection/Results)
+  const controlsDisabled = disabled || phase !== GamePhase.PLANNING;
+
   return (
     <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
 
-        <div className={`flex items-center gap-4 ${disabled ? 'grayscale pointer-events-none opacity-50' : ''}`}>
-             <UndoButton onClick={onUndo} disabled={!canUndo || disabled} />
+        <div className={`flex items-center gap-4 ${controlsDisabled ? 'grayscale pointer-events-none opacity-50' : ''}`}>
+             <UndoButton onClick={onUndo} disabled={!canUndo || controlsDisabled} />
              
              <ToolBelt
                 toolsAvailable={toolsAvailable}
