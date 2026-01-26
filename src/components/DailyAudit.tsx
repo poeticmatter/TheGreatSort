@@ -235,19 +235,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
             </div>
           )}
           
-          {!passed && (
-            <div className="fixed bottom-0 left-0 w-full p-4 bg-stone-900 border-t border-red-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-                <div className="max-w-4xl mx-auto flex justify-center md:justify-end">
-                    <button 
-                        onClick={onClose}
-                        className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]"
-                    >
-                        <CheckCircle size={24} className="text-stone-900/80" />
-                        ACCEPT
-                    </button>
-                </div>
-            </div>
-          )}
+          
+          <div className="fixed bottom-0 left-0 w-full p-4 bg-stone-900 border-t border-red-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+              <div className="max-w-4xl mx-auto flex justify-center md:justify-end">
+                  <button 
+                      onClick={onClose}
+                      className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]"
+                  >
+                      <CheckCircle size={24} className="text-stone-900/80" />
+                      {passed ? 'DISMISS' : 'ACCEPT'}
+                  </button>
+              </div>
+          </div>
 
         </div>
       </div>
