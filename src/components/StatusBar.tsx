@@ -5,6 +5,8 @@ import {
 import { GamePhase, GameMode } from '../../types';
 import { TOOLS } from '../constants';
 import ReportCard from './ReportCard';
+import DailyCompletionNotice from '../features/daily/components/DailyCompletionNotice';
+
 
 interface StatusBarProps {
   phase: GamePhase;
@@ -71,16 +73,19 @@ const StatusBar: React.FC<StatusBarProps> = ({
       )}
 
       {phase === GamePhase.RESULTS && (
-        <ReportCard
-          levelScore={levelScore}
-          optimalScore={optimalScore}
-          worstScore={worstScore}
-          gameMode={gameMode}
-          onShareResult={onShareResult}
-          onRetryPractice={onRetryPractice}
-          onViewAudit={onViewAudit}
-          isLocked={isLocked}
-        />
+        <div className="flex flex-col items-center w-full">
+          <ReportCard
+            levelScore={levelScore}
+            optimalScore={optimalScore}
+            worstScore={worstScore}
+            gameMode={gameMode}
+            onShareResult={onShareResult}
+            onRetryPractice={onRetryPractice}
+            onViewAudit={onViewAudit}
+            isLocked={isLocked}
+          />
+          {isLocked && <DailyCompletionNotice />}
+        </div>
       )}
     </div>
   );

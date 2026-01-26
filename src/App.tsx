@@ -75,13 +75,7 @@ function TheGreatSortContent() {
           onCancel={cancelAuditLock}
       />
 
-      {isGameDisabled && (
-        <div className="bg-amber-900/20 border-b border-amber-900/50 p-2 text-center">
-             <span className="text-amber-500 font-bold uppercase tracking-widest text-xs font-[Cinzel]">
-                Daily Quota Completed. Come back tomorrow.
-             </span>
-        </div>
-      )}
+
 
       <Header
         level={state.level}
