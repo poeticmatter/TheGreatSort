@@ -36,7 +36,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
         ${isActive
           ? 'border-2 border-amber-500 bg-stone-800 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] scale-105'
           : isUndoable 
-             ? 'border-2 border-amber-500 border-dashed bg-stone-900 text-amber-500 hover:bg-stone-800'
+             ? 'border-2 border-stone-300 border-dashed bg-stone-300 text-stone-900 shadow-[0_0_15px_rgba(255,255,255,0.4)] hover:bg-stone-200'
              : isUsed
             ? 'border border-stone-800 bg-stone-950 text-stone-700 cursor-not-allowed opacity-60'
             : 'border-2 border-amber-600 bg-amber-500 text-stone-900 shadow-[0_4px_0_rgb(146,64,14)] hover:bg-amber-400 hover:-translate-y-0.5 active:shadow-none active:translate-y-1 transition-all'
