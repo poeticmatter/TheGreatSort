@@ -8,10 +8,10 @@ import { TOOL_META } from './toolDefinitions';
 export { ALL_TOOL_TYPES } from './toolDefinitions';
 
 export const TOOLS: Record<string, ToolDefinition> = {
-  DEMOTE: { ...TOOL_META.DEMOTE, name: 'Demote', icon: ArrowLeftToLine, desc: 'Move an item to the start (Left)' },
+  DEMOTE: { ...TOOL_META.DEMOTE, name: 'Promote', icon: ArrowLeftToLine, desc: 'Move an item to the start (Left)' },
   SWAP: { ...TOOL_META.SWAP, name: 'Swap', icon: ArrowRightLeft, desc: 'Switch two adjacent items' },
   PURGE: { ...TOOL_META.PURGE, name: 'Purge', icon: Trash2, desc: 'Eliminate one item' },
-  PROMOTE: { ...TOOL_META.PROMOTE, name: 'Promote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)' },
+  PROMOTE: { ...TOOL_META.PROMOTE, name: 'Demote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)' },
 
   LONGSWAP: { ...TOOL_META.LONGSWAP, name: 'Long Swap', icon: RefreshCcwDot, desc: 'Switch any two NON-adjacent items' },
   MERGE: { ...TOOL_META.MERGE, name: 'Merge', icon: Merge, desc: 'Combine two adjacent items (Sum)' },
