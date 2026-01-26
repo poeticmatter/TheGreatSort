@@ -11,6 +11,7 @@ interface ReportCardProps {
   onShareResult: () => void;
   onRetryPractice: () => void;
   onViewAudit: () => void;
+  isLocked?: boolean;
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({
@@ -18,9 +19,9 @@ const ReportCard: React.FC<ReportCardProps> = ({
   optimalScore,
   worstScore,
   gameMode,
-  onShareResult,
   onRetryPractice,
-  onViewAudit
+  onViewAudit,
+  isLocked
 }) => {
   const [showHint, setShowHint] = React.useState(false);
 
@@ -93,7 +94,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                 onClick={onViewAudit}
                 className="ml-2 bg-amber-600 hover:bg-amber-500 text-stone-900 border border-amber-700 px-4 py-2 rounded font-bold uppercase tracking-wider text-xs shadow-lg transition-all active:translate-y-0.5"
              >
-               Submit to Audit
+               {isLocked ? 'Review Audit' : 'Submit to Audit'}
              </button>
           )}
         </div>
@@ -105,7 +106,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
             onClick={onRetryPractice}
             className="bg-stone-700 hover:bg-stone-600 text-stone-200 px-6 py-2 rounded transition-colors font-bold uppercase tracking-wider text-sm flex items-center gap-2"
           >
-            <Repeat size={16} /> Retry Level
+            <Repeat size={16} /> Retry Training
           </button>
         </div>
       )}

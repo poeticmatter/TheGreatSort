@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({
                    : 'text-stone-400 hover:text-amber-500'
                }`}
              >
-               Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
+               Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
              </button>
 
              {showModeMenu && (
@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({
                      }}
                      className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                    >
-                     {m}
+                     {m === 'PRACTICE' ? 'TRAINING' : m}
                    </button>
                  ))}
 

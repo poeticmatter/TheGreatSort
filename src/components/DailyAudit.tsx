@@ -55,11 +55,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
   const isInterrogation = userHighScore < initialScore;
 
-  useEffect(() => {
-    if (!isCalculating && solution && efficiency === 0) {
-       onDetectResistance();
-    }
-  }, [isCalculating, solution, efficiency, onDetectResistance]);
+
 
   // Derive Timeline
   const timeline = useMemo(() => {

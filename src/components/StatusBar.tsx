@@ -18,11 +18,12 @@ interface StatusBarProps {
   onShareResult: () => void;
   onRetryPractice: () => void;
   onViewAudit: () => void;
+  isLocked?: boolean;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
   phase, selectedTool, selection, detectedMode, levelScore, optimalScore, worstScore, gameMode,
-  onShareResult, onRetryPractice, onViewAudit
+  onShareResult, onRetryPractice, onViewAudit, isLocked
 }) => {
 
   return (
@@ -78,6 +79,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
           onShareResult={onShareResult}
           onRetryPractice={onRetryPractice}
           onViewAudit={onViewAudit}
+          isLocked={isLocked}
         />
       )}
     </div>

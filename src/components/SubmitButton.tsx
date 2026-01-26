@@ -8,6 +8,7 @@ interface SubmitButtonProps {
   listLength: number;
   onActionClick: () => void;
   disabled?: boolean;
+  isLocked?: boolean;
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({
@@ -15,7 +16,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
   gameMode,
   listLength,
   onActionClick,
-  disabled
+  disabled,
+  isLocked // Add this
 }) => {
   const isRetry = phase === GamePhase.RESULTS && gameMode === 'DAILY';
 
@@ -23,9 +25,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     <button
       onClick={onActionClick}
       disabled={
-        disabled ||
+        (disabled && !isLocked) || // Only disable if disabled AND NOT locked (if locked, we might show Training button)
         (phase === GamePhase.PLANNING && listLength === 0) ||
-        phase === GamePhase.INSPECTING
+        phase === GamePhase.INSPECTING ||
+        (disabled && isLocked && phase !== GamePhase.RESULTS) // Disable if locked and NOT in results (shouldn't happen in Daily Results but good safety)
       }
       className={`
         group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2
@@ -40,8 +43,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     >
       {phase === GamePhase.RESULTS ? (
         <span className="flex items-center gap-3">
-          {gameMode === 'DAILY' ? 'Retry Quota' : 'Next Quota'}
-          {gameMode === 'DAILY' ? <Repeat size={24} /> : <Play size={24} fill="currentColor" />}
+          {gameMode === 'DAILY' 
+            ? (isLocked ? 'Training' : 'Retry Quota') 
+            : 'Next Quota'}
+          {gameMode === 'DAILY' 
+            ? (isLocked ? <Play size={24} fill="currentColor" /> : <Repeat size={24} />)
+            : <Play size={24} fill="currentColor" />}
         </span>
       ) : (
         <>

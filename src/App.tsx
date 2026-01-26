@@ -75,6 +75,14 @@ function TheGreatSortContent() {
           onCancel={cancelAuditLock}
       />
 
+      {isGameDisabled && (
+        <div className="bg-amber-900/20 border-b border-amber-900/50 p-2 text-center">
+             <span className="text-amber-500 font-bold uppercase tracking-widest text-xs font-[Cinzel]">
+                Daily Quota Completed. Come back tomorrow.
+             </span>
+        </div>
+      )}
+
       <Header
         level={state.level}
         levelScore={state.levelScore}
@@ -120,6 +128,7 @@ function TheGreatSortContent() {
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
                 onViewAudit={requestAudit} // Intercept with Lock Request
+                isLocked={isLocked}
               />
 
               {/* --- CARDS GRID --- */}
@@ -162,10 +171,13 @@ function TheGreatSortContent() {
           canUndo={state.movesHistory.length > 0}
           onActionClick={
               state.phase === GamePhase.RESULTS
-                ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
+                ? (state.gameMode === 'DAILY' 
+                    ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily) 
+                    : actions.nextLevel)
                 : actions.startInspection
           }
           disabled={isGameDisabled}
+          isLocked={isLocked}
         />
       )}
 

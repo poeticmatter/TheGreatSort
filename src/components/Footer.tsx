@@ -16,11 +16,12 @@ interface FooterProps {
   onUndo: () => void;
   canUndo: boolean;
   disabled?: boolean;
+  isLocked?: boolean;
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shakeTools, listLength,
-  onToolClick, onActionClick, onUndo, canUndo, disabled
+  onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked
 }) => {
   return (
     <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
@@ -47,6 +48,7 @@ const Footer: React.FC<FooterProps> = ({
              listLength={listLength}
              onActionClick={onActionClick}
              disabled={disabled}
+             isLocked={isLocked}
            />
         </div>
 
