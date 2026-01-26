@@ -19,15 +19,14 @@ export function useGame() {
   // --- Handlers (Pass-Through) ---
 
   const handleToolClick = (toolInstanceId: string) => {
-    // Check for Undo
-    const lastMove = state.movesHistory[state.movesHistory.length - 1];
-    if (lastMove && lastMove.toolInstanceId === toolInstanceId) {
+    dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
+  };
+
+  const handleUndo = () => {
+    if (state.movesHistory.length > 0) {
         dispatch({ type: 'UNDO_MOVE' });
         dispatch({ type: 'CANCEL_SELECTION' });
-        return;
     }
-
-    dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
   };
 
   const handleCardClick = (item: CardItem) => {
@@ -422,6 +421,7 @@ export function useGame() {
     },
     actions: {
       changeMode,
+      handleUndo,
       handleToolClick,
       handleCardClick,
       handleBackgroundClick,
