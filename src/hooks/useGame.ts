@@ -411,6 +411,12 @@ export function useGame() {
       setAuditState(null);
   };
 
+  const triggerCurrentAudit = useCallback(() => {
+    const today = getTodayDateString();
+    markDailyAuditSeen(today);
+    setAuditState({ date: today, userScore: state.levelScore });
+  }, [state.levelScore]);
+
   return {
     state: {
       ...state,
@@ -434,6 +440,7 @@ export function useGame() {
  
       openAudit,
       closeAudit,
+      triggerCurrentAudit,
       triggerResistance,
       closeResistance
     }

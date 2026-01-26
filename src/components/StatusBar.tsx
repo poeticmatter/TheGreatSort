@@ -17,11 +17,12 @@ interface StatusBarProps {
   gameMode: GameMode;
   onShareResult: () => void;
   onRetryPractice: () => void;
+  onViewAudit: () => void;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
   phase, selectedTool, selection, detectedMode, levelScore, optimalScore, worstScore, gameMode,
-  onShareResult, onRetryPractice
+  onShareResult, onRetryPractice, onViewAudit
 }) => {
 
   return (
@@ -76,6 +77,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
           gameMode={gameMode}
           onShareResult={onShareResult}
           onRetryPractice={onRetryPractice}
+          onViewAudit={onViewAudit}
         />
       )}
     </div>

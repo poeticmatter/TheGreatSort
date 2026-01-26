@@ -10,6 +10,7 @@ interface ReportCardProps {
   gameMode: GameMode;
   onShareResult: () => void;
   onRetryPractice: () => void;
+  onViewAudit: () => void;
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({
@@ -18,8 +19,11 @@ const ReportCard: React.FC<ReportCardProps> = ({
   worstScore,
   gameMode,
   onShareResult,
-  onRetryPractice
+  onRetryPractice,
+  onViewAudit
 }) => {
+  const [showHint, setShowHint] = React.useState(false);
+
   const getEfficiency = () => {
     if (!optimalScore) return 0;
     if (gameMode === 'DAILY' && worstScore !== null) {
@@ -52,8 +56,15 @@ const ReportCard: React.FC<ReportCardProps> = ({
                 <div className="text-stone-400 text-xs font-mono text-center max-w-[200px] leading-relaxed">
                   <span className="block text-amber-600 font-bold uppercase tracking-wider mb-1">Calculating...</span>
                 </div>
+              ) : !showHint ? (
+                  <button 
+                    onClick={() => setShowHint(true)}
+                    className="text-stone-400 text-xs font-mono underline hover:text-amber-500 transition-colors"
+                  >
+                    Reveal Target
+                  </button>
               ) : (
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-1 animate-in fade-in">
                   <span className={`text-2xl font-bold font-[Courier_Prime] ${getEfficiency() === 100 ? 'text-green-500' : 'text-stone-300'}`}>
                     {getEfficiency()}%
                   </span>
@@ -78,13 +89,12 @@ const ReportCard: React.FC<ReportCardProps> = ({
         {/* Buttons for Daily */}
         <div className="flex gap-2">
           {gameMode === 'DAILY' && (
-            <button
-              onClick={onShareResult}
-              className="ml-2 bg-stone-700 hover:bg-stone-600 text-stone-200 p-2 rounded transition-colors"
-              title="Share Result"
-            >
-              <Share2 size={20} />
-            </button>
+             <button
+                onClick={onViewAudit}
+                className="ml-2 bg-amber-600 hover:bg-amber-500 text-stone-900 border border-amber-700 px-4 py-2 rounded font-bold uppercase tracking-wider text-xs shadow-lg transition-all active:translate-y-0.5"
+             >
+               Submit to Audit
+             </button>
           )}
         </div>
       </div>
@@ -100,11 +110,11 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </div>
       )}
 
-      {gameMode === 'DAILY' && optimalScore !== null && (
-        <div className="mt-4 text-stone-500 text-xs font-serif italic">
+      {gameMode === 'DAILY' && optimalScore !== null && showHint && (
+        <div className="mt-4 text-stone-500 text-xs font-serif italic animate-in fade-in">
           {getEfficiency() === 100
             ? "Quota Met perfectly."
-            : "Come back tomorrow for the solution."}
+            : "Reviewing performance protocol..."}
         </div>
       )}
 

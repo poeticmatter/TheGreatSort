@@ -103,6 +103,7 @@ function TheGreatSortContent() {
                 gameMode={state.gameMode}
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
+                onViewAudit={actions.triggerCurrentAudit}
               />
 
               {/* --- CARDS GRID --- */}
