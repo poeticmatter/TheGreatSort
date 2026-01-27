@@ -28,6 +28,8 @@ const Footer: React.FC<FooterProps> = ({
   // Controls are disabled if global disable is on OR if we are not in the planning phase (Inspection/Results)
   const controlsDisabled = disabled || phase !== GamePhase.PLANNING;
 
+  if (layout === 'VERTICAL_LIST') return null;
+
   const toolBeltContent = (
     <ToolBelt
       toolsAvailable={toolsAvailable}

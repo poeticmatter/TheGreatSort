@@ -6,9 +6,10 @@ import { gradeLevel } from '../utils/gameLogic';
 export interface MinimapProps {
   sequence: CardItem[];
   layout: LayoutType;
+  className?: string;
 }
 
-export const Minimap: React.FC<MinimapProps> = ({ sequence, layout }) => {
+export const Minimap: React.FC<MinimapProps> = ({ sequence, layout, className }) => {
   // Determine positioning based on layout
   const isHorizontal = layout === 'HORIZONTAL_STRIP';
 
@@ -30,7 +31,12 @@ export const Minimap: React.FC<MinimapProps> = ({ sequence, layout }) => {
   // Horizontal: Fixed / Flex flow adaptation
   const containerClasses = isHorizontal
     ? "w-full flex justify-center z-30 shrink-0 py-2 px-4"
-    : "fixed top-1/2 left-4 -translate-y-1/2 z-40 flex flex-col pointer-events-none";
+    : (layout === 'VERTICAL_LIST' 
+        ? "flex flex-col items-center gap-2 py-2" // Static Vertical
+        : "fixed top-1/2 left-4 -translate-y-1/2 z-40 flex flex-col pointer-events-none" // Standard Floating
+      );
+
+  const finalClasses = `${containerClasses} ${className || ''}`;
 
   // Inner wrapper classes (for the visual box)
   const wrapperClasses = `
@@ -40,7 +46,7 @@ export const Minimap: React.FC<MinimapProps> = ({ sequence, layout }) => {
   `;
 
   return (
-    <div className={containerClasses}>
+    <div className={finalClasses}>
       <div className={wrapperClasses}>
         {sequence.map((item, idx) => {
             // Determine item size/shape

@@ -18,6 +18,8 @@ import { TOOL_REGISTRY } from './tools';
 
 import { GameProvider } from './context/GameContext';
 import Minimap from './components/Minimap';
+import ToolBelt from './components/ToolBelt';
+import SubmitButton from './components/SubmitButton';
 
 export default function TheGreatSort() {
   return (
@@ -116,6 +118,34 @@ function TheGreatSortContent() {
   };
 
   const isGameDisabled = state.gameMode === 'DAILY' && isLocked;
+  const controlsDisabled = isGameDisabled || state.phase !== GamePhase.PLANNING;
+
+  const gridContent = (
+      <div className="flex-1 flex items-center justify-center w-full min-h-0">
+          {state.list.length > 0 ? (
+            <InventoryGrid
+              sequence={state.list}
+              selectedIndex={state.selection}
+              candidateIndices={candidateIndices}
+              onItemClick={handleCardClickWrapper}
+              disabled={isGameDisabled}
+              disabledIndices={disabledIndices}
+              layout={layout}
+              selectedTool={selectedToolInstance?.type} // Pass tool type for visual helpers (like Mirror)
+            />
+          ) : (
+            state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
+               <div className="text-stone-600 italic font-serif opacity-50">
+                  Daily Quota Fulfilled.
+               </div>
+            )
+          )}
+
+          {state.list.length === 0 && state.phase === GamePhase.PLANNING && (
+            <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
+          )}
+      </div>
+  );
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
@@ -125,8 +155,6 @@ function TheGreatSortContent() {
           onConfirm={confirmAuditLock}
           onCancel={cancelAuditLock}
       />
-
-
 
       <Header
         level={state.level}
@@ -140,78 +168,126 @@ function TheGreatSortContent() {
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
-        // Props simplified
       />
 
       {/* --- MAIN AREA --- */}
-      <main
-        className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar"
-        onClick={actions.handleBackgroundClick}
-      >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
+      {view === 'resistance' ? (
+           <main className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar" onClick={actions.handleBackgroundClick}>
+               <ResistanceLetter onClose={actions.closeResistance} />
+           </main>
+       ) : view === 'audit' ? (
+           <main className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar" onClick={actions.handleBackgroundClick}>
+             <DailyAudit
+               date={state.auditState!.date}
+               userHighScore={state.auditState!.userScore}
+               onClose={actions.closeAudit}
+               onDetectResistance={actions.triggerResistance}
+             />
+           </main>
+       ) : (
+           // GAME VIEW
+            layout === 'VERTICAL_LIST' ? (
+                // VERTICAL 3-COLUMN LAYOUT
+                <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+                    {/* Status Bar - Top (Above Columns) */}
+                     <div className="shrink-0 w-full px-2 pt-2 z-10">
+                        <StatusBar
+                            phase={state.phase}
+                            selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
+                            selection={state.selection}
+                            detectedMode={state.detectedMode}
+                            levelScore={state.levelScore}
+                            optimalScore={state.optimalScore}
+                            worstScore={state.worstScore}
+                            gameMode={state.gameMode}
+                            onShareResult={actions.shareResult}
+                            onRetryPractice={actions.retryPractice}
+                            onViewAudit={requestAudit}
+                            isLocked={isLocked}
+                         />
+                     </div>
 
-        {view === 'resistance' ? (
-            <ResistanceLetter onClose={actions.closeResistance} />
-        ) : view === 'audit' ? (
-           <DailyAudit
-              date={state.auditState!.date}
-              userHighScore={state.auditState!.userScore}
-              onClose={actions.closeAudit}
-              onDetectResistance={actions.triggerResistance}
-           />
-        ) : (
-           <>
+                    {/* 3-Column Area */}
+                    <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
+                        {/* Left: Minimap (Fixed Width) */}
+                        <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
+                             <div className="pointer-events-auto">
+                                <Minimap sequence={state.list} layout={layout} />
+                             </div>
+                        </div>
 
+                        {/* Center: InventoryGrid */}
+                        <div 
+                            className="flex-1 min-w-0 h-full overflow-y-auto px-2 custom-scrollbar flex flex-col items-center"
+                            onClick={actions.handleBackgroundClick}
+                        >
+                             <div className="flex-1 w-full flex items-center justify-center py-4 min-h-0">
+                                 {gridContent}
+                             </div>
+                        </div>
 
-              <StatusBar
-                phase={state.phase}
-                selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
-                selection={state.selection}
-                detectedMode={state.detectedMode}
-                levelScore={state.levelScore}
-                optimalScore={state.optimalScore}
-                worstScore={state.worstScore}
-                gameMode={state.gameMode}
-                onShareResult={actions.shareResult}
-                onRetryPractice={actions.retryPractice}
-                onViewAudit={requestAudit} // Intercept with Lock Request
-                isLocked={isLocked}
-              />
+                        {/* Right: Tools & Submit (Fixed Width) */}
+                        <div className="w-20 flex-none h-full py-4 pr-2 flex flex-col items-center justify-center gap-4 border-l border-white/5 bg-black/20 backdrop-blur-sm">
+                            <ToolBelt 
+                                toolsAvailable={state.toolsAvailable}
+                                selectedTool={state.selectedTool}
+                                shouldShake={isShaking}
+                                phase={state.phase}
+                                onToolClick={actions.handleToolClick}
+                                orientation="vertical"
+                                onUndo={actions.handleUndo}
+                                canUndo={state.movesHistory.length > 0}
+                                isDisabled={controlsDisabled}
+                            />
+                            <div className="w-8 h-0.5 bg-stone-700 rounded-full opacity-50" />
+                            <SubmitButton 
+                                phase={state.phase}
+                                gameMode={state.gameMode}
+                                listLength={state.list.length}
+                                onActionClick={
+                                    state.phase === GamePhase.RESULTS
+                                        ? (state.gameMode === 'DAILY' 
+                                            ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily) 
+                                            : actions.nextLevel)
+                                        : actions.startInspection
+                                }
+                                disabled={isGameDisabled}
+                                isLocked={isLocked}
+                                compact={true}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                // STANDARD LAYOUT
+                <main
+                    className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar"
+                    onClick={actions.handleBackgroundClick}
+                >
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
-
-
-              {/* --- CARDS GRID --- */}
-              <div className="flex-1 flex items-center justify-center w-full">
-                  {state.list.length > 0 ? (
-                    <InventoryGrid
-                      sequence={state.list}
-                      selectedIndex={state.selection}
-                      candidateIndices={candidateIndices}
-                      onItemClick={handleCardClickWrapper}
-                      disabled={isGameDisabled}
-                      disabledIndices={disabledIndices}
-                      layout={layout}
-                      selectedTool={selectedToolInstance?.type} // Pass tool type for visual helpers (like Mirror)
+                    <StatusBar
+                        phase={state.phase}
+                        selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
+                        selection={state.selection}
+                        detectedMode={state.detectedMode}
+                        levelScore={state.levelScore}
+                        optimalScore={state.optimalScore}
+                        worstScore={state.worstScore}
+                        gameMode={state.gameMode}
+                        onShareResult={actions.shareResult}
+                        onRetryPractice={actions.retryPractice}
+                        onViewAudit={requestAudit}
+                        isLocked={isLocked}
                     />
-                  ) : (
-                    state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
-                       <div className="text-stone-600 italic font-serif opacity-50">
-                          Daily Quota Fulfilled.
-                       </div>
-                    )
-                  )}
 
-                  {state.list.length === 0 && state.phase === GamePhase.PLANNING && (
-                    <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
-                  )}
-              </div>
-           </>
-        )}
+                    {gridContent}
+                </main>
+           )
+       )}
 
-      </main>
-
-      {view === 'game' && (
+      {view === 'game' && layout !== 'VERTICAL_LIST' && (
         <>
         <Minimap sequence={state.list} layout={layout} />
         <Footer
