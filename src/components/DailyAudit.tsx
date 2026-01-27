@@ -197,7 +197,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                     <InventoryGrid
                                         sequence={step.list}
                                         highlightIndices={highlightIndices}
-                                        layout="GRID_STANDARD"
+                                        layout="HORIZONTAL_STRIP"
                                     />
                                 </div>
 

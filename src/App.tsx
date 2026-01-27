@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Rows3, Columns3 } from 'lucide-react';
 import Card from './components/Card';
-import InventoryGrid from './components/InventoryGrid';
+import InventoryGrid, { LayoutType } from './components/InventoryGrid';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
 import { useDailyLock } from './hooks/useDailyLock';
@@ -26,6 +27,22 @@ export default function TheGreatSort() {
 
 function TheGreatSortContent() {
   const { state, actions } = useGame();
+  
+  // Layout Management with Persistence
+  const [layout, setLayout] = React.useState<LayoutType>('HORIZONTAL_STRIP');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('preferredLayout') as LayoutType;
+    if (saved && (saved === 'VERTICAL_LIST' || saved === 'HORIZONTAL_STRIP')) {
+      setLayout(saved);
+    }
+  }, []);
+
+  const toggleLayout = () => {
+    const next = layout === 'HORIZONTAL_STRIP' ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';
+    setLayout(next);
+    localStorage.setItem('preferredLayout', next);
+  };
   
   // Daily Lock Integration
   const today = getTodayDateString();
@@ -153,6 +170,15 @@ function TheGreatSortContent() {
                 isLocked={isLocked}
               />
 
+              {/* --- VIEW TOGGLE --- */}
+              <button
+                onClick={toggleLayout}
+                className="absolute top-4 left-4 z-40 p-2 bg-stone-900/80 border border-stone-700 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all shadow-lg backdrop-blur-sm"
+                title="Toggle View"
+              >
+                  {layout === 'VERTICAL_LIST' ? <Rows3 size={20} /> : <Columns3 size={20} />}
+              </button>
+
               {/* --- CARDS GRID --- */}
               <div className="flex-1 flex items-center justify-center w-full">
                   {state.list.length > 0 ? (
@@ -163,6 +189,7 @@ function TheGreatSortContent() {
                       onItemClick={handleCardClickWrapper}
                       disabled={isGameDisabled}
                       disabledIndices={disabledIndices}
+                      layout={layout}
                     />
                   ) : (
                     state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
