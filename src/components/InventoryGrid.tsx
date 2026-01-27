@@ -41,13 +41,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   
   switch (layout) {
     case 'VERTICAL_LIST':
-      layoutClasses = "flex flex-col items-center gap-2 py-4";
+      layoutClasses = "flex flex-col items-center gap-1 py-4";
       break;
       
     case 'HORIZONTAL_STRIP':
     default:
       // Centered strip that scrolls if needed
-      layoutClasses = "flex flex-row gap-2 overflow-x-auto px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full";
+      layoutClasses = "flex flex-row gap-1 overflow-x-auto px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full";
       break;
   }
 
@@ -90,7 +90,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
               </div>
               
               {!isLast && (
-                  <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90 py-1' : 'mx-1'}`}>
+                  <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90' : ''}`}>
                       <Play size={16} fill="currentColor" />
                   </div>
               )}

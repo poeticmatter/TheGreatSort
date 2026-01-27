@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, ClipboardCheck } from 'lucide-react';
+import { Star, ChevronDown, ClipboardCheck, Rows3, Columns3 } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
+import { LayoutType } from './InventoryGrid';
 
 interface HeaderProps {
   level: number;
@@ -14,12 +15,15 @@ interface HeaderProps {
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
+  layout: LayoutType;
+  onToggleLayout: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
   phase, optimalScore, detectedMode,
-  onChangeMode, onShareResult, onRetryPractice
+  onChangeMode, onShareResult, onRetryPractice,
+  layout, onToggleLayout
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -73,6 +77,14 @@ const Header: React.FC<HeaderProps> = ({
                  </div>
              )}
            </div>
+
+           {/* View Toggle */}
+           <button
+              onClick={onToggleLayout}
+              className="flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] text-stone-400 hover:text-amber-500 transition-colors"
+           >
+              View: <span className="text-amber-500 font-bold">{layout === 'VERTICAL_LIST' ? <Rows3 size={16} /> : <Columns3 size={16} />}</span>
+           </button>
 
 
         </div>

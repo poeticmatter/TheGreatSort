@@ -134,11 +134,13 @@ function TheGreatSortContent() {
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
+        layout={layout}
+        onToggleLayout={toggleLayout}
       />
 
       {/* --- MAIN AREA --- */}
       <main
-        className={`flex-1 flex flex-col items-center p-4 relative ${view === 'game' ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}
+        className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar"
         onClick={actions.handleBackgroundClick}
       >
         {/* Background Pattern */}
@@ -155,6 +157,8 @@ function TheGreatSortContent() {
            />
         ) : (
            <>
+
+
               <StatusBar
                 phase={state.phase}
                 selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
@@ -170,14 +174,7 @@ function TheGreatSortContent() {
                 isLocked={isLocked}
               />
 
-              {/* --- VIEW TOGGLE --- */}
-              <button
-                onClick={toggleLayout}
-                className="absolute top-4 left-4 z-40 p-2 bg-stone-900/80 border border-stone-700 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all shadow-lg backdrop-blur-sm"
-                title="Toggle View"
-              >
-                  {layout === 'VERTICAL_LIST' ? <Rows3 size={20} /> : <Columns3 size={20} />}
-              </button>
+
 
               {/* --- CARDS GRID --- */}
               <div className="flex-1 flex items-center justify-center w-full">
