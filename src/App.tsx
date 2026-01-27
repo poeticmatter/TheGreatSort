@@ -4,6 +4,7 @@ import Card from './components/Card';
 import InventoryGrid, { LayoutType } from './components/InventoryGrid';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
+import { useAnalytics } from './hooks/useAnalytics';
 import { useDailyLock } from './hooks/useDailyLock';
 import { getTodayDateString } from './utils/dateUtils';
 
@@ -28,16 +29,18 @@ export default function TheGreatSort() {
 
 function TheGreatSortContent() {
   const { state, actions } = useGame();
+  const { trackPageView } = useAnalytics();
   
   // Layout Management with Persistence
   const [layout, setLayout] = React.useState<LayoutType>('HORIZONTAL_STRIP');
 
   useEffect(() => {
+    trackPageView('/');
     const saved = localStorage.getItem('preferredLayout') as LayoutType;
     if (saved && (saved === 'VERTICAL_LIST' || saved === 'HORIZONTAL_STRIP')) {
       setLayout(saved);
     }
-  }, []);
+  }, [trackPageView]);
 
   const toggleLayout = () => {
     const next = layout === 'HORIZONTAL_STRIP' ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';

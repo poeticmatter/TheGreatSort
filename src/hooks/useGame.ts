@@ -6,12 +6,15 @@ import { gradeLevel } from '../utils/gameLogic';
 import { useGameContext } from '../context/GameContext';
 import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
+import { useAnalytics } from './useAnalytics';
 
 export function useGame() {
   const { state, dispatch } = useGameContext();
   const [gameMode, setGameMode] = useState<GameMode>('DAILY');
   const [isGameLoaded, setIsGameLoaded] = useState(false);
   const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
+  
+  const { trackGameStart, trackGameComplete, trackToolInteraction, trackDailyAuditViewed } = useAnalytics();
 
   const [resistanceActive, setResistanceActive] = useState(false);
   const [resistancePending, setResistancePending] = useState(false);
@@ -20,6 +23,10 @@ export function useGame() {
 
   const handleToolClick = (toolInstanceId: string) => {
     dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
+    const tool = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
+    if (tool) {
+        trackToolInteraction(tool.type, 'select');
+    }
   };
 
   const handleUndo = () => {
@@ -41,6 +48,14 @@ export function useGame() {
 
   // --- Side Effect: Track Move Usage ---
   // The reducer is pure, so we track side-effects in the hook reacting to state changes.
+  const prevMovesLength = useRef(state.movesHistory.length);
+  useEffect(() => {
+      if (state.movesHistory.length > prevMovesLength.current) {
+          const lastMove = state.movesHistory[state.movesHistory.length - 1];
+          trackToolInteraction(lastMove.tool, 'use');
+      }
+      prevMovesLength.current = state.movesHistory.length;
+  }, [state.movesHistory, trackToolInteraction]);
 
 
 
@@ -70,7 +85,8 @@ export function useGame() {
       if (state.optimalScore) {
           dispatch({ type: 'SET_TOTAL_OPTIMAL_SCORE', payload: { score: state.totalOptimalScore + state.optimalScore } });
       }
-  }, [gameMode, state.levelScore, dispatch, state.totalScore, state.totalOptimalScore, state.optimalScore]);
+      trackGameComplete(gameMode, state.levelScore, state.optimalScore);
+  }, [gameMode, state.levelScore, dispatch, state.totalScore, state.totalOptimalScore, state.optimalScore, trackGameComplete]);
 
   // --- Loop ---
   // Note: useGameLoop logic remains the same (Inspection Logic)
@@ -183,6 +199,10 @@ export function useGame() {
             seed
         }
     });
+    
+    if (seed !== undefined) {
+        trackGameStart(activeMode, seed);
+    }
   };
 
   const triggerResistance = useCallback(() => {
@@ -388,7 +408,8 @@ export function useGame() {
   const triggerCurrentAudit = useCallback(() => {
     const today = getTodayDateString();
     setAuditState({ date: today, userScore: state.levelScore });
-  }, [state.levelScore]);
+    trackDailyAuditViewed(today, 'passed');
+  }, [state.levelScore, trackDailyAuditViewed]);
 
   return {
     state: {
