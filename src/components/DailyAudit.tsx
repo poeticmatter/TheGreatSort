@@ -104,7 +104,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
 
   return (
-    <div className="w-full max-w-4xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
+    <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
       
 
 
@@ -238,7 +238,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           
           
           <div className="fixed bottom-0 left-0 w-full p-4 bg-stone-900 border-t border-red-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-              <div className="max-w-4xl mx-auto flex justify-center md:justify-end">
+              <div className="max-w-5xl mx-auto flex justify-center md:justify-end">
                   <button 
                       onClick={onClose}
                       className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]"
