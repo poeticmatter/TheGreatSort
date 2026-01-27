@@ -23,18 +23,7 @@ export type DailyHistory = Record<string, DailyEntry>;
 
 const DAILY_HISTORY_KEY = 'tgs_daily_history';
 
-export const loadCareerTools = (): ToolInstance[] | null => {
-  try {
-    const saved = localStorage.getItem('career_tools');
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
-};
 
-export const saveCareerTools = (tools: ToolInstance[]) => {
-  localStorage.setItem('career_tools', JSON.stringify(tools));
-};
 
 export const getDailyEntry = (date: string): DailyEntry | null => {
   try {
@@ -48,6 +37,8 @@ export const getDailyEntry = (date: string): DailyEntry | null => {
     return null;
   }
 };
+
+
 
 export const saveDailyScore = (date: string, score: number) => {
   try {
@@ -106,6 +97,7 @@ export const useGamePersistence = (
 
   // Cleanup old daily states on mount
   useEffect(() => {
+    localStorage.removeItem('career_tools');
     const today = getTodayDateString();
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {

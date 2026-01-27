@@ -3,6 +3,11 @@ import ReactDOM from 'react-dom/client';
 import '../animations.css';
 import App from './App';
 
+import { AnalyticsService } from './services/analytics';
+
+// Initialize Analytics
+AnalyticsService.initialize('G-C4M4139WJ3');
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

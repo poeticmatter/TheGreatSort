@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:stress": "npx tsx testing/verify_optimality.ts"
+    "test:stress": "npx tsx testing/verify_optimality.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "tone": "^15.1.22"
+    "react-dom": "^19.2.3"
+
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -22,6 +23,7 @@
     "playwright": "^1.57.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^4.0.18"
   }
 }

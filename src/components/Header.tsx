@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, Volume2, VolumeX, ClipboardCheck } from 'lucide-react';
+import { Star, ChevronDown, ClipboardCheck, Rows3, Columns3 } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
+import { LayoutType } from './InventoryGrid';
 
 interface HeaderProps {
   level: number;
@@ -11,19 +12,18 @@ interface HeaderProps {
   phase: GamePhase;
   optimalScore: number | null;
   detectedMode: 'ASC' | 'DESC' | null;
-  isPlaying: boolean;
-  isAuditAvailable: boolean;
-  onToggleMusic: () => void;
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
-  onOpenAudit: () => void;
+  layout: LayoutType;
+  onToggleLayout: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
-  phase, optimalScore, detectedMode, isPlaying, isAuditAvailable, onToggleMusic,
-  onChangeMode, onShareResult, onRetryPractice, onOpenAudit
+  phase, optimalScore, detectedMode,
+  onChangeMode, onShareResult, onRetryPractice,
+  layout, onToggleLayout
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -56,12 +56,12 @@ const Header: React.FC<HeaderProps> = ({
                    : 'text-stone-400 hover:text-amber-500'
                }`}
              >
-               Mode: <span className="text-amber-500 font-bold">{gameMode}</span> <ChevronDown size={12} />
+               Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
              </button>
 
              {showModeMenu && (
                <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
-                 {(['CAREER', 'DAILY', 'PRACTICE'] as GameMode[]).map(m => (
+                 {(['DAILY', 'PRACTICE'] as GameMode[]).map(m => (
                    <button
                      key={m}
                      onClick={() => {
@@ -70,55 +70,27 @@ const Header: React.FC<HeaderProps> = ({
                      }}
                      className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                    >
-                     {m}
+                     {m === 'PRACTICE' ? 'TRAINING' : m}
                    </button>
                  ))}
 
-                 {isAuditAvailable && (
-                   <>
-                     <div className="h-px bg-stone-800 my-1"></div>
-                     <button
-                       onClick={() => {
-                         onOpenAudit();
-                         setShowModeMenu(false);
-                       }}
-                       className="text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 text-stone-400 flex items-center gap-2"
-                     >
-                       <ClipboardCheck size={14} className="text-amber-600" />
-                       Yesterday's Audit
-                     </button>
-                   </>
-                 )}
-               </div>
+                 </div>
              )}
            </div>
 
-           {/* Sound Toggle */}
+           {/* View Toggle */}
            <button
-             onClick={onToggleMusic}
-             className={`flex items-center gap-2 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${isPlaying ? 'text-amber-500' : 'text-stone-400 hover:text-amber-500'}`}
-             title={isPlaying ? "Mute Music" : "Play Music"}
+              onClick={onToggleLayout}
+              className="flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] text-stone-400 hover:text-amber-500 transition-colors"
            >
-             Sound {isPlaying ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              View: <span className="text-amber-500 font-bold">{layout === 'VERTICAL_LIST' ? <Rows3 size={16} /> : <Columns3 size={16} />}</span>
            </button>
+
+
         </div>
       </div>
 
-      {gameMode === 'CAREER' && (
-        <div className="flex gap-4 sm:gap-8 text-sm font-['Courier_Prime'] border border-red-900/50 bg-stone-950/40 p-3 rounded-md shadow-inner">
-          <div className="flex flex-col items-center">
-            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Day</span>
-            <span className="text-xl text-stone-200 font-bold">{level}</span>
-          </div>
-          <div className="w-px bg-stone-700 h-8 self-center"></div>
-          <div className="flex flex-col items-center">
-            <span className="text-stone-500 uppercase text-[10px] tracking-wider mb-1">Overall Eff.</span>
-            <span className={`text-xl font-bold ${totalEfficiency >= 100 ? 'text-amber-500' : 'text-stone-300'}`}>
-              {totalEfficiency}%
-            </span>
-          </div>
-        </div>
-      )}
+
     </header>
   );
 };

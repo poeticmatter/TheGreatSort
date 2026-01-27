@@ -1,50 +1,96 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
-import { lengthFromLevel, stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, DailyState, applyMove } from '../utils/gameLogic';
-import { getTodayDateString, getYesterdayDateString } from '../utils/dateUtils';
+import { stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
+import { getTodayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
-import { useGameEngine } from './useGameEngine';
-import { useGamePersistence, loadCareerTools, saveCareerTools, saveDailyScore, getDailyEntry, DailyEntry } from './useGamePersistence';
+import { useGameContext } from '../context/GameContext';
+import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
 import { useGameLoop } from './useGameLoop';
+import { useAnalytics } from './useAnalytics';
 
 export function useGame() {
+  const { state, dispatch } = useGameContext();
   const [gameMode, setGameMode] = useState<GameMode>('DAILY');
   const [isGameLoaded, setIsGameLoaded] = useState(false);
   const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
+  
+  const { trackGameStart, trackGameComplete, trackToolInteraction, trackDailyAuditViewed } = useAnalytics();
+
   const [resistanceActive, setResistanceActive] = useState(false);
+  const [resistancePending, setResistancePending] = useState(false);
 
-  // --- Engine ---
-  const handleMoveCommitted = useCallback(() => {
-    localStorage.setItem('hasUsedAction', 'true');
-  }, []);
+  // --- Handlers (Pass-Through) ---
 
-  const engine = useGameEngine(handleMoveCommitted);
+  const handleToolClick = (toolInstanceId: string) => {
+    dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
+    const tool = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
+    if (tool) {
+        trackToolInteraction(tool.type, 'select');
+    }
+  };
+
+  const handleUndo = () => {
+    if (state.movesHistory.length > 0) {
+        dispatch({ type: 'UNDO_MOVE' });
+        dispatch({ type: 'CANCEL_SELECTION' });
+    }
+  };
+
+  const handleCardClick = (item: CardItem) => {
+    const index = state.list.findIndex(i => i.id === item.id);
+    if (index === -1) return;
+    dispatch({ type: 'INTERACT_TILE', payload: { index } });
+  };
+  
+  const handleBackgroundClick = () => {
+     dispatch({ type: 'CANCEL_SELECTION' });
+  };
+
+  // --- Side Effect: Track Move Usage ---
+  // The reducer is pure, so we track side-effects in the hook reacting to state changes.
+  const prevMovesLength = useRef(state.movesHistory.length);
+  useEffect(() => {
+      if (state.movesHistory.length > prevMovesLength.current) {
+          const lastMove = state.movesHistory[state.movesHistory.length - 1];
+          trackToolInteraction(lastMove.tool, 'use');
+      }
+      prevMovesLength.current = state.movesHistory.length;
+  }, [state.movesHistory, trackToolInteraction]);
+
+
 
   // --- Persistence ---
   const persistenceState = {
-      movesHistory: engine.state.movesHistory,
-      phase: engine.state.phase,
-      toolsAvailable: engine.state.toolsAvailable,
-      levelScore: engine.state.levelScore,
-      optimalScore: engine.state.optimalScore,
-      worstScore: engine.state.worstScore,
-      list: engine.state.list
+      movesHistory: state.movesHistory,
+      phase: state.phase,
+      toolsAvailable: state.toolsAvailable,
+      levelScore: state.levelScore,
+      optimalScore: state.optimalScore,
+      worstScore: state.worstScore || null,
+      list: state.list
   };
 
   const { loadedState, dailyResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded);
 
   // --- Loop Callback ---
   const handleGameCompletion = useCallback(() => {
-      // Logic from legacy hook (saveScore)
       if (gameMode === 'DAILY') {
-          saveDailyScore(getTodayDateString(), engine.state.levelScore);
-          engine.actions.setDailyCompleted(true);
+          saveDailyScore(getTodayDateString(), state.levelScore);
+          dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
       }
-      engine.actions.setPhase(GamePhase.RESULTS);
-  }, [gameMode, engine.state.levelScore, engine.actions]);
+      dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
+      setResistancePending(true);
+      
+      dispatch({ type: 'SET_TOTAL_SCORE', payload: { score: state.totalScore + state.levelScore } });
+      if (state.optimalScore) {
+          dispatch({ type: 'SET_TOTAL_OPTIMAL_SCORE', payload: { score: state.totalOptimalScore + state.optimalScore } });
+      }
+      trackGameComplete(gameMode, state.levelScore, state.optimalScore);
+  }, [gameMode, state.levelScore, dispatch, state.totalScore, state.totalOptimalScore, state.optimalScore, trackGameComplete]);
 
   // --- Loop ---
-  const loop = useGameLoop(engine, handleGameCompletion);
+  // Note: useGameLoop logic remains the same (Inspection Logic)
+  const loop = useGameLoop(state.list, dispatch, handleGameCompletion);
 
   // --- Hydration & Initialization ---
   useEffect(() => {
@@ -52,111 +98,87 @@ export function useGame() {
 
     const today = getTodayDateString();
 
-    // Check for Yesterday's Audit on Load
-    const yesterday = getYesterdayDateString();
-    const entry = getDailyEntry(yesterday);
-    if (entry) {
-        setAuditState({ date: entry.date, userScore: entry.highScore });
-    }
-
-    // Restore Daily State if available
     if (gameMode === 'DAILY') {
         const savedStateStr = localStorage.getItem(`daily_state_${today}`);
         const savedResultStr = localStorage.getItem(`daily_result_${today}`);
         const directLoadedState = savedStateStr ? JSON.parse(savedStateStr) : null;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const directDailyResult = savedResultStr ? JSON.parse(savedResultStr) : null;
 
         if (directLoadedState) {
-            // Restore
             const seed = stringToSeed(today);
             let currentList = generateLevel(9, seed);
             let currentTools = directLoadedState.tools;
             if (!currentTools) {
               currentTools = generateTools(seed);
             } else {
-              // Reset usage state to prevent double-counting during replay
               currentTools = currentTools.map((t: ToolInstance) => ({ ...t, used: false }));
             }
 
-            // Replay
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             directLoadedState.moves.forEach((move: any) => {
                 currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
-                // Mark tools used
                 const toolIndex = currentTools.findIndex((t: ToolInstance) => t.type === move.tool && !t.used);
                 if (toolIndex !== -1) currentTools[toolIndex].used = true;
             });
 
-            // Load into Engine
-            engine.actions.loadState({
-                level: 1,
-                currentSeed: seed,
-                toolsAvailable: currentTools,
-                movesHistory: directLoadedState.moves,
-                phase: directLoadedState.phase,
-                list: currentList
+            dispatch({
+                type: 'START_LEVEL',
+                payload: {
+                    level: 1,
+                    list: currentList,
+                    tools: currentTools,
+                    seed: seed,
+                    movesHistory: directLoadedState.moves
+                }
             });
+            
+            if (directLoadedState.phase) {
+                 dispatch({ type: 'SET_PHASE', payload: { phase: directLoadedState.phase } });
+            }
 
             if (directLoadedState.phase === GamePhase.RESULTS) {
-                engine.actions.setDailyCompleted(true);
+                dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
                 const { score, gradedList } = gradeLevel(currentList);
-                engine.actions.setList(gradedList);
-                engine.actions.setLevelScore(score);
-
-                // Note: removed engine.actions.setOptimalScore(dailyResult.optimal) per instruction
+                dispatch({ type: 'SET_LIST', payload: { list: gradedList } });
+                dispatch({ type: 'SET_LEVEL_SCORE', payload: { score: score } });
             } else {
-                engine.actions.setList(currentList);
-                engine.actions.setDailyCompleted(false);
+                 dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
+                 dispatch({ type: 'SET_LIST', payload: { list: currentList } });
             }
 
         } else if (directDailyResult) {
-             // Daily completed but state missing (legacy/cleared)
-             engine.actions.setDailyCompleted(true);
-             engine.actions.setLevelScore(directDailyResult.score);
-             // Note: removed engine.actions.setOptimalScore(dailyResult.optimal) per instruction
-             engine.actions.setPhase(GamePhase.RESULTS);
-             engine.actions.startLevel(1, generateLevel(9, stringToSeed(today)), generateTools(stringToSeed(today)), stringToSeed(today));
-             engine.actions.setPhase(GamePhase.RESULTS); // Force phase back to results after startLevel resets it
+             dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
+             dispatch({
+                 type: 'START_LEVEL',
+                 payload: {
+                     level: 1,
+                     list: generateLevel(9, stringToSeed(today)),
+                     tools: generateTools(stringToSeed(today)),
+                     seed: stringToSeed(today)
+                 }
+             });
+             dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
+             dispatch({ type: 'SET_LEVEL_SCORE', payload: { score: directDailyResult.score } });
         } else {
-             // New Daily Game
              startLevel(1, 'DAILY');
         }
     } else {
-        // Other modes (shouldn't happen on init default, but safe)
         startLevel(1, gameMode);
     }
 
     setIsGameLoaded(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGameLoaded, gameMode]);
+  }, [isGameLoaded, gameMode, dispatch]);
 
-  // --- Helper: Start Level Logic ---
   const startLevel = (lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
     const activeMode = modeOverride || gameMode;
 
-    // Logic from original startLevel
     let len = 0;
     let seed: number | undefined = undefined;
     let tools: ToolInstance[] = [];
 
-    if (activeMode === 'CAREER') {
-      len = lengthFromLevel(lvl);
-      seed = undefined;
-
-      if (lvl === 1) {
-          tools = generateTools();
-          saveCareerTools(tools);
-      } else {
-          const savedTools = loadCareerTools();
-          if (savedTools) {
-              tools = savedTools;
-              tools = tools.map(t => ({ ...t, used: false }));
-          } else {
-              tools = generateTools();
-              saveCareerTools(tools);
-          }
-      }
-
-    } else if (activeMode === 'DAILY') {
+    if (activeMode === 'DAILY') {
       len = 9;
       seed = stringToSeed(getTodayDateString());
       tools = generateTools(seed);
@@ -166,58 +188,142 @@ export function useGame() {
       tools = generateTools(seed);
     }
 
-    // Generate List
     const list = generateLevel(len, seed);
 
-    engine.actions.startLevel(lvl, list, tools, seed);
+    dispatch({
+        type: 'START_LEVEL',
+        payload: {
+            level: lvl,
+            list,
+            tools,
+            seed
+        }
+    });
+    
+    if (seed !== undefined) {
+        trackGameStart(activeMode, seed);
+    }
   };
+
+  const triggerResistance = useCallback(() => {
+      setResistanceActive(true);
+      setAuditState(null);
+  }, []);
+
+  const closeResistance = useCallback(() => {
+      setResistanceActive(false);
+  }, []);
 
   // --- Effects ---
 
-  // Optimal Score Calculation
-  useEffect(() => {
-    // Disable Solver for Daily
-    if (gameMode === 'DAILY') return;
+  // --- Worker Integration ---
+  const workerRef = useRef<Worker | null>(null);
 
-    if (engine.state.list.length > 0 && engine.state.phase === GamePhase.PLANNING && engine.state.optimalScore === null) {
-      const timer = setTimeout(() => {
-        const best = findOptimalScore(engine.state.list, engine.state.toolsAvailable);
-        engine.actions.setOptimalScore(best);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [engine.state.list, engine.state.phase, engine.state.optimalScore, engine.state.toolsAvailable, gameMode]);
-
-  // Update Total Score on Results
   useEffect(() => {
-      if (engine.state.phase === GamePhase.RESULTS) {
-          engine.actions.setTotalScore(prev => prev + engine.state.levelScore);
-          engine.actions.setTotalOptimalScore(prev => prev + (engine.state.optimalScore || 0));
+    // Initialize Worker
+    workerRef.current = new Worker(new URL('../workers/gameSolver.worker.ts', import.meta.url), { type: 'module' });
+
+    // Handle messages
+    workerRef.current.onmessage = (e) => {
+      const { id, optimalScore, worstScore } = e.data;
+      
+      // Prevent Race Conditions:
+      // Ensure the result matches the current level's seed.
+      // If seed is undefined (Career), we fall back to checking if the score is still needed (null).
+      // Ideally we want to match the seed exactly.
+      if (id === state.currentSeed) {
+           dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: optimalScore } });
+           if (worstScore !== undefined) {
+               dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
+           }
+
+           // Cache solution
+           if (id !== undefined && gameMode === 'DAILY') {
+              const cacheKey = `tgs_solution_${id}`;
+              localStorage.setItem(cacheKey, JSON.stringify({ optimalScore, worstScore }));
+           }
       }
-  }, [engine.state.phase, engine.state.levelScore, engine.state.optimalScore]);
+    };
 
-  // Calculate Scores for Daily Mode on Results
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, [dispatch, state.currentSeed, gameMode]); // Re-binding listener if seed changes isn't needed, but dispatch might change. Actually we can keep the worker stable.
+
+  // --- Resistance Check ---
   useEffect(() => {
-    if (gameMode === 'DAILY' && engine.state.phase === GamePhase.RESULTS && engine.state.currentSeed !== undefined && engine.state.optimalScore === null) {
-       // Regenerate initial state to calculate benchmarks
-       const seed = engine.state.currentSeed;
-       const initialList = generateLevel(9, seed);
-       const initialTools = generateTools(seed);
+    if (gameMode === 'DAILY' && 
+        state.phase === GamePhase.RESULTS && 
+        state.optimalScore !== null && 
+        state.worstScore !== null &&
+        resistancePending) {
+        
+        const efficiency = calculateRelativeEfficiency(
+            state.levelScore,
+            state.optimalScore,
+            state.worstScore
+        );
 
-       const timer = setTimeout(() => {
-           const best = findOptimalScore(initialList, initialTools);
-           const worst = findWorstScore(initialList, initialTools);
-
-           engine.actions.setOptimalScore(best);
-           engine.actions.setWorstScore(worst);
-       }, 100);
-
-       return () => clearTimeout(timer);
+        if (efficiency === 0) {
+            // Delay for dramatic effect (800ms-1000ms)
+            const timer = setTimeout(() => {
+                setResistanceActive(true);
+                setResistancePending(false);
+            }, 1000);
+            return () => clearTimeout(timer);
+        } else {
+            setResistancePending(false);
+        }
     }
-  }, [gameMode, engine.state.phase, engine.state.currentSeed, engine.state.optimalScore]);
+  }, [gameMode, state.phase, state.optimalScore, state.worstScore, state.levelScore, resistancePending]);
 
+  // Trigger Calculation
+  useEffect(() => {
+    // Only calculate if we haven't already and we are in a valid state
+    // We prioritize using currentSeed as the ID.
+    if (state.list.length > 0 && state.optimalScore === null && workerRef.current) {
+        
+        // Cache Check
+        if (state.currentSeed !== undefined && gameMode === 'DAILY') {
+            const cacheKey = `tgs_solution_${state.currentSeed}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const { optimalScore, worstScore } = JSON.parse(cached);
+                    dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: optimalScore } });
+                    if (worstScore !== undefined) {
+                        dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
+                    }
+                    return; // Skip calculation
+                } catch (e) {
+                   console.error("Failed to parse cached solution", e);
+                }
+            }
+        }
 
-  // --- Actions Wiring ---
+        // Determine mode
+        const mode = (gameMode === 'DAILY' || gameMode === 'RESULTS') ? 'BOTH' : 'OPTIMAL';
+        
+        let listToSolve = state.list;
+        let toolsToSolve = state.toolsAvailable;
+
+        // CRITICAL FIX: Ensure we solve for the INITIAL state, not the current (potentially in-progress) state.
+        // In DAILY mode, we might have hydrated a state where moves are already made.
+        // We must regenerate the fresh level/tools from the seed.
+        if (state.currentSeed !== undefined) {
+             // For Daily and Practice, length is always 9.
+             listToSolve = generateLevel(9, state.currentSeed);
+             toolsToSolve = generateTools(state.currentSeed);
+        }
+
+        workerRef.current.postMessage({
+            list: listToSolve,
+            tools: toolsToSolve,
+            mode,
+            id: state.currentSeed
+        });
+    }
+  }, [state.list, state.toolsAvailable, state.optimalScore, state.currentSeed, gameMode]);
 
   const changeMode = (newMode: GameMode) => {
     setAuditState(null);
@@ -235,28 +341,24 @@ export function useGame() {
         }
 
         setGameMode(newMode);
-        engine.actions.resetStats();
-        engine.actions.setDailyCompleted(false);
+        dispatch({ type: 'RESET_STATS' });
+        dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
         startLevel(1, 'DAILY');
     } else {
         setGameMode(newMode);
-        engine.actions.resetStats();
-        engine.actions.setDailyCompleted(false);
+        dispatch({ type: 'RESET_STATS' });
+        dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
         startLevel(1, newMode);
     }
   };
 
   const nextLevel = () => {
-      if (gameMode === 'CAREER') {
-          startLevel(engine.state.level + 1);
-      } else if (gameMode === 'PRACTICE') {
-          startLevel(1, 'PRACTICE');
-      }
+      startLevel(1, 'PRACTICE');
   };
 
   const retryPractice = () => {
-      if (gameMode === 'PRACTICE' && engine.state.currentSeed !== undefined) {
-          startLevel(1, 'PRACTICE', engine.state.currentSeed);
+      if (gameMode === 'PRACTICE' && state.currentSeed !== undefined) {
+          startLevel(1, 'PRACTICE', state.currentSeed);
       }
   };
 
@@ -266,7 +368,7 @@ export function useGame() {
 
   const resetGame = () => {
       if (gameMode === 'DAILY') return;
-      engine.actions.resetStats();
+      dispatch({ type: 'RESET_STATS' });
       startLevel(1);
   };
 
@@ -276,7 +378,7 @@ export function useGame() {
     if (gameMode === 'DAILY') {
         const entry = getDailyEntry(today);
         const attempts = entry ? entry.attempts : 1;
-        const text = `The Great Sort Daily ${today}\nScore: ${engine.state.levelScore}\nAttempts: ${attempts}`;
+        const text = `The Great Sort Daily ${today}\nScore: ${state.levelScore}\nAttempts: ${attempts}`;
         try {
           await navigator.clipboard.writeText(text);
           alert('Result copied to clipboard!');
@@ -287,8 +389,8 @@ export function useGame() {
         return;
     }
 
-    const efficiency = !engine.state.optimalScore ? 0 : Math.min(100, Math.round((engine.state.levelScore / engine.state.optimalScore) * 100));
-    const text = `The Great Sort\nScore: ${engine.state.levelScore}\nEfficiency: ${efficiency}%`;
+    const efficiency = !state.optimalScore ? 0 : Math.min(100, Math.round((state.levelScore / state.optimalScore) * 100));
+    const text = `The Great Sort\nScore: ${state.levelScore}\nEfficiency: ${efficiency}%`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -299,56 +401,39 @@ export function useGame() {
     }
   };
 
-  const openAudit = () => {
-      const yesterday = getYesterdayDateString();
-      const entry = getDailyEntry(yesterday);
-      if (entry) {
-          setAuditState({ date: entry.date, userScore: entry.highScore });
-      }
-  };
-
   const closeAudit = () => {
       setAuditState(null);
   };
 
-  const triggerResistance = useCallback(() => {
-      setResistanceActive(true);
-      setAuditState(null);
-  }, []);
-
-  const closeResistance = useCallback(() => {
-      setResistanceActive(false);
-  }, []);
-
-  const handleCardClick = (item: CardItem) => {
-      const index = engine.state.list.findIndex(i => i.id === item.id);
-      if (index === -1) return;
-      engine.actions.handleCardClick(index);
-  }
+  const triggerCurrentAudit = useCallback(() => {
+    const today = getTodayDateString();
+    setAuditState({ date: today, userScore: state.levelScore });
+    trackDailyAuditViewed(today, 'passed');
+  }, [state.levelScore, trackDailyAuditViewed]);
 
   return {
     state: {
-      ...engine.state,
+      ...state,
       gameMode,
       auditState,
       resistanceActive,
-      // Overwrite selectedTool to match original interface (string | null)
-      selectedTool: engine.state.selectedToolInstanceId,
+      selectedTool: state.selectedToolInstanceId,
     },
     actions: {
       changeMode,
-      handleToolClick: engine.actions.handleToolClick,
+      handleUndo,
+      handleToolClick,
       handleCardClick,
-      handleBackgroundClick: engine.actions.handleBackgroundClick,
+      handleBackgroundClick,
       startInspection: loop.startInspection,
       nextLevel,
       retryPractice,
       retryDaily,
       resetGame,
       shareResult,
-      toggleMusic: () => {}, // Handled in App
-      openAudit,
+ 
       closeAudit,
+      triggerCurrentAudit,
       triggerResistance,
       closeResistance
     }

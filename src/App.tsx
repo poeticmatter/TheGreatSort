@@ -1,56 +1,130 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Rows3, Columns3 } from 'lucide-react';
 import Card from './components/Card';
-import SequenceDisplay from './components/SequenceDisplay';
+import InventoryGrid, { LayoutType } from './components/InventoryGrid';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
-import { useMusic } from './hooks/useMusic';
+import { useAnalytics } from './hooks/useAnalytics';
+import { useDailyLock } from './hooks/useDailyLock';
+import { getTodayDateString } from './utils/dateUtils';
+
 import Header from './components/Header';
 import Footer from './components/Footer';
 import StatusBar from './components/StatusBar';
+import AuditWarningModal from './components/AuditWarningModal';
 import { DailyAudit } from './components/DailyAudit';
-import { getDailyEntry } from './hooks/useGamePersistence';
-import { getYesterdayDateString } from './utils/dateUtils';
 import { ResistanceLetter } from './components/ResistanceLetter';
+import { TOOL_REGISTRY } from './tools';
+
+import { GameProvider } from './context/GameContext';
+import Minimap from './components/Minimap';
 
 export default function TheGreatSort() {
+  return (
+    <GameProvider>
+       <TheGreatSortContent />
+    </GameProvider>
+  );
+}
+
+function TheGreatSortContent() {
   const { state, actions } = useGame();
-  const { isPlaying, toggleMusic } = useMusic();
+  const { trackPageView } = useAnalytics();
+  
+  // Layout Management with Persistence
+  const [layout, setLayout] = React.useState<LayoutType>('HORIZONTAL_STRIP');
+
+  useEffect(() => {
+    trackPageView('/');
+    const saved = localStorage.getItem('preferredLayout') as LayoutType;
+    if (saved && (saved === 'VERTICAL_LIST' || saved === 'HORIZONTAL_STRIP')) {
+      setLayout(saved);
+    }
+  }, [trackPageView]);
+
+  const toggleLayout = () => {
+    const next = layout === 'HORIZONTAL_STRIP' ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';
+    setLayout(next);
+    localStorage.setItem('preferredLayout', next);
+  };
+  
+  // Daily Lock Integration
+  const today = getTodayDateString();
+  const { 
+    isLocked, 
+    isWarningOpen, 
+    requestAudit, 
+    confirmAuditLock, 
+    cancelAuditLock 
+  } = useDailyLock(today, actions.triggerCurrentAudit);
+
 
   // Helper to determine if we should highlight candidates
+  // Helper to determine if we should highlight candidates
   const isCandidate = (idx: number) => {
+    // Basic checks
     if (state.phase !== GamePhase.PLANNING) return false;
     if (state.selection === null) return false;
     if (!state.selectedTool) return false; // Tool ID (instance)
 
-    // Find tool type
+    // Find tool instance
     const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedTool);
     if (!toolInstance) return false;
 
-    const toolType = toolInstance.type;
-    const diff = Math.abs(state.selection - idx);
+    // Ask the Strategy: "Is 'idx' a valid second click given 'state.selection' was the first?"
+    const strategy = TOOL_REGISTRY[toolInstance.type];
+    if (!strategy || !strategy.requiresSelection) return false;
 
-    if (toolType === 'swap' || toolType === 'merge' || toolType === 'sink' || toolType === 'cycle') {
-        // Adjacent only
-        // Cycle: Select middle (state.selection), then neighbor (idx)
-        return diff === 1;
-    } else if (toolType === 'longswap' || toolType === 'equalize') {
-        // Non-adjacent only
-        return diff > 1;
-    }
-
-    return false;
+    return strategy.isValid(state.list, idx, state.selection);
   };
 
-  // Check if audit is available for yesterday
-  const isAuditAvailable = !!getDailyEntry(getYesterdayDateString());
 
   const candidateIndices = state.list.map((_, idx) => idx).filter(isCandidate);
+
+  // Logic to disable specific indices based on tool rules (e.g. Shield cannot target index 0)
+  const selectedToolInstance = state.selectedTool ? state.toolsAvailable.find(t => t.instanceId === state.selectedTool) : null;
+  const isShieldSelected = selectedToolInstance?.type === 'shield';
+  const disabledIndices = isShieldSelected ? [0] : [];
   
   // Route / View State Logic
   const view = state.resistanceActive ? 'resistance' : (state.auditState ? 'audit' : 'game');
 
+  // Lock condition: Locked only applies to DAILY mode interactions
+  // Visual Feedback for Invalid Actions
+  const [isShaking, setIsShaking] = React.useState(false);
+  const triggerShake = React.useCallback(() => {
+     setIsShaking(true);
+     setTimeout(() => setIsShaking(false), 500);
+  }, []);
+
+  // Effect: Shake on Invalid Move Signal from Reducer
+  React.useEffect(() => {
+     if (state.shakeTools > 0) {
+         triggerShake();
+     }
+  }, [state.shakeTools, triggerShake]);
+
+  const handleCardClickWrapper = (item: any) => {
+     // STRICT CHECK: Tool must be selected
+     if (!state.selectedTool) {
+         triggerShake();
+         return;
+     }
+     actions.handleCardClick(item);
+  };
+
+  const isGameDisabled = state.gameMode === 'DAILY' && isLocked;
+
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
+
+      <AuditWarningModal 
+          isOpen={isWarningOpen}
+          onConfirm={confirmAuditLock}
+          onCancel={cancelAuditLock}
+      />
+
+
 
       <Header
         level={state.level}
@@ -61,18 +135,16 @@ export default function TheGreatSort() {
         phase={state.phase}
         optimalScore={state.optimalScore}
         detectedMode={state.detectedMode}
-        isPlaying={isPlaying}
-        isAuditAvailable={isAuditAvailable}
-        onToggleMusic={toggleMusic}
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
-        onOpenAudit={actions.openAudit}
+        layout={layout}
+        onToggleLayout={toggleLayout}
       />
 
       {/* --- MAIN AREA --- */}
       <main
-        className={`flex-1 flex flex-col items-center p-4 relative ${view === 'game' ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}
+        className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar"
         onClick={actions.handleBackgroundClick}
       >
         {/* Background Pattern */}
@@ -89,6 +161,8 @@ export default function TheGreatSort() {
            />
         ) : (
            <>
+
+
               <StatusBar
                 phase={state.phase}
                 selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
@@ -100,16 +174,24 @@ export default function TheGreatSort() {
                 gameMode={state.gameMode}
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
+                onViewAudit={requestAudit} // Intercept with Lock Request
+                isLocked={isLocked}
               />
+
+
 
               {/* --- CARDS GRID --- */}
               <div className="flex-1 flex items-center justify-center w-full">
                   {state.list.length > 0 ? (
-                    <SequenceDisplay
+                    <InventoryGrid
                       sequence={state.list}
                       selectedIndex={state.selection}
                       candidateIndices={candidateIndices}
-                      onItemClick={actions.handleCardClick}
+                      onItemClick={handleCardClickWrapper}
+                      disabled={isGameDisabled}
+                      disabledIndices={disabledIndices}
+                      layout={layout}
+                      selectedTool={selectedToolInstance?.type} // Pass tool type for visual helpers (like Mirror)
                     />
                   ) : (
                     state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
@@ -129,20 +211,29 @@ export default function TheGreatSort() {
       </main>
 
       {view === 'game' && (
+        <>
+        <Minimap sequence={state.list} layout={layout} />
         <Footer
           phase={state.phase}
           gameMode={state.gameMode}
           toolsAvailable={state.toolsAvailable}
           selectedTool={state.selectedTool}
-          shakeTools={state.shakeTools}
+          shouldShake={isShaking}
           listLength={state.list.length}
           onToolClick={actions.handleToolClick}
+          onUndo={actions.handleUndo}
+          canUndo={state.movesHistory.length > 0}
           onActionClick={
               state.phase === GamePhase.RESULTS
-                ? (state.gameMode === 'DAILY' ? actions.retryDaily : actions.nextLevel)
+                ? (state.gameMode === 'DAILY' 
+                    ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily) 
+                    : actions.nextLevel)
                 : actions.startInspection
           }
+          disabled={isGameDisabled}
+          isLocked={isLocked}
         />
+        </>
       )}
 
       {/* Help / Rules Overlay (Desktop Only - Game Only) */}

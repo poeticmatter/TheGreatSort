@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { CardItem, Move } from '../../types';
-import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
+import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, calculateBatchScore, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
 import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
-import SequenceDisplay from './SequenceDisplay';
+import InventoryGrid from './InventoryGrid';
 
 interface DailyAuditProps {
   date: string;
@@ -44,17 +44,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     return () => clearTimeout(timer);
   }, [date]);
 
-  // Calculate Efficiency & Trigger Resistance
+  // Calculate Adherence & Trigger Resistance
   const passed = solution ? userHighScore >= solution.score : false;
-  const efficiency = solution
+  const adherence = solution
     ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
     : 0;
 
-  useEffect(() => {
-    if (!isCalculating && solution && efficiency === 0) {
-       onDetectResistance();
-    }
-  }, [isCalculating, solution, efficiency, onDetectResistance]);
+  // Determine Interrogation Status
+  // If user score is worse than the initial board state score
+  const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
+  const isInterrogation = userHighScore < initialScore;
+
+
 
   // Derive Timeline
   const timeline = useMemo(() => {
@@ -103,7 +104,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
 
   return (
-    <div className="w-full max-w-4xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
+    <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
       
 
 
@@ -135,28 +136,29 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 <div className="text-3xl font-bold text-amber-500">{solution.score}</div>
              </div>
              <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${
-                 efficiency >= 100 ? 'border-green-900/50' 
-                 : efficiency >= 90 ? 'border-amber-900/50'
+                 adherence >= 100 ? 'border-green-900/50' 
+                 : adherence >= 90 ? 'border-amber-900/50'
                  : 'border-red-900/50'
              }`}>
-                <div className="text-xs uppercase text-stone-500 mb-1">Efficiency Rating</div>
+                <div className="text-xs uppercase text-stone-500 mb-1">Adherence Rating</div>
                 <div className={`text-3xl font-black ${
-                    efficiency >= 100 ? 'text-green-500'
-                    : efficiency >= 90 ? 'text-amber-500'
+                    adherence >= 100 ? 'text-green-500'
+                    : adherence >= 90 ? 'text-amber-500'
                     : 'text-red-500'
                 }`}>
-                  {efficiency}%
+                  {adherence}%
                 </div>
                 {/* Stamp */}
                 <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
                    ${
-                       efficiency >= 100 ? 'border-green-600 text-green-600'
-                       : efficiency >= 90 ? 'border-amber-600 text-amber-600'
+                       adherence >= 100 ? 'border-green-600 text-green-600'
+                       : adherence >= 90 ? 'border-amber-600 text-amber-600'
                        : 'border-red-600 text-red-600'
                    }`}>
                    {
-                       efficiency >= 100 ? 'PASSED'
-                       : efficiency >= 90 ? 'SATISFACTORY'
+                       adherence >= 100 ? 'PASSED'
+                       : adherence >= 90 ? 'SATISFACTORY'
+                       : isInterrogation ? 'INTERROGATION'
                        : 'PROBATION'
                    }
                 </div>
@@ -192,9 +194,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                 {/* Board State */}
                                 <div className="w-full flex flex-col items-center">
 
-                                    <SequenceDisplay
+                                    <InventoryGrid
                                         sequence={step.list}
                                         highlightIndices={highlightIndices}
+                                        layout="HORIZONTAL_STRIP"
                                     />
                                 </div>
 
@@ -233,19 +236,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
             </div>
           )}
           
-          {!passed && (
-            <div className="fixed bottom-0 left-0 w-full p-4 bg-stone-900 border-t border-red-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-                <div className="max-w-4xl mx-auto flex justify-center md:justify-end">
-                    <button 
-                        onClick={onClose}
-                        className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]"
-                    >
-                        <CheckCircle size={24} className="text-stone-900/80" />
-                        ACCEPT
-                    </button>
-                </div>
-            </div>
-          )}
+          
+          <div className="fixed bottom-0 left-0 w-full p-4 bg-stone-900 border-t border-red-900 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+              <div className="max-w-5xl mx-auto flex justify-center md:justify-end">
+                  <button 
+                      onClick={onClose}
+                      className="group relative px-8 py-4 w-72 rounded-sm font-bold flex items-center justify-center gap-3 shadow-lg active:shadow-none active:translate-y-1 transition-all duration-300 font-[Cinzel] tracking-widest text-lg border-2 bg-amber-700 hover:bg-amber-600 text-stone-950 border-amber-900 shadow-[0_4px_0_rgb(69,26,3)]"
+                  >
+                      <CheckCircle size={24} className="text-stone-900/80" />
+                      {passed ? 'DISMISS' : 'ACCEPT'}
+                  </button>
+              </div>
+          </div>
 
         </div>
       </div>

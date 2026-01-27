@@ -11,15 +11,35 @@ interface CardProps {
   style?: React.CSSProperties;
   mobileDirection?: 'right' | 'left' | 'down' | null;
   disableResponsiveOverrides?: boolean;
+  isDisabled?: boolean;
+  mirrorLabel?: string | null;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled, mirrorLabel }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
   let scale = "scale-100";
   let opacity = "opacity-100";
   let shadow = "shadow-lg";
+
+  // Disabled State
+  if (isDisabled) {
+    return (
+      <div 
+        style={style}
+        className={`
+          flex flex-col items-center justify-center 
+          w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 
+          rounded-sm border-2 border-stone-800 bg-stone-900/50 text-stone-700
+          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold text-2xl sm:text-3xl
+        `}
+      >
+          {/* Minimal Content for Disabled State */}
+          {item.val}
+      </div>
+    );
+  }
 
   // Status Styles
   switch (item.status) {
@@ -32,8 +52,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
     case 'eliminated':
       bgColor = "bg-red-950/40";
       borderColor = "border-red-900";
-      textColor = "text-red-900/50 decoration-line-through decoration-4 decoration-red-900";
-      opacity = "opacity-60";
+      textColor = "text-red-800 decoration-red-900 decoration-2 line-through opacity-70"; // Changed text color and removed generic opacity
+      opacity = "opacity-100"; // Keep container opaque so number is legible
       scale = "scale-95";
       shadow = "shadow-none";
       break;
@@ -123,8 +143,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
 
       {/* Rubber Stamp Effect for Eliminated */}
       {item.status === 'eliminated' && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-80 pointer-events-none rotate-[-20deg]">
-          <div className="border-2 border-red-800 text-red-800 px-1 py-0 text-[10px] sm:text-xs font-black uppercase tracking-widest">
+        <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none rotate-[-20deg]">
+          <div className="border-4 border-red-900 text-red-900 px-1 py-1 text-xs sm:text-sm font-black uppercase tracking-widest">
             VOID
           </div>
         </div>
@@ -135,6 +155,14 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         <div className="absolute -right-3 -top-3 z-20 animate-in fade-in zoom-in duration-300">
            <div className="bg-amber-500 text-red-950 text-xs sm:text-sm font-bold px-1.5 py-0.5 rounded-full shadow-lg border-2 border-red-900 min-w-[1.8rem] text-center font-mono">
              +{item.linkScore}
+           </div>
+        </div>
+      )}
+      {/* Mirror Label Badge */}
+      {mirrorLabel && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
+           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[10px] uppercase px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+             {mirrorLabel}
            </div>
         </div>
       )}

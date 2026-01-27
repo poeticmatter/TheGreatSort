@@ -39,7 +39,10 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       `}
     >
       <ToolIcon size={24} strokeWidth={2.5} />
-      <span className="text-[10px] uppercase font-bold mt-1 tracking-tighter font-[Inter]">{tool.name}</span>
+      
+      <span className="text-[10px] uppercase font-bold mt-1 tracking-tighter font-[Inter]">
+          {tool.name}
+      </span>
 
       {/* Used Stamp */}
       {isUsed && (
@@ -47,6 +50,8 @@ const ActionButton: React.FC<ActionButtonProps> = ({
           <div className="text-red-900 font-black uppercase text-[10px] rotate-[-25deg] border-2 border-red-900 px-1 opacity-80">USED</div>
         </div>
       )}
+
+      {/* Undo Logic - Removed Overlay, handled above */}
 
       {/* Active Indicator */}
       {isActive && (
