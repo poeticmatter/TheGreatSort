@@ -188,6 +188,7 @@ function TheGreatSortContent() {
                       disabled={isGameDisabled}
                       disabledIndices={disabledIndices}
                       layout={layout}
+                      selectedTool={selectedToolInstance?.type} // Pass tool type for visual helpers (like Mirror)
                     />
                   ) : (
                     state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (

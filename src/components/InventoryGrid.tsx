@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from './Card';
-import { CardItem } from '../../types';
+import { CardItem, ToolType } from '../../types';
 import { Play } from 'lucide-react';
 
 
@@ -19,9 +19,13 @@ export interface InventoryGridProps {
   onItemClick?: (item: CardItem) => void;
   disabled?: boolean;
   disabledIndices?: number[];
+  selectedTool?: ToolType | null; 
 }
 
-
+const getRoman = (n: number): string => {
+    const numerals = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+    return numerals[n] || n.toString();
+};
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({ 
   sequence, 
@@ -31,7 +35,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   candidateIndices = [],
   onItemClick,
   disabled,
-  disabledIndices = []
+  disabledIndices = [],
+  selectedTool = null
 }) => {
   
   // -- Container Styles --
@@ -74,6 +79,21 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
           // For Horizontal Strip, snap alignment
           const wrapperClass = layout === 'HORIZONTAL_STRIP' ? 'snap-center flex-shrink-0 flex items-center' : 'flex flex-col items-center';
 
+          // --- Mirror Symbology Logic ---
+          let mirrorLabel = null;
+          if (selectedTool === 'mirror') {
+             const len = sequence.length;
+             const partnerIndex = len - 1 - idx;
+             if (partnerIndex !== idx) {
+                 // Pair ID is 1-based index of the pair
+                 // For [0, 1, 2, 3], length 4.
+                 // 0 pairs with 3. min(0,3) = 0. ID = I.
+                 // 1 pairs with 2. min(1,2) = 1. ID = II.
+                 const pairId = Math.min(idx, partnerIndex) + 1;
+                 mirrorLabel = getRoman(pairId);
+             }
+          }
+
           return (
             <React.Fragment key={item.id}>
               <div className={wrapperClass} style={layout === 'HORIZONTAL_STRIP' ? undefined : { display: 'contents' }}>
@@ -86,6 +106,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                    isSelected={isSelected}
                    isTargetCandidate={isCandidate}
                    isDisabled={disabledIndices.includes(idx)}
+                   mirrorLabel={mirrorLabel}
                  />
               </div>
               

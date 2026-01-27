@@ -12,9 +12,10 @@ interface CardProps {
   mobileDirection?: 'right' | 'left' | 'down' | null;
   disableResponsiveOverrides?: boolean;
   isDisabled?: boolean;
+  mirrorLabel?: string | null;
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled, mirrorLabel }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -154,6 +155,14 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         <div className="absolute -right-3 -top-3 z-20 animate-in fade-in zoom-in duration-300">
            <div className="bg-amber-500 text-red-950 text-xs sm:text-sm font-bold px-1.5 py-0.5 rounded-full shadow-lg border-2 border-red-900 min-w-[1.8rem] text-center font-mono">
              +{item.linkScore}
+           </div>
+        </div>
+      )}
+      {/* Mirror Label Badge */}
+      {mirrorLabel && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
+           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[10px] uppercase px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+             {mirrorLabel}
            </div>
         </div>
       )}
