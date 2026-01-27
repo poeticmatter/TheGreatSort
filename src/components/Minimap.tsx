@@ -15,7 +15,7 @@ export const Minimap: React.FC<MinimapProps> = ({ sequence, layout }) => {
   // Horizontal: fixed bottom (above footer), centered horizontally
   // Vertical: fixed middle-left
   const containerClasses = isHorizontal
-    ? "fixed bottom-28 left-0 right-0 z-40 flex justify-center pointer-events-none px-4"
+    ? "w-full flex justify-center z-30 shrink-0 py-2 px-4"
     : "fixed top-1/2 left-4 -translate-y-1/2 z-40 flex flex-col pointer-events-none";
 
   // Inner wrapper classes (for the visual box)
