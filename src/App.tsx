@@ -16,6 +16,7 @@ import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
 
 import { GameProvider } from './context/GameContext';
+import Minimap from './components/Minimap';
 
 export default function TheGreatSort() {
   return (
@@ -206,6 +207,8 @@ function TheGreatSortContent() {
       </main>
 
       {view === 'game' && (
+        <>
+        <Minimap sequence={state.list} layout={layout} />
         <Footer
           phase={state.phase}
           gameMode={state.gameMode}
@@ -226,6 +229,7 @@ function TheGreatSortContent() {
           disabled={isGameDisabled}
           isLocked={isLocked}
         />
+        </>
       )}
 
       {/* Help / Rules Overlay (Desktop Only - Game Only) */}
