@@ -13,9 +13,10 @@ interface CardProps {
   disableResponsiveOverrides?: boolean;
   isDisabled?: boolean;
   mirrorLabel?: string | null;
+  variant?: 'standard' | 'wide';
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled, mirrorLabel }) => {
+const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled, mirrorLabel, variant = 'standard' }) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -30,9 +31,9 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         style={style}
         className={`
           flex flex-col items-center justify-center 
-          w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 
+          ${variant === 'wide' ? 'w-20 h-10 text-lg' : 'w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 text-lg sm:text-2xl md:text-3xl'}
           rounded-sm border sm:border-2 border-stone-800 bg-stone-900/50 text-stone-700
-          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold text-lg sm:text-2xl md:text-3xl
+          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold
         `}
       >
           {/* Minimal Content for Disabled State */}
@@ -101,10 +102,10 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       }}
       className={`
         relative flex flex-col items-center justify-center 
-        w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 
+        ${variant === 'wide' ? 'w-20 h-10 text-lg' : 'w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 text-lg sm:text-2xl md:text-3xl'}
         rounded-sm border sm:border-2 ${borderColor} ${bgColor} ${textColor} ${opacity} ${shadow}
         transform transition-all duration-300 ease-out ${scale}
-        cursor-pointer select-none font-serif font-bold text-lg sm:text-2xl md:text-3xl
+        cursor-pointer select-none font-serif font-bold
         overflow-visible
         group
       `}

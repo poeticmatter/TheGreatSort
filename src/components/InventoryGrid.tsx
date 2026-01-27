@@ -107,12 +107,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                    isTargetCandidate={isCandidate}
                    isDisabled={disabledIndices.includes(idx)}
                    mirrorLabel={mirrorLabel}
+                   variant={layout === 'VERTICAL_LIST' ? 'wide' : 'standard'}
                  />
               </div>
               
               {!isLast && (
                   <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90' : ''}`}>
-                      <Play size={16} fill="currentColor" />
+                      <Play size={10} fill="currentColor" />
                   </div>
               )}
             </React.Fragment>
