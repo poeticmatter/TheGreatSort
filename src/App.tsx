@@ -32,21 +32,23 @@ function TheGreatSortContent() {
   const { trackPageView } = useAnalytics();
   
   // Layout Management with Persistence
-  const [layout, setLayout] = React.useState<LayoutType>('HORIZONTAL_STRIP');
+  // Layout Management (Responsive Automation)
+  // Default based on current window width (Mobile First logic: if < 1024, Vertical)
+  // But we want VERTICAL_LIST for < 1024, HORIZONTAL_STRIP for >= 1024
+  const getResponsiveLayout = () => window.innerWidth < 1024 ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';
+  const [layout, setLayout] = React.useState<LayoutType>(getResponsiveLayout());
 
   useEffect(() => {
     trackPageView('/');
-    const saved = localStorage.getItem('preferredLayout') as LayoutType;
-    if (saved && (saved === 'VERTICAL_LIST' || saved === 'HORIZONTAL_STRIP')) {
-      setLayout(saved);
-    }
-  }, [trackPageView]);
+    
+    // Resize Listener
+    const handleResize = () => {
+       setLayout(getResponsiveLayout());
+    };
 
-  const toggleLayout = () => {
-    const next = layout === 'HORIZONTAL_STRIP' ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';
-    setLayout(next);
-    localStorage.setItem('preferredLayout', next);
-  };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [trackPageView]);
   
   // Daily Lock Integration
   const today = getTodayDateString();
@@ -138,8 +140,7 @@ function TheGreatSortContent() {
         onChangeMode={actions.changeMode}
         onShareResult={actions.shareResult}
         onRetryPractice={actions.retryPractice}
-        layout={layout}
-        onToggleLayout={toggleLayout}
+        // Props simplified
       />
 
       {/* --- MAIN AREA --- */}
@@ -232,6 +233,7 @@ function TheGreatSortContent() {
           }
           disabled={isGameDisabled}
           isLocked={isLocked}
+          layout={layout}
         />
         </>
       )}

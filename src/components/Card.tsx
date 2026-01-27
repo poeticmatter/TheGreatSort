@@ -30,9 +30,9 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
         style={style}
         className={`
           flex flex-col items-center justify-center 
-          w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 
-          rounded-sm border-2 border-stone-800 bg-stone-900/50 text-stone-700
-          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold text-2xl sm:text-3xl
+          w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 
+          rounded-sm border sm:border-2 border-stone-800 bg-stone-900/50 text-stone-700
+          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold text-lg sm:text-2xl md:text-3xl
         `}
       >
           {/* Minimal Content for Disabled State */}
@@ -101,10 +101,10 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       }}
       className={`
         relative flex flex-col items-center justify-center 
-        w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 
-        rounded-sm border-2 ${borderColor} ${bgColor} ${textColor} ${opacity} ${shadow}
+        w-9 h-12 sm:w-14 sm:h-16 md:w-16 md:h-20 lg:w-20 lg:h-24 
+        rounded-sm border sm:border-2 ${borderColor} ${bgColor} ${textColor} ${opacity} ${shadow}
         transform transition-all duration-300 ease-out ${scale}
-        cursor-pointer select-none font-serif font-bold text-2xl sm:text-3xl
+        cursor-pointer select-none font-serif font-bold text-lg sm:text-2xl md:text-3xl
         overflow-visible
         group
       `}
@@ -134,10 +134,10 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       )}
 
       {/* Decorative 'rivets' */}
-      <div className={`absolute top-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
-      <div className={`absolute top-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
-      <div className={`absolute bottom-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
-      <div className={`absolute bottom-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
+      <div className={`hidden sm:block absolute top-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
+      <div className={`hidden sm:block absolute top-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
+      <div className={`hidden sm:block absolute bottom-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
+      <div className={`hidden sm:block absolute bottom-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
 
       {item.val}
 
@@ -152,16 +152,16 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
       
       {/* Link Score Badge */}
       {item.linkScore !== null && item.linkScore > 0 && (
-        <div className="absolute -right-3 -top-3 z-20 animate-in fade-in zoom-in duration-300">
-           <div className="bg-amber-500 text-red-950 text-xs sm:text-sm font-bold px-1.5 py-0.5 rounded-full shadow-lg border-2 border-red-900 min-w-[1.8rem] text-center font-mono">
+        <div className="absolute -right-1.5 -top-1.5 sm:-right-3 sm:-top-3 z-20 animate-in fade-in zoom-in duration-300">
+           <div className="bg-amber-500 text-red-950 text-[10px] sm:text-sm font-bold px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full shadow-lg border sm:border-2 border-red-900 min-w-[1.2rem] sm:min-w-[1.8rem] text-center font-mono">
              +{item.linkScore}
            </div>
         </div>
       )}
       {/* Mirror Label Badge */}
       {mirrorLabel && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
-           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[10px] uppercase px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+        <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
+           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[8px] sm:text-[10px] uppercase px-1 sm:px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
              {mirrorLabel}
            </div>
         </div>
