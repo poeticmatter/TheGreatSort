@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from './components/Card';
-import SequenceDisplay from './components/SequenceDisplay';
+import InventoryGrid from './components/InventoryGrid';
 import { GamePhase } from '../types';
 import { useGame } from './hooks/useGame';
 import { useDailyLock } from './hooks/useDailyLock';
@@ -156,7 +156,7 @@ function TheGreatSortContent() {
               {/* --- CARDS GRID --- */}
               <div className="flex-1 flex items-center justify-center w-full">
                   {state.list.length > 0 ? (
-                    <SequenceDisplay
+                    <InventoryGrid
                       sequence={state.list}
                       selectedIndex={state.selection}
                       candidateIndices={candidateIndices}

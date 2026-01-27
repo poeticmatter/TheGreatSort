@@ -3,7 +3,7 @@ import { CardItem, Move } from '../../types';
 import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, calculateBatchScore, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
 import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
-import SequenceDisplay from './SequenceDisplay';
+import InventoryGrid from './InventoryGrid';
 
 interface DailyAuditProps {
   date: string;
@@ -194,9 +194,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                 {/* Board State */}
                                 <div className="w-full flex flex-col items-center">
 
-                                    <SequenceDisplay
+                                    <InventoryGrid
                                         sequence={step.list}
                                         highlightIndices={highlightIndices}
+                                        layout="GRID_STANDARD"
                                     />
                                 </div>
 
