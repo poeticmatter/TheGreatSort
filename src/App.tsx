@@ -15,9 +15,11 @@ import AuditWarningModal from './components/AuditWarningModal';
 import { DailyAudit } from './components/DailyAudit';
 import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
+import { calculateBatchScore, calculateRelativeEfficiency } from './utils/gameLogic';
 
 import { GameProvider } from './context/GameContext';
-import Minimap from './components/Minimap';
+import ComplianceMeter from './components/ComplianceMeter';
+import SubmissionLockModal from './components/SubmissionLockModal';
 import ToolBelt from './components/ToolBelt';
 import SubmitButton from './components/SubmitButton';
 
@@ -62,6 +64,63 @@ function TheGreatSortContent() {
     cancelAuditLock 
   } = useDailyLock(today, actions.triggerCurrentAudit);
 
+  // --- Compliance & Glitch Logic ---
+  const currentScore = React.useMemo(() => calculateBatchScore(state.list), [state.list]);
+
+  const efficiency = React.useMemo(() => {
+     if (state.optimalScore === null || state.worstScore === null) return null;
+     return calculateRelativeEfficiency(currentScore, state.optimalScore, state.worstScore);
+  }, [currentScore, state.optimalScore, state.worstScore]);
+
+  const glitchLevel: 0 | 1 | 2 = React.useMemo(() => {
+      if (state.initialScore === null) return 0;
+      if (currentScore >= state.initialScore) return 0;
+
+      const drop = state.initialScore - currentScore;
+      // If we have worstScore, we can scale anger. Otherwise assume any drop is bad.
+      if (state.worstScore !== null) {
+          const range = state.initialScore - state.worstScore;
+          if (drop > range * 0.5) return 2;
+      }
+      return 1;
+  }, [currentScore, state.initialScore, state.worstScore]);
+
+  // Resistance Trigger (Proactive)
+  useEffect(() => {
+     if (state.phase === GamePhase.PLANNING && efficiency === 0 && state.optimalScore !== null && state.worstScore !== null) {
+         actions.triggerResistance();
+     }
+  }, [efficiency, state.phase, actions, state.optimalScore, state.worstScore]);
+
+  // Submission Lock Modal
+  const [isSubmissionLockOpen, setIsSubmissionLockOpen] = React.useState(false);
+
+  const handleSubmitClick = () => {
+      // If result already computed (Results phase), or standard "Next Level" action
+      if (state.phase === GamePhase.RESULTS) {
+          if (state.gameMode === 'DAILY' && isLocked) {
+              actions.changeMode('PRACTICE');
+          } else if (state.gameMode === 'DAILY') {
+              actions.retryDaily();
+          } else {
+              actions.nextLevel();
+          }
+          return;
+      }
+
+      // If in Planning/Inspecting phase
+      // Check efficiency for Warning
+      if (efficiency !== null && efficiency < 100) {
+          setIsSubmissionLockOpen(true);
+      } else {
+          actions.startInspection();
+      }
+  };
+
+  const confirmSubmission = () => {
+      setIsSubmissionLockOpen(false);
+      actions.startInspection();
+  };
 
   // Helper to determine if we should highlight candidates
   // Helper to determine if we should highlight candidates
@@ -156,6 +215,12 @@ function TheGreatSortContent() {
           onCancel={cancelAuditLock}
       />
 
+      <SubmissionLockModal
+          isOpen={isSubmissionLockOpen}
+          onConfirm={confirmSubmission}
+          onCancel={() => setIsSubmissionLockOpen(false)}
+      />
+
       <Header
         level={state.level}
         levelScore={state.levelScore}
@@ -209,10 +274,14 @@ function TheGreatSortContent() {
 
                     {/* 3-Column Area */}
                     <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
-                        {/* Left: Minimap (Fixed Width) */}
-                        <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
-                             <div className="pointer-events-auto">
-                                <Minimap sequence={state.list} layout={layout} />
+                        {/* Left: ComplianceMeter (Fixed Width) */}
+                        <div className="w-24 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
+                             <div className="pointer-events-auto h-full">
+                                <ComplianceMeter
+                                    efficiency={efficiency}
+                                    status={glitchLevel > 1 ? 'critical' : (glitchLevel > 0 ? 'warning' : 'normal')}
+                                    layout={layout}
+                                />
                              </div>
                         </div>
 
@@ -244,16 +313,12 @@ function TheGreatSortContent() {
                                 phase={state.phase}
                                 gameMode={state.gameMode}
                                 listLength={state.list.length}
-                                onActionClick={
-                                    state.phase === GamePhase.RESULTS
-                                        ? (state.gameMode === 'DAILY' 
-                                            ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily) 
-                                            : actions.nextLevel)
-                                        : actions.startInspection
-                                }
+                                onActionClick={handleSubmitClick}
                                 disabled={isGameDisabled}
                                 isLocked={isLocked}
                                 compact={true}
+                                efficiency={efficiency}
+                                glitchLevel={glitchLevel}
                             />
                         </div>
                     </div>
@@ -289,7 +354,11 @@ function TheGreatSortContent() {
 
       {view === 'game' && layout !== 'VERTICAL_LIST' && (
         <>
-        <Minimap sequence={state.list} layout={layout} />
+        <ComplianceMeter
+            efficiency={efficiency}
+            status={glitchLevel > 1 ? 'critical' : (glitchLevel > 0 ? 'warning' : 'normal')}
+            layout={layout}
+        />
         <Footer
           phase={state.phase}
           gameMode={state.gameMode}
@@ -310,6 +379,8 @@ function TheGreatSortContent() {
           disabled={isGameDisabled}
           isLocked={isLocked}
           layout={layout}
+          efficiency={efficiency}
+          glitchLevel={glitchLevel}
         />
         </>
       )}

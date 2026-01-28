@@ -1,6 +1,6 @@
 import { GameState, GameAction } from './gameState';
 import { GamePhase, ToolInstance, Move, ToolType } from '../../types';
-import { applyMove } from '../utils/gameLogic';
+import { applyMove, calculateBatchScore } from '../utils/gameLogic';
 import { TOOL_REGISTRY } from '../tools';
 
 export const initialState: GameState = {
@@ -10,6 +10,7 @@ export const initialState: GameState = {
   totalOptimalScore: 0,
   optimalScore: null,
   worstScore: null,
+  initialScore: null,
   list: [],
   initialList: [],
   movesHistory: [],
@@ -67,6 +68,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         level: action.payload.level,
         list: action.payload.list,
         initialList: [...action.payload.list],
+        initialScore: calculateBatchScore(action.payload.list),
         toolsAvailable: action.payload.tools,
         currentSeed: action.payload.seed,
         optimalScore: action.payload.optimalScore ?? null,

@@ -19,11 +19,14 @@ interface FooterProps {
   disabled?: boolean;
   isLocked?: boolean;
   layout: LayoutType;
+  efficiency?: number | null;
+  glitchLevel?: 0 | 1 | 2;
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shouldShake, listLength,
-  onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked, layout
+  onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked, layout,
+  efficiency, glitchLevel
 }) => {
   // Controls are disabled if global disable is on OR if we are not in the planning phase (Inspection/Results)
   const controlsDisabled = disabled || phase !== GamePhase.PLANNING;
@@ -65,6 +68,8 @@ const Footer: React.FC<FooterProps> = ({
                onActionClick={onActionClick}
                disabled={disabled}
                isLocked={isLocked}
+               efficiency={efficiency}
+               glitchLevel={glitchLevel}
              />
           </div>
 

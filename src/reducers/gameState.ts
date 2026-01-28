@@ -7,6 +7,7 @@ export interface GameState {
   totalOptimalScore: number;
   optimalScore: number | null;
   worstScore: number | null;
+  initialScore: number | null;
   list: CardItem[];
   initialList: CardItem[];
   movesHistory: Move[];
