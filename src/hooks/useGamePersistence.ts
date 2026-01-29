@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { GameMode, GamePhase, ToolInstance, Move, CardItem } from '../../types';
-import { DailyState, generateLevel, generateTools, stringToSeed, gradeLevel } from '../utils/gameLogic';
+import { PersistenceService } from '../services/persistence';
+import { SaveStateSchema, DailyResult } from '../services/persistence/types';
 import { getTodayDateString } from '../utils/dateUtils';
+
+// Re-export specific helpers for backward compatibility if needed, 
+// or mostly for cleaner imports in useGame
+export const saveDailyScore = PersistenceService.updateDailyHistory;
+export const getDailyEntry = PersistenceService.getDailyHistoryEntry;
 
 export interface PersistenceState {
   movesHistory: Move[];
@@ -9,111 +15,50 @@ export interface PersistenceState {
   toolsAvailable: ToolInstance[];
   levelScore: number;
   optimalScore: number | null;
-  list: CardItem[]; // Needed for restoring visual state if daily completed
+  list: CardItem[];
+  currentSeed?: number;
 }
-
-export interface DailyEntry {
-  date: string;
-  highScore: number;
-  attempts: number;
-  lastPlayedAt: number; // timestamp
-}
-
-export type DailyHistory = Record<string, DailyEntry>;
-
-const DAILY_HISTORY_KEY = 'tgs_daily_history';
-
-
-
-export const getDailyEntry = (date: string): DailyEntry | null => {
-  try {
-    const historyStr = localStorage.getItem(DAILY_HISTORY_KEY);
-    if (!historyStr) return null;
-
-    const history: DailyHistory = JSON.parse(historyStr);
-    return history[date] || null;
-  } catch (e) {
-    console.error("Failed to load daily entry", e);
-    return null;
-  }
-};
-
-
-
-export const saveDailyScore = (date: string, score: number) => {
-  try {
-    const historyStr = localStorage.getItem(DAILY_HISTORY_KEY);
-    const history: DailyHistory = historyStr ? JSON.parse(historyStr) : {};
-
-    const existing = history[date];
-    const now = Date.now();
-
-    if (existing) {
-      history[date] = {
-        ...existing,
-        attempts: existing.attempts + 1,
-        highScore: Math.max(existing.highScore, score),
-        lastPlayedAt: now
-      };
-    } else {
-      history[date] = {
-        date,
-        highScore: score,
-        attempts: 1,
-        lastPlayedAt: now
-      };
-    }
-
-    localStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(history));
-  } catch (e) {
-    console.error("Failed to save daily score", e);
-  }
-};
 
 export const useGamePersistence = (
   gameMode: GameMode,
   currentState: PersistenceState,
   isGameLoaded: boolean
 ) => {
-  // Load Daily State Helper
-  const loadDaily = (): { state: DailyState | null, result: {score: number, optimal: number | null} | null } => {
-    const today = getTodayDateString();
-    try {
-      const savedStateStr = localStorage.getItem(`daily_state_${today}`);
-      const savedResultStr = localStorage.getItem(`daily_result_${today}`);
+  const [loadedState, setLoadedState] = useState<SaveStateSchema | null>(null);
+  const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
 
-      return {
-        state: savedStateStr ? JSON.parse(savedStateStr) : null,
-        result: savedResultStr ? JSON.parse(savedResultStr) : null
-      };
-    } catch (e) {
-      console.error("Failed to load daily state", e);
-      return { state: null, result: null };
-    }
+  // Load Daily Data
+  const loadDaily = () => {
+    const today = getTodayDateString();
+    const state = PersistenceService.loadDailyState(today);
+    const result = PersistenceService.getDailyResult(today);
+    return { state, result };
   };
 
-  const [loadedState, setLoadedState] = useState<DailyState | null>(() => loadDaily().state);
-  const [dailyResult, setDailyResult] = useState<{score: number, optimal: number | null} | null>(() => loadDaily().result);
-
-  // Cleanup old daily states on mount
+  // Initial Load & Mode Change
   useEffect(() => {
-    localStorage.removeItem('career_tools');
+    if (gameMode === 'DAILY') {
+      const { state, result } = loadDaily();
+      setLoadedState(state);
+      setDailyResult(result);
+    }
+  }, [gameMode]);
+
+  // Cleanup old keys (Cleanup Policy)
+  useEffect(() => {
+    // We can iterate generic keys if possible, or rely on service.
+    // For now simple cleanup of old raw keys if we were doing that, 
+    // but the service handles specific keys. 
+    // We can implement a cleanup routine in the service later.
     const today = getTodayDateString();
+    // Rudimentary cleanup of old daily keys from previous format if they exist
+    // This is optional but good for hygiene
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {
         localStorage.removeItem(key);
       }
     });
   }, []);
-
-  // Reload when switching back to DAILY
-  useEffect(() => {
-    if (gameMode === 'DAILY') {
-        const { state, result } = loadDaily();
-        setLoadedState(state);
-        setDailyResult(result);
-    }
-  }, [gameMode]);
 
   // Save Effect
   useEffect(() => {
@@ -122,35 +67,38 @@ export const useGamePersistence = (
 
     const today = getTodayDateString();
 
-    // Save Result if Phase is RESULTS
+    // 1. Save Result if finished
     if (currentState.phase === GamePhase.RESULTS) {
-      localStorage.setItem(`daily_result_${today}`, JSON.stringify({
+      PersistenceService.saveDailyResult(today, {
         score: currentState.levelScore,
-        // Removed optimal score to prevent spoilers in storage
-      }));
+        // optimal: currentState.optimalScore // Optional: decide if we save this
+      });
     }
 
-    // Save State
-    // If inspecting, save as PLANNING to allow resume
+    // 2. Save State (Snapshots)
+    // If inspecting, we save as PLANNING so we can resume smoothly
     const phaseToSave = currentState.phase === GamePhase.INSPECTING ? GamePhase.PLANNING : currentState.phase;
 
-    const stateToSave: DailyState = {
-      date: today,
+    PersistenceService.saveDailyState(today, {
+      seed: currentState.currentSeed || 0, // Should always exist for Daily
       moves: currentState.movesHistory,
-      phase: phaseToSave,
-      tools: currentState.toolsAvailable
-    };
-
-    localStorage.setItem(`daily_state_${today}`, JSON.stringify(stateToSave));
+      snapshot: {
+        list: currentState.list,
+        tools: currentState.toolsAvailable,
+        phase: phaseToSave,
+        levelScore: currentState.levelScore
+      }
+    });
 
   }, [
     gameMode,
+    isGameLoaded,
     currentState.phase,
     currentState.levelScore,
-    // currentState.optimalScore, // Removed dependency as we don't save it
     currentState.movesHistory,
     currentState.toolsAvailable,
-    isGameLoaded
+    currentState.list,
+    currentState.currentSeed
   ]);
 
   return {
@@ -158,3 +106,4 @@ export const useGamePersistence = (
     dailyResult
   };
 };
+
