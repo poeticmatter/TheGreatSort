@@ -46,13 +46,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   
   switch (layout) {
     case 'VERTICAL_LIST':
-      layoutClasses = "flex flex-col items-center gap-1 py-4";
+      layoutClasses = "flex flex-col items-center gap-0.5 sm:gap-1 py-4";
       break;
       
     case 'HORIZONTAL_STRIP':
     default:
       // Centered strip that scrolls if needed
-      layoutClasses = "flex flex-row gap-1 overflow-x-auto px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full";
+      layoutClasses = "flex flex-row gap-0.5 sm:gap-1 overflow-x-auto px-1 sm:px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full";
       break;
   }
 
@@ -107,12 +107,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                    isTargetCandidate={isCandidate}
                    isDisabled={disabledIndices.includes(idx)}
                    mirrorLabel={mirrorLabel}
+                   variant={layout === 'VERTICAL_LIST' ? 'wide' : 'standard'}
                  />
               </div>
               
               {!isLast && (
                   <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90' : ''}`}>
-                      <Play size={16} fill="currentColor" />
+                      <Play size={10} fill="currentColor" />
                   </div>
               )}
             </React.Fragment>

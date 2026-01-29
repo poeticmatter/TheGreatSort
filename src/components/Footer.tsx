@@ -2,7 +2,8 @@ import React from 'react';
 import { ToolInstance, GamePhase, GameMode } from '../../types';
 import ToolBelt from './ToolBelt';
 import SubmitButton from './SubmitButton';
-import UndoButton from './UndoButton';
+// import UndoButton from './UndoButton'; // Moved to ToolBelt
+import { LayoutType } from './InventoryGrid';
 
 interface FooterProps {
   phase: GamePhase;
@@ -17,46 +18,70 @@ interface FooterProps {
   canUndo: boolean;
   disabled?: boolean;
   isLocked?: boolean;
+  layout: LayoutType;
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shouldShake, listLength,
-  onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked
+  onToolClick, onActionClick, onUndo, canUndo, disabled, isLocked, layout
 }) => {
   // Controls are disabled if global disable is on OR if we are not in the planning phase (Inspection/Results)
   const controlsDisabled = disabled || phase !== GamePhase.PLANNING;
 
+  if (layout === 'VERTICAL_LIST') return null;
+
+  const toolBeltContent = (
+    <ToolBelt
+      toolsAvailable={toolsAvailable}
+      selectedTool={selectedTool}
+      shouldShake={shouldShake}
+      phase={phase}
+      onToolClick={onToolClick}
+      orientation={layout === 'VERTICAL_LIST' ? 'vertical' : 'horizontal'}
+      onUndo={onUndo}
+      canUndo={canUndo}
+      isDisabled={controlsDisabled}
+    />
+  );
+
   return (
-    <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20">
-      <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+    <>
+      {/* Footer Container */}
+      <footer className="p-4 border-t-4 border-red-900 bg-stone-900 pb-8 sm:pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-20 relative">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
 
-        <div className={`flex items-center gap-4 ${controlsDisabled ? 'grayscale pointer-events-none opacity-50' : ''}`}>
-             <UndoButton onClick={onUndo} disabled={!canUndo || controlsDisabled} />
-             
-             <ToolBelt
-                toolsAvailable={toolsAvailable}
-                selectedTool={selectedTool}
-                shouldShake={shouldShake}
-                phase={phase}
-                onToolClick={onToolClick}
+          <div className={`flex items-center gap-4 ${controlsDisabled && layout === 'HORIZONTAL_STRIP' ? 'grayscale pointer-events-none opacity-50' : ''}`}>
+               {/* Show ToolBelt here ONLY if Horizontal Strip (Default) */}
+               {layout === 'HORIZONTAL_STRIP' && toolBeltContent}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 items-center">
+             {/* Unified Action Button */}
+             <SubmitButton
+               phase={phase}
+               gameMode={gameMode}
+               listLength={listLength}
+               onActionClick={onActionClick}
+               disabled={disabled}
+               isLocked={isLocked}
              />
-        </div>
+          </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 items-center">
-           {/* Unified Action Button */}
-           <SubmitButton
-             phase={phase}
-             gameMode={gameMode}
-             listLength={listLength}
-             onActionClick={onActionClick}
-             disabled={disabled}
-             isLocked={isLocked}
-           />
         </div>
+      </footer>
 
-      </div>
-    </footer>
+      {/* Floating ToolBelt for Vertical Layout */}
+      {layout === 'VERTICAL_LIST' && (
+         <div className={`
+            fixed right-4 top-1/2 -translate-y-1/2 z-40 p-2 
+            bg-stone-900/50 backdrop-blur-sm rounded-xl border border-stone-700/50 shadow-xl
+            ${controlsDisabled ? 'grayscale pointer-events-none opacity-50' : ''}
+         `}>
+             {toolBeltContent}
+         </div>
+      )}
+    </>
   );
 };
 
