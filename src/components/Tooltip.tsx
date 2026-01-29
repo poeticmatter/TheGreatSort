@@ -32,7 +32,7 @@ const Tooltip: React.FC<TooltipProps> = ({
 
     if (gameMode === 'DAILY' && isLocked) return "Quota Locked. Training Mode Active.";
 
-    if (!selectedTool) return "Select a tool to begin.";
+    if (!selectedTool) return "Comrade, select a tool to re-educate the sequence.";
 
     // Get tool definition
     const toolDef = TOOLS[selectedTool.toUpperCase()];

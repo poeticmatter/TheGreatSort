@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
-import { stringToSeed, generateLevel, generateTools, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
+import { stringToSeed, generateLevel, generateTools, applyMove, calculateRelativeEfficiency, generateFlavorMap } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
 import { gradeLevel } from '../utils/gameLogic';
 import { useGameContext } from '../context/GameContext';
@@ -31,7 +31,7 @@ export function useGame() {
   } = useProjectedMetrics(state.list, state.initialList || [], state.optimalScore);
   // Note: state.initialList guaranteed by reducer, fallback [] just in case
 
-  const { mood, moodColor } = useSystemMood(yieldRatio);
+  const mood = useSystemMood(yieldRatio);
 
   // --- Handlers (Pass-Through) ---
 
@@ -126,6 +126,7 @@ export function useGame() {
 
         let currentList = generateLevel(9, seed);
         let currentTools = generateTools(seed); // Fresh tools
+        let currentFlavorMap = generateFlavorMap(seed);
 
         // If we have moves, replay them
         if (loadedState.moves) {
@@ -152,7 +153,8 @@ export function useGame() {
             list: currentList,
             tools: currentTools,
             seed: seed,
-            movesHistory: loadedState.moves
+            movesHistory: loadedState.moves,
+            flavorMap: currentFlavorMap
           }
         });
 
@@ -182,7 +184,8 @@ export function useGame() {
             level: 1,
             list: generateLevel(9, seed),
             tools: generateTools(seed),
-            seed: seed
+            seed: seed,
+            flavorMap: generateFlavorMap(seed)
           }
         });
         dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
@@ -223,7 +226,8 @@ export function useGame() {
         level: lvl,
         list,
         tools,
-        seed
+        seed,
+        flavorMap: generateFlavorMap(seed)
       }
     });
 
@@ -488,7 +492,7 @@ export function useGame() {
       // Projected Metrics exposed
       compliancePercentage,
       mood,
-      moodColor
+
     },
     actions: {
       changeMode,

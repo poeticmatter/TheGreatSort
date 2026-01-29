@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Rows3, Columns3 } from 'lucide-react';
+import { FlavorKey } from './config/flavorText';
 import Card from './components/Card';
 import InventoryGrid, { LayoutType } from './components/InventoryGrid';
 import { GamePhase } from '../types';
@@ -132,6 +133,9 @@ function TheGreatSortContent() {
     highlightIndices: [] // Not actively used in this view but required by hook
   });
 
+  const activeMood: FlavorKey = (!state.selectedTool) ? 'IDLE' : state.mood;
+  const flavorText = state.flavorMap ? state.flavorMap[activeMood] : "";
+
   const gridContent = (
     <div className="flex-1 flex items-center justify-center w-full min-h-0">
       {state.list.length > 0 ? (
@@ -214,7 +218,7 @@ function TheGreatSortContent() {
                 onViewAudit={requestAudit}
                 isLocked={isLocked}
               />
-              <FlavorText mood={state.mood} moodColor={state.moodColor} isIdle={!state.selectedTool} />
+              <FlavorText mood={activeMood} text={flavorText} />
             </div>
 
             {/* 3-Column Area */}
@@ -296,7 +300,7 @@ function TheGreatSortContent() {
                 onViewAudit={requestAudit}
                 isLocked={isLocked}
               />
-              <FlavorText mood={state.mood} moodColor={state.moodColor} isIdle={!state.selectedTool} />
+              <FlavorText mood={activeMood} text={flavorText} />
             </div>
 
             {gridContent}

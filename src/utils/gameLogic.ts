@@ -1,6 +1,7 @@
 import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
+import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
 
 export type SolverItem = ISortable;
 
@@ -61,7 +62,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
       // Logic for new Shield mechanic: "Select item to PROTECT"
       // Check Current Item Shield (Self-Protection)
       if (currentHasShield) {
-         survived = true;
+        survived = true;
       } else {
         const threshold = lastSurvivorVal!;
         const mode = sortDirection || 'ASC';
@@ -98,7 +99,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
 
 // Simple PRNG (Mulberry32)
 function mulberry32(a: number) {
-  return function() {
+  return function () {
     var t = a += 0x6D2B79F5;
     t = Math.imul(t ^ t >>> 15, t | 1);
     t ^= t + Math.imul(t ^ t >>> 7, t | 61);
@@ -118,7 +119,7 @@ export const stringToSeed = (str: string): number => {
 // Pure function to calculate score for a given number array
 export const calculateBatchScore = (numbers: ISortable[]): number => {
   if (!numbers || numbers.length === 0) return 0;
-  
+
   let score = 0;
   let lastSurvivor = 0;
   let lastSurvivorHasShield = false;
@@ -143,15 +144,15 @@ export const calculateBatchScore = (numbers: ISortable[]): number => {
     } else {
       // Check if protected by SELF shield
       if (currentHasShield) {
-          survived = true;
+        survived = true;
       } else {
-          // Normal logic
-          const effectiveMode = mode || 'ASC';
-          if (effectiveMode === 'ASC') {
-            if (currentVal >= lastSurvivor) survived = true;
-          } else {
-            if (currentVal <= lastSurvivor) survived = true;
-          }
+        // Normal logic
+        const effectiveMode = mode || 'ASC';
+        if (effectiveMode === 'ASC') {
+          if (currentVal >= lastSurvivor) survived = true;
+        } else {
+          if (currentVal <= lastSurvivor) survived = true;
+        }
       }
     }
 
@@ -200,7 +201,7 @@ export const findOptimalScore = (startList: CardItem[], availableTools?: ToolIns
 export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
   // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
-  
+
   let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
   let bestMoves: Move[] = [];
 
@@ -216,16 +217,16 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
     for (let t = 0; t < currentTools.length; t++) {
       const tool = currentTools[t];
       const nextTools = [...currentTools];
-      nextTools.splice(t, 1); 
+      nextTools.splice(t, 1);
 
       const strategy = TOOL_REGISTRY[tool];
       if (strategy) {
-          const possibleMoves = strategy.generateMoves(currentNums);
-          for (const move of possibleMoves) {
-              // Apply move using the strategy logic (note: move.targetIndex corresponds to selection)
-              const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-              search(nextNums, nextTools, [...currentMoves, move]);
-          }
+        const possibleMoves = strategy.generateMoves(currentNums);
+        for (const move of possibleMoves) {
+          // Apply move using the strategy logic (note: move.targetIndex corresponds to selection)
+          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
+          search(nextNums, nextTools, [...currentMoves, move]);
+        }
       }
     }
   };
@@ -268,11 +269,11 @@ export const findWorstSolution = (startList: CardItem[], availableTools: ToolTyp
 
       const strategy = TOOL_REGISTRY[tool];
       if (strategy) {
-          const possibleMoves = strategy.generateMoves(currentNums);
-          for (const move of possibleMoves) {
-              const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-              search(nextNums, nextTools, [...currentMoves, move]);
-          }
+        const possibleMoves = strategy.generateMoves(currentNums);
+        for (const move of possibleMoves) {
+          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
+          search(nextNums, nextTools, [...currentMoves, move]);
+        }
       }
     }
   };
@@ -286,66 +287,66 @@ export const findWorstSolution = (startList: CardItem[], availableTools: ToolTyp
 };
 
 export const calculateRelativeEfficiency = (userScore: number, optimal: number, worst: number): number => {
-    if (optimal === worst) return 100;
-    const efficiency = ((userScore - worst) / (optimal - worst)) * 100;
-    return Math.max(0, Math.min(100, Math.round(efficiency)));
+  if (optimal === worst) return 100;
+  const efficiency = ((userScore - worst) / (optimal - worst)) * 100;
+  return Math.max(0, Math.min(100, Math.round(efficiency)));
 };
 
 
 
 // Apply a move to a list and return the new list
 export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): T[] {
-    const strategy = TOOL_REGISTRY[tool];
-    if (strategy) {
-        // We cast to ISortable[] for the strategy, and rely on it returning T[] implicitly (same structure)
-        // However, strategy.apply returns ISortable[]. We need to ensure types align.
-        // T extends ISortable. Strategy returns ISortable[].
-        // The strategies use `copy(list)` which maps `{...item}`. This preserves extra props like `id` if they exist on the input objects.
-        // So passing `list` (T[]) into `strategy.apply` works at runtime.
-        // TypeScript might complain about return type not being guaranteed T[].
-        // We can cast the result.
+  const strategy = TOOL_REGISTRY[tool];
+  if (strategy) {
+    // We cast to ISortable[] for the strategy, and rely on it returning T[] implicitly (same structure)
+    // However, strategy.apply returns ISortable[]. We need to ensure types align.
+    // T extends ISortable. Strategy returns ISortable[].
+    // The strategies use `copy(list)` which maps `{...item}`. This preserves extra props like `id` if they exist on the input objects.
+    // So passing `list` (T[]) into `strategy.apply` works at runtime.
+    // TypeScript might complain about return type not being guaranteed T[].
+    // We can cast the result.
 
-        // Wait, strategy.apply takes ISortable[]. list is T[]. T extends ISortable. OK.
-        // Returns ISortable[]. We need T[].
-        // The implementation of strategies preserves properties via spread.
-        return strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
-    }
-    return list;
+    // Wait, strategy.apply takes ISortable[]. list is T[]. T extends ISortable. OK.
+    // Returns ISortable[]. We need T[].
+    // The implementation of strategies preserves properties via spread.
+    return strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
+  }
+  return list;
 }
 
 // Generate 4 tools from the pool
 export const generateTools = (seed?: number): ToolInstance[] => {
-    const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
-    const tools: ToolInstance[] = [];
+  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
+  const tools: ToolInstance[] = [];
 
-    // Calculate total weight
-    const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
-        const def = TOOL_META[toolId.toUpperCase()];
-        return sum + (def ? def.weight : 0);
-    }, 0);
+  // Calculate total weight
+  const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
+    const def = TOOL_META[toolId.toUpperCase()];
+    return sum + (def ? def.weight : 0);
+  }, 0);
 
-    // Pick 4 tools allowing duplicates
-    for (let i = 0; i < 4; i++) {
-        let threshold = random() * totalWeight;
-        let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
+  // Pick 4 tools allowing duplicates
+  for (let i = 0; i < 4; i++) {
+    let threshold = random() * totalWeight;
+    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
 
-        for (const toolId of ALL_TOOL_TYPES) {
-            const def = TOOL_META[toolId.toUpperCase()];
-            const weight = def ? def.weight : 0;
-            threshold -= weight;
-            if (threshold < 0) {
-                selectedType = toolId as ToolType;
-                break;
-            }
-        }
-
-        tools.push({
-            instanceId: `tool-${i}-${Math.random().toString(36).substr(2, 5)}`,
-            type: selectedType,
-            used: false
-        });
+    for (const toolId of ALL_TOOL_TYPES) {
+      const def = TOOL_META[toolId.toUpperCase()];
+      const weight = def ? def.weight : 0;
+      threshold -= weight;
+      if (threshold < 0) {
+        selectedType = toolId as ToolType;
+        break;
+      }
     }
-    return tools;
+
+    tools.push({
+      instanceId: `tool-${i}-${Math.random().toString(36).substr(2, 5)}`,
+      type: selectedType,
+      used: false
+    });
+  }
+  return tools;
 };
 
 // Utility to generate random levels
@@ -356,7 +357,7 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
   // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
-  
+
   // Fisher-Yates Shuffle the pool
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
@@ -379,4 +380,30 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
       linkScore: null
     };
   });
+};
+
+
+export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
+  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
+  const keys: FlavorKey[] = ["IDLE", "NORMAL", "CONCERNED", "HOSTILE", "CRITICAL"];
+  const map = {} as Record<FlavorKey, string>;
+
+  keys.forEach(key => {
+    const options = FLAVOR_DATABASE[key];
+    // Weighted random selection based on seed
+    const totalWeight = options.reduce((sum, item) => sum + item.weight, 0);
+    let r = random() * totalWeight;
+    let selected = options[0].text;
+
+    for (const item of options) {
+      r -= item.weight;
+      if (r < 0) {
+        selected = item.text;
+        break;
+      }
+    }
+    map[key] = selected;
+  });
+
+  return map;
 };

@@ -1,4 +1,5 @@
-import { CardItem, GamePhase, ToolInstance, Move, ToolType } from '../../types';
+import { CardItem, GamePhase, ToolInstance, Move } from '../../types';
+import { FlavorKey } from '../config/flavorText';
 
 export interface GameState {
   level: number;
@@ -18,32 +19,34 @@ export interface GameState {
   shakeTools: number;
   dailyCompleted: boolean;
   currentSeed: number | undefined;
+  flavorMap?: Record<FlavorKey, string>;
 }
 
 export type GameAction =
-  | { 
-      type: 'START_LEVEL'; 
-      payload: { 
-        level: number; 
-        list: CardItem[]; 
-        tools: ToolInstance[]; 
-        seed?: number; 
-        optimalScore?: number;
-        worstScore?: number;
-        movesHistory?: Move[];
-      } 
+  | {
+    type: 'START_LEVEL';
+    payload: {
+      level: number;
+      list: CardItem[];
+      tools: ToolInstance[];
+      seed?: number;
+      optimalScore?: number;
+      worstScore?: number;
+      movesHistory?: Move[];
+      flavorMap?: Record<FlavorKey, string>;
     }
+  }
   | { type: 'INTERACT_TILE'; payload: { index: number } }
   | { type: 'INTERACT_TOOL'; payload: { toolInstanceId: string } }
   | { type: 'CANCEL_SELECTION' }
-  | { 
-      type: 'INSPECTION_STEP'; 
-      payload: { 
-        list: CardItem[]; 
-        scoreDelta: number; 
-        detectedMode?: 'ASC' | 'DESC' | null;
-      } 
+  | {
+    type: 'INSPECTION_STEP';
+    payload: {
+      list: CardItem[];
+      scoreDelta: number;
+      detectedMode?: 'ASC' | 'DESC' | null;
     }
+  }
   | { type: 'TRIGGER_INVALID_MOVE'; payload: { shake: boolean } }
   | { type: 'RESET_STATS' }
   | { type: 'SET_PHASE'; payload: { phase: GamePhase } }
