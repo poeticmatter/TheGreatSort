@@ -16,12 +16,12 @@ interface TooltipProps {
   isLocked?: boolean;
 }
 
+import { TOOLS } from '../constants';
+
 const Tooltip: React.FC<TooltipProps> = ({
   phase,
   selectedTool,
   selection,
-  levelScore,
-  detectedMode,
   gameMode,
   isLocked
 }) => {
@@ -34,14 +34,17 @@ const Tooltip: React.FC<TooltipProps> = ({
 
     if (!selectedTool) return "Select a tool to begin.";
 
+    // Get tool definition
+    const toolDef = TOOLS[selectedTool.toUpperCase()];
+    const toolName = toolDef ? toolDef.name : selectedTool;
+    const toolDesc = toolDef ? toolDef.desc : "";
+
     if (selection === null) {
-      // First click needed
-      // TODO: Refine this based on actual tool logic (requiresSelection vs not)
-      // But generally "Select target" works for first click.
-      return `Select target for ${selectedTool}...`;
+      // First click needed: Show Description to guide user on what the tool does
+      return toolDesc || `Select target for ${toolName}...`;
     } else {
       // Second click needed
-      return `Select destination for ${selectedTool}...`;
+      return `Select destination for ${toolName}...`;
     }
   };
 
