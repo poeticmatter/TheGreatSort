@@ -1,33 +1,33 @@
-import { ToolInstance, Move, GamePhase, CardItem } from '../../types';
+import { ToolInstance, Move, GamePhase, CardItem } from '../../../types';
 
 export const SCHEMA_VERSION = 1;
 
 export interface SaveStateSchema {
-  version: number;
-  date: string;
-  gameMode: string;
-  seed: number; // The initialization seed
-  moves: Move[]; // The history of moves made
-  
-  // Snapshot data (Strictly optional, can be reconstructed from moves + seed if needed, 
-  // but kept for faster load times or inspecting state)
-  snapshot?: {
-    list: CardItem[];
-    tools: ToolInstance[];
-    phase: GamePhase;
-    levelScore: number;
-  };
+    version: number;
+    date: string;
+    gameMode: string;
+    seed: number; // The initialization seed
+    moves: Move[]; // The history of moves made
+
+    // Snapshot data (Strictly optional, can be reconstructed from moves + seed if needed, 
+    // but kept for faster load times or inspecting state)
+    snapshot?: {
+        list: CardItem[];
+        tools: ToolInstance[];
+        phase: GamePhase;
+        levelScore: number;
+    };
 }
 
 export interface CachedSolution {
-  optimalScore: number;
-  worstScore?: number;
+    optimalScore: number;
+    worstScore?: number;
 }
 
 export interface DailyResult {
-  score: number;
-  optimal?: number; 
-  date: string;
+    score: number;
+    optimal?: number;
+    date: string;
 }
 
 export type DailyHistory = Record<string, {

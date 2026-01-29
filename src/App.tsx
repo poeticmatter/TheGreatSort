@@ -18,7 +18,8 @@ import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
 
 import { GameProvider } from './context/GameContext';
-import Minimap from './components/Minimap';
+// import Minimap from './components/Minimap'; // Replaced
+import { ComplianceMeter } from './components/ComplianceMeter';
 import ToolBelt from './components/ToolBelt';
 import SubmitButton from './components/SubmitButton';
 
@@ -217,10 +218,15 @@ function TheGreatSortContent() {
 
             {/* 3-Column Area */}
             <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
-              {/* Left: Minimap (Fixed Width) */}
+              {/* Left: ComplianceMeter (Fixed Width) */}
               <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
-                <div className="pointer-events-auto">
-                  <Minimap sequence={state.list} layout={layout} />
+                <div className="pointer-events-auto h-full flex items-center">
+                  <ComplianceMeter
+                    compliancePercentage={state.compliancePercentage}
+                    moodText={state.moodText}
+                    moodColor={state.moodColor}
+                    layout={layout}
+                  />
                 </div>
               </div>
 
@@ -262,6 +268,7 @@ function TheGreatSortContent() {
                   disabled={isGameDisabled}
                   isLocked={isLocked}
                   compact={true}
+                  compliancePercentage={state.compliancePercentage}
                 />
               </div>
             </div>
@@ -297,7 +304,12 @@ function TheGreatSortContent() {
 
       {view === 'game' && layout !== 'VERTICAL_LIST' && (
         <>
-          <Minimap sequence={state.list} layout={layout} />
+          <ComplianceMeter
+            compliancePercentage={state.compliancePercentage}
+            moodText={state.moodText}
+            moodColor={state.moodColor}
+            layout={layout}
+          />
           <Footer
             phase={state.phase}
             gameMode={state.gameMode}

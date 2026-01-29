@@ -8,6 +8,8 @@ import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePers
 import { PersistenceService } from '../services/persistence';
 import { useGameLoop } from './useGameLoop';
 import { useAnalytics } from './useAnalytics';
+import { useProjectedMetrics } from './useProjectedMetrics';
+import { useSystemMood } from './useSystemMood';
 
 export function useGame() {
   const { state, dispatch } = useGameContext();
@@ -19,6 +21,17 @@ export function useGame() {
 
   const [resistanceActive, setResistanceActive] = useState(false);
   const [resistancePending, setResistancePending] = useState(false);
+
+  // --- Projection Engine & Mood System ---
+  const {
+    compliancePercentage,
+    isZeroYield,
+    yieldRatio,
+    currentScore
+  } = useProjectedMetrics(state.list, state.initialList || [], state.optimalScore);
+  // Note: state.initialList guaranteed by reducer, fallback [] just in case
+
+  const { moodText, moodColor, mood } = useSystemMood(yieldRatio);
 
   // --- Handlers (Pass-Through) ---
 
@@ -224,9 +237,46 @@ export function useGame() {
     setAuditState(null);
   }, []);
 
+  // --- Reset / Burn Letter Handler ---
   const closeResistance = useCallback(() => {
     setResistanceActive(false);
-  }, []);
+
+    // Safety Net Reset: If core metric was violated (Zero Yield), we MUST reset the level entirely.
+    // Logic: If the user was in resistance screen (likely triggered by Zero Yield or Audit),
+    // We should enforce a retry cleanly.
+
+    // Re-start level with same seed.
+    if (state.currentSeed !== undefined) {
+      // We use startLevel logic but need to be careful not to create NEW random seed if PRACTICE.
+      // We want SAME seed.
+
+      // Re-generate params
+      const seed = state.currentSeed;
+      // Note: startLevel(1, gameMode, seed) would work.
+      // But startLevel is not in useCallback dependency array to avoid cycles if complex.
+      // Let's implement minimal dispatch here or expose startLevel carefully.
+
+      // Actually startLevel IS accessible here.
+      // But dependencies? 'startLevel' depends on gameMode, which is in scope.
+
+      // Let's replicate strict reset logic manually to be safe/atomic
+      const list = generateLevel(9, seed);
+      const tools = generateTools(seed); // Fresh tools
+
+      dispatch({
+        type: 'START_LEVEL',
+        payload: {
+          level: state.level,
+          list,
+          tools,
+          seed
+        }
+      });
+
+      dispatch({ type: 'RESET_STATS' }); // Optional: Reset score accumulation for this run
+    }
+
+  }, [state.currentSeed, state.level, dispatch]);
 
   // --- Effects ---
 
@@ -259,8 +309,9 @@ export function useGame() {
     };
   }, [dispatch, state.currentSeed, gameMode]);
 
-  // --- Resistance Check ---
+  // --- Resistance Check (Legacy + New Safety Net) ---
   useEffect(() => {
+    // 1. Efficiency Check (Results Phase)
     if (gameMode === 'DAILY' &&
       state.phase === GamePhase.RESULTS &&
       state.optimalScore !== null &&
@@ -283,7 +334,27 @@ export function useGame() {
         setResistancePending(false);
       }
     }
-  }, [gameMode, state.phase, state.optimalScore, state.worstScore, state.levelScore, resistancePending]);
+
+    // 2. Zero-Yield Safety Net (Planning Phase / Active Play)
+    // "If metrics.isZeroYield is true AND resistanceActive is false, immediately call triggerResistance()."
+    if (isZeroYield && !resistanceActive && state.list.length > 0) {
+      // Additional guard: Only if we have actually made moves or list is not empty (already checked in trigger)
+      // But isZeroYield logic: (currentScore === 0 && list.length > 0).
+      // If start of game score is 0? initialList score should not be 0 usually.
+      // But if it is, we shouldn't lock out immediately?
+      // calculateBatchScore of random list is rarely 0.
+      // Yet, if random seed spawns a 0 score list, user is doomed?
+      // IsZeroYield = currentScore == 0.
+      // If initialScore == 0, then we might have issue.
+      // But let's follow the instruction: "Trigger ... if isZeroYield".
+
+      triggerResistance();
+    }
+
+  }, [
+    gameMode, state.phase, state.optimalScore, state.worstScore, state.levelScore, resistancePending,
+    isZeroYield, resistanceActive, state.list.length, triggerResistance
+  ]);
 
   // Trigger Calculation
   useEffect(() => {
@@ -414,6 +485,10 @@ export function useGame() {
       auditState,
       resistanceActive,
       selectedTool: state.selectedToolInstanceId,
+      // Projected Metrics exposed
+      compliancePercentage,
+      moodText,
+      moodColor
     },
     actions: {
       changeMode,
