@@ -19,7 +19,7 @@ export const ComplianceMeter: React.FC<ComplianceMeterProps> = ({
     // - Vertical: Left sidebar column
 
     const finalContainerClasses = layout === 'HORIZONTAL_STRIP'
-        ? "fixed bottom-24 left-1/2 -translate-x-1/2 z-30 w-[400px] flex flex-col gap-1 items-center pointer-events-none" // Floating Desktop
+        ? "relative w-[400px] flex flex-col gap-1 items-center pointer-events-none mt-auto mb-4" // Static in document flow
         : "w-full h-full flex flex-col items-center py-2 gap-2 pointer-events-none"; // Vertical Sidebar
 
     // Progress Bar Wrapper
