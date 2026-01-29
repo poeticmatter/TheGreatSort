@@ -21,6 +21,15 @@ export function useSolverService(
         isCalculating: false,
     });
 
+    // Reset state when seed or mode changes to ensure we don't stick to old results
+    useEffect(() => {
+        setSolverState({
+            optimalScore: null,
+            worstScore: null,
+            isCalculating: false,
+        });
+    }, [currentSeed, gameMode]);
+
     const workerRef = useRef<Worker | null>(null);
 
     useEffect(() => {

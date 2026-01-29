@@ -8,7 +8,8 @@ interface ResistanceLetterProps {
 export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) => {
   const [closing, setClosing] = useState(false);
 
-  const handleClose = () => {
+  const handleJoin = () => {
+    localStorage.setItem('joinedResistance', 'true');
     setClosing(true);
     setTimeout(onClose, 300);
   };
@@ -21,7 +22,7 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) =
           50% { color: #000000; }
         }
       `}</style>
-      <div 
+      <div
         className="relative w-full max-w-md text-stone-900 shadow-2xl rounded-sm transform rotate-1 overflow-hidden isolate"
         style={{
           backgroundImage: `url(${letterBg})`,
@@ -31,7 +32,7 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) =
         }}
       >
         <div className="relative z-10 font-['Courier_Prime'] flex flex-col h-full pt-20 px-12 pb-32">
-          
+
           {/* Main Text Content */}
           <div className="flex-grow flex">
             <div className="space-y-4 text-sm md:text-[15px] leading-loose text-[#1c1917] mix-blend-multiply opacity-90 font-normal font-['Courier_Prime']">
@@ -49,15 +50,14 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) =
 
           {/* Footer Button - Positioned at bottom */}
           <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-             <button 
-               onClick={handleClose}
-               style={{ animation: 'text-pulse-to-black 2s ease-in-out infinite' }}
-               className="text-stone-700 text-xs uppercase tracking-widest hover:text-red-800 hover:animate-none hover:underline transition-all font-['Courier_Prime']"
-             >
-               [ Burn Message ]
-             </button>
+            <button
+              onClick={handleJoin}
+              className="text-blue-700 text-xs uppercase tracking-widest hover:text-blue-500 hover:underline transition-all font-['Courier_Prime']"
+            >
+              [ Join the Resistance ]
+            </button>
           </div>
-          
+
         </div>
       </div>
     </div>

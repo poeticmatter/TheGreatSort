@@ -152,10 +152,13 @@ export function useGame() {
 
   // Zero-Yield Safety Net (Triggering Resistance)
   useEffect(() => {
-    if (isZeroYield && !metaState.resistanceActive && coreState.list.length > 0) {
+    const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
+    const joined = localStorage.getItem('joinedResistance') === 'true';
+
+    if (scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
       metaActions.triggerResistance();
     }
-  }, [isZeroYield, metaState.resistanceActive, coreState.list.length, metaActions]);
+  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions]);
 
 
   const closeResistanceAndReset = useCallback(() => {
@@ -163,13 +166,17 @@ export function useGame() {
 
     // Safety Net Reset Logic
     if (coreState.currentSeed !== undefined) {
-      const seed = coreState.currentSeed;
+      // In PRACTICE, give a new seed to avoid "cursed" levels where start == worst.
+      // In DAILY, we must persist the seed.
+      const isDaily = metaState.gameMode === 'DAILY';
+      const seed = isDaily ? coreState.currentSeed : Math.random() * 1000000;
+
       const list = generateLevel(9, seed);
       const tools = generateTools(seed);
       coreActions.initLevel(coreState.level, list, tools, seed, generateFlavorMap(seed), []);
       coreDispatch({ type: 'RESET_STATS' });
     }
-  }, [metaActions, coreState.currentSeed, coreState.level, coreActions, coreDispatch]);
+  }, [metaActions, coreState.currentSeed, coreState.level, coreActions, coreDispatch, metaState.gameMode]);
 
 
   const changeMode = useCallback((newMode: GameMode) => {
