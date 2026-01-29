@@ -3,20 +3,34 @@ import { FlavorKey } from '../config/flavorText';
 
 export type SystemMood = Exclude<FlavorKey, 'IDLE'>;
 
-export const useSystemMood = (yieldRatio: number): SystemMood => {
+// 100% - Done
+// 95% and above - Acceptable
+// 90% and above - Adequate
+// Initial State (Normal) > CONCERNED > CRITICAL (Halfway to 0)
+
+export const useSystemMood = (compliancePercentage: number, startingCompliance: number): SystemMood => {
     return useMemo(() => {
-        let mood: SystemMood = 'NORMAL';
+        if (compliancePercentage >= 100) return 'DONE';
+        if (compliancePercentage >= 95) return 'ACCEPTABLE';
+        if (compliancePercentage >= 90) return 'ADEQUATE';
 
-        if (yieldRatio > 1.0) {
-            mood = 'NORMAL';
-        } else if (yieldRatio >= 0.8) {
-            mood = 'CONCERNED';
-        } else if (yieldRatio >= 0.5) {
-            mood = 'HOSTILE';
-        } else {
-            mood = 'CRITICAL';
-        }
+        if (compliancePercentage >= startingCompliance) return 'NORMAL';
 
-        return mood;
-    }, [yieldRatio]);
+        // Range from 0 to StartingCompliance
+        // "Below starting is Concern"
+        // "Third of way to 0% is Suspicious" -> 2/3rds of Start remains
+        // "Two thirds of way to 0% is Hostile" -> 1/3rd of Start remains
+
+        const oneThird = startingCompliance / 3;
+        const twoThirds = oneThird * 2;
+
+        // Between Start and 2/3 Start
+        if (compliancePercentage > twoThirds) return 'CONCERNED';
+
+        // Between 2/3 Start and 1/3 Start
+        if (compliancePercentage > oneThird) return 'SUSPICIOUS';
+
+        // Below 1/3 Start
+        return 'HOSTILE';
+    }, [compliancePercentage, startingCompliance]);
 };

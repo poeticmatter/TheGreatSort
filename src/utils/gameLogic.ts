@@ -385,7 +385,7 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
 
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
-  const keys: FlavorKey[] = ["IDLE", "NORMAL", "CONCERNED", "HOSTILE", "CRITICAL"];
+  const keys: FlavorKey[] = ["DONE", "ACCEPTABLE", "ADEQUATE", "NORMAL", "CONCERNED", "HOSTILE", "SUSPICIOUS"];
   const map = {} as Record<FlavorKey, string>;
 
   keys.forEach(key => {

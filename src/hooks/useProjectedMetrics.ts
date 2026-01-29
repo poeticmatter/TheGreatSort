@@ -6,6 +6,7 @@ interface ProjectedMetrics {
     currentScore: number;
     startingScore: number;
     compliancePercentage: number;
+    startingCompliance: number;
     yieldRatio: number;
     isZeroYield: boolean;
 }
@@ -13,7 +14,8 @@ interface ProjectedMetrics {
 export const useProjectedMetrics = (
     currentList: CardItem[],
     initialList: CardItem[],
-    optimalScore: number | null
+    optimalScore: number | null,
+    worstScore: number | null
 ): ProjectedMetrics => {
     return useMemo(() => {
         // 1. Calculate Current Score
@@ -24,24 +26,35 @@ export const useProjectedMetrics = (
         // We use calculateBatchScore on the initialList directly (Optimization: No regeneration)
         const startingScore = calculateBatchScore(initialList);
 
-        // 3. Compliance Percentage (Current vs Optimal)
-        // Avoid division by zero if optimalScore is null or 0.
+        // 3. Compliance Percentage (Current vs Optimal/Worst)
         let compliancePercentage = 0;
-        if (optimalScore && optimalScore > 0) {
+        let startingCompliance = 0;
+
+        if (optimalScore !== null && worstScore !== null && optimalScore > worstScore) {
+            // Standard Range Calculation
+            const range = optimalScore - worstScore;
+
+            const currentProgress = currentScore - worstScore;
+            compliancePercentage = Math.round((currentProgress / range) * 100);
+
+            const startProgress = startingScore - worstScore;
+            startingCompliance = Math.round((startProgress / range) * 100);
+
+        } else if (optimalScore && optimalScore > 0) {
+            // Fallback
             compliancePercentage = Math.round((currentScore / optimalScore) * 100);
+            startingCompliance = Math.round((startingScore / optimalScore) * 100);
         }
-        // Cap at 100 visually (logic might allow >100 if user beats "optimal", but UI likely wants 0-100)
-        // The requirement says "Cap at 100 visually". We'll cap the number here for simplicity.
+
+        // Cap visually
         compliancePercentage = Math.min(100, Math.max(0, compliancePercentage));
+        startingCompliance = Math.min(100, Math.max(0, startingCompliance));
 
         // 4. Yield Ratio (Current vs Starting)
-        // Avoid division by zero
         let yieldRatio = 0;
         if (startingScore > 0) {
             yieldRatio = currentScore / startingScore;
         } else if (currentScore > 0) {
-            // If starting score was 0 (unlikely but possible), and current is >0, ratio is infinite? 
-            // Let's safe-guard to 1.0 or high number.
             yieldRatio = 1.0;
         }
 
@@ -52,8 +65,9 @@ export const useProjectedMetrics = (
             currentScore,
             startingScore,
             compliancePercentage,
+            startingCompliance,
             yieldRatio,
             isZeroYield
         };
-    }, [currentList, initialList, optimalScore]);
+    }, [currentList, initialList, optimalScore, worstScore]);
 };

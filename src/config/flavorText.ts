@@ -1,6 +1,4 @@
-import { SystemMood } from '../hooks/useSystemMood';
-
-export type FlavorKey = 'IDLE' | 'NORMAL' | 'CONCERNED' | 'HOSTILE' | 'CRITICAL';
+export type FlavorKey = 'DONE' | 'ACCEPTABLE' | 'ADEQUATE' | 'NORMAL' | 'CONCERNED' | 'HOSTILE' | 'SUSPICIOUS';
 
 export interface FlavorEntry {
     text: string;
@@ -8,34 +6,53 @@ export interface FlavorEntry {
 }
 
 export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
-    IDLE: [
-        { text: "Awaiting input, Comrade.", weight: 1.0 },
-        { text: "The queue grows impatient.", weight: 0.5 },
-        { text: "Order must be maintained.", weight: 0.5 },
-        { text: "Efficiency is our watchword.", weight: 0.3 },
+    DONE: [
+        { text: "DONE", weight: 1.0 },
+        { text: "DONE", weight: 0.8 },
+        { text: "DONE", weight: 0.8 },
+    ],
+    ACCEPTABLE: [
+        { text: "ACCEPTABLE", weight: 1.0 },
+        { text: "ACCEPTABLE", weight: 0.8 },
+        { text: "ACCEPTABLE", weight: 0.8 },
+    ],
+    ADEQUATE: [
+        { text: "ADEQUATE", weight: 1.0 },
+        { text: "ADEQUATE", weight: 0.8 },
+        { text: "ADEQUATE", weight: 0.5 },
     ],
     NORMAL: [
-        { text: "Productivity: Optimal", weight: 1.0 },
-        { text: "The Bureau commends your efficiency.", weight: 0.5 },
-        { text: "Keep up the pace.", weight: 0.5 },
-        { text: "Systems nominal.", weight: 0.8 },
+        { text: "NORMAL", weight: 1.0 },
+        { text: "NORMAL", weight: 0.5 },
+        { text: "NORMAL", weight: 0.5 },
+        { text: "NORMAL", weight: 0.8 },
     ],
     CONCERNED: [
-        { text: "Notice: Efficiency falling below baseline.", weight: 1.0 },
-        { text: "Your performance is being monitored.", weight: 0.5 },
-        { text: "Do not falter.", weight: 0.5 },
-        { text: "Metrics are dipping.", weight: 0.8 },
+        { text: "CONCERNED", weight: 1.0 },
+        { text: "CONCERNED", weight: 0.5 },
+        { text: "CONCERNED", weight: 0.5 },
+        { text: "CONCERNED", weight: 0.8 },
     ],
     HOSTILE: [
-        { text: "Warning: Sabotage detected. Compliance mandatory.", weight: 1.0 },
-        { text: "Incompetence will not be tolerated.", weight: 0.8 },
-        { text: "The Ministry is watching.", weight: 0.8 },
-        { text: "Correct course immediately.", weight: 0.5 },
+        { text: "HOSTILE", weight: 1.0 },
+        { text: "HOSTILE", weight: 0.8 },
+        { text: "HOSTILE", weight: 0.8 },
+        { text: "HOSTILE", weight: 0.5 },
     ],
-    CRITICAL: [
-        { text: "CRITICAL ERROR: ASSET LIQUIDATION IMMINENT.", weight: 1.0 },
-        { text: "FAILURE PROMINENT. TERMINATION SEQUENCE PRIMED.", weight: 0.8 },
-        { text: "YOU HAVE FAILED THE STATE.", weight: 0.8 },
-        { text: "ABORT. ABORT. ABORT.", weight: 0.5 },
+    SUSPICIOUS: [
+        { text: "SUSPICIOUS", weight: 1.0 },
+        { text: "SUSPICIOUS", weight: 0.8 },
+        { text: "SUSPICIOUS", weight: 0.8 },
+        { text: "SUSPICIOUS", weight: 0.5 },
     ]
+};
+
+export const FLAVOR_COLORS: Record<FlavorKey, string> = {
+    DONE: "text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] font-bold",
+    ACCEPTABLE: "text-amber-400 font-semibold",
+    ADEQUATE: "text-amber-500/90",
+    NORMAL: "text-stone-500",
+    CONCERNED: "text-red-400/90",
+    SUSPICIOUS: "text-red-500 font-semibold",
+    HOSTILE: "text-red-600 font-bold animate-pulse"
 };

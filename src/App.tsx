@@ -133,8 +133,7 @@ function TheGreatSortContent() {
     highlightIndices: [] // Not actively used in this view but required by hook
   });
 
-  const activeMood: FlavorKey = (!state.selectedTool) ? 'IDLE' : state.mood;
-  const flavorText = state.flavorMap ? state.flavorMap[activeMood] : "";
+  const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
   const gridContent = (
     <div className="flex-1 flex items-center justify-center w-full min-h-0">
@@ -218,7 +217,7 @@ function TheGreatSortContent() {
                 onViewAudit={requestAudit}
                 isLocked={isLocked}
               />
-              <FlavorText mood={activeMood} text={flavorText} />
+              <FlavorText mood={state.mood} text={flavorText} />
             </div>
 
             {/* 3-Column Area */}
@@ -300,7 +299,7 @@ function TheGreatSortContent() {
                 onViewAudit={requestAudit}
                 isLocked={isLocked}
               />
-              <FlavorText mood={activeMood} text={flavorText} />
+              <FlavorText mood={state.mood} text={flavorText} />
             </div>
 
             {gridContent}

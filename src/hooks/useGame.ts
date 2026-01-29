@@ -25,13 +25,14 @@ export function useGame() {
   // --- Projection Engine & Mood System ---
   const {
     compliancePercentage,
+    startingCompliance,
     isZeroYield,
     yieldRatio,
     currentScore
-  } = useProjectedMetrics(state.list, state.initialList || [], state.optimalScore);
+  } = useProjectedMetrics(state.list, state.initialList || [], state.optimalScore, state.worstScore);
   // Note: state.initialList guaranteed by reducer, fallback [] just in case
 
-  const mood = useSystemMood(yieldRatio);
+  const mood = useSystemMood(compliancePercentage, startingCompliance);
 
   // --- Handlers (Pass-Through) ---
 
