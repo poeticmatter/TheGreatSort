@@ -11,15 +11,15 @@ import { useGridPresentation } from './hooks/useGridPresentation';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
-import StatusBar from './components/StatusBar';
+import Tooltip from './components/Tooltip';
 import AuditWarningModal from './components/AuditWarningModal';
 import { DailyAudit } from './components/DailyAudit';
 import { ResistanceLetter } from './components/ResistanceLetter';
 import { TOOL_REGISTRY } from './tools';
 
 import { GameProvider } from './context/GameContext';
-// import Minimap from './components/Minimap'; // Replaced
 import { ComplianceMeter } from './components/ComplianceMeter';
+import { FlavorText } from './components/FlavorText';
 import ToolBelt from './components/ToolBelt';
 import SubmitButton from './components/SubmitButton';
 
@@ -198,9 +198,9 @@ function TheGreatSortContent() {
         layout === 'VERTICAL_LIST' ? (
           // VERTICAL 3-COLUMN LAYOUT
           <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-            {/* Status Bar - Top (Above Columns) */}
+            {/* Status Bar / Tooltip - Top (Above Columns) */}
             <div className="shrink-0 w-full px-2 pt-2 z-10">
-              <StatusBar
+              <Tooltip
                 phase={state.phase}
                 selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
                 selection={state.selection}
@@ -214,6 +214,7 @@ function TheGreatSortContent() {
                 onViewAudit={requestAudit}
                 isLocked={isLocked}
               />
+              <FlavorText mood={state.mood} moodColor={state.moodColor} isIdle={!state.selectedTool} />
             </div>
 
             {/* 3-Column Area */}
@@ -223,8 +224,6 @@ function TheGreatSortContent() {
                 <div className="pointer-events-auto h-full flex items-center">
                   <ComplianceMeter
                     compliancePercentage={state.compliancePercentage}
-                    moodText={state.moodText}
-                    moodColor={state.moodColor}
                     layout={layout}
                   />
                 </div>
@@ -282,20 +281,23 @@ function TheGreatSortContent() {
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
-            <StatusBar
-              phase={state.phase}
-              selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
-              selection={state.selection}
-              detectedMode={state.detectedMode}
-              levelScore={state.levelScore}
-              optimalScore={state.optimalScore}
-              worstScore={state.worstScore}
-              gameMode={state.gameMode}
-              onShareResult={actions.shareResult}
-              onRetryPractice={actions.retryPractice}
-              onViewAudit={requestAudit}
-              isLocked={isLocked}
-            />
+            <div className="w-full relative z-20">
+              <Tooltip
+                phase={state.phase}
+                selectedTool={state.toolsAvailable.find(t => t.instanceId === state.selectedTool)?.type || null}
+                selection={state.selection}
+                detectedMode={state.detectedMode}
+                levelScore={state.levelScore}
+                optimalScore={state.optimalScore}
+                worstScore={state.worstScore}
+                gameMode={state.gameMode}
+                onShareResult={actions.shareResult}
+                onRetryPractice={actions.retryPractice}
+                onViewAudit={requestAudit}
+                isLocked={isLocked}
+              />
+              <FlavorText mood={state.mood} moodColor={state.moodColor} isIdle={!state.selectedTool} />
+            </div>
 
             {gridContent}
           </main>
@@ -306,8 +308,6 @@ function TheGreatSortContent() {
         <>
           <ComplianceMeter
             compliancePercentage={state.compliancePercentage}
-            moodText={state.moodText}
-            moodColor={state.moodColor}
             layout={layout}
           />
           <Footer

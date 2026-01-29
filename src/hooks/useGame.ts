@@ -31,7 +31,7 @@ export function useGame() {
   } = useProjectedMetrics(state.list, state.initialList || [], state.optimalScore);
   // Note: state.initialList guaranteed by reducer, fallback [] just in case
 
-  const { moodText, moodColor, mood } = useSystemMood(yieldRatio);
+  const { mood, moodColor } = useSystemMood(yieldRatio);
 
   // --- Handlers (Pass-Through) ---
 
@@ -487,7 +487,7 @@ export function useGame() {
       selectedTool: state.selectedToolInstanceId,
       // Projected Metrics exposed
       compliancePercentage,
-      moodText,
+      mood,
       moodColor
     },
     actions: {
