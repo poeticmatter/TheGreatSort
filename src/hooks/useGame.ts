@@ -1,179 +1,133 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { GameMode, GamePhase, ToolInstance, CardItem } from '../../types';
-import { stringToSeed, generateLevel, generateTools, findOptimalScore, findWorstScore, applyMove, calculateRelativeEfficiency } from '../utils/gameLogic';
+import { useEffect, useCallback, useMemo } from 'react';
+import { useCoreGame } from './useCoreGame';
+import { useMetaGame } from './useMetaGame';
+import { useSolverService } from './useSolverService';
+import { useProjectedMetrics } from './useProjectedMetrics';
+import { useSystemMood } from './useSystemMood';
+import { stringToSeed, generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
-import { gradeLevel } from '../utils/gameLogic';
-import { useGameContext } from '../context/GameContext';
-import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
-import { useGameLoop } from './useGameLoop';
-import { useAnalytics } from './useAnalytics';
+import { GamePhase, GameMode, ToolInstance } from '../../types';
+import { PersistenceService } from '../services/persistence';
+import { getDailyEntry } from './useGamePersistence';
 
 export function useGame() {
-  const { state, dispatch } = useGameContext();
-  const [gameMode, setGameMode] = useState<GameMode>('DAILY');
-  const [isGameLoaded, setIsGameLoaded] = useState(false);
-  const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
-  
-  const { trackGameStart, trackGameComplete, trackToolInteraction, trackDailyAuditViewed } = useAnalytics();
 
-  const [resistanceActive, setResistanceActive] = useState(false);
-  const [resistancePending, setResistancePending] = useState(false);
+  // 1. Core Game (Board, Reducer, Loop)
+  const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame();
 
-  // --- Handlers (Pass-Through) ---
+  // 2. Meta Game (Persistence, Mode, Resistance)
+  const { metaState, metaActions } = useMetaGame(coreState, coreDispatch);
 
-  const handleToolClick = (toolInstanceId: string) => {
-    dispatch({ type: 'INTERACT_TOOL', payload: { toolInstanceId } });
-    const tool = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
-    if (tool) {
-        trackToolInteraction(tool.type, 'select');
-    }
-  };
+  // 3. Solver Service
+  const solverState = useSolverService(coreState.currentSeed, metaState.gameMode, coreState.list, coreState.toolsAvailable);
 
-  const handleUndo = () => {
-    if (state.movesHistory.length > 0) {
-        dispatch({ type: 'UNDO_MOVE' });
-        dispatch({ type: 'CANCEL_SELECTION' });
-    }
-  };
+  // 4. Derived Metrics & Mood
+  const {
+    compliancePercentage,
+    startingCompliance,
+    isZeroYield,
+    yieldRatio,
+    currentScore
+  } = useProjectedMetrics(coreState.list, coreState.initialList || [], coreState.optimalScore, coreState.worstScore);
 
-  const handleCardClick = (item: CardItem) => {
-    const index = state.list.findIndex(i => i.id === item.id);
-    if (index === -1) return;
-    dispatch({ type: 'INTERACT_TILE', payload: { index } });
-  };
-  
-  const handleBackgroundClick = () => {
-     dispatch({ type: 'CANCEL_SELECTION' });
-  };
+  const mood = useSystemMood(compliancePercentage, startingCompliance);
 
-  // --- Side Effect: Track Move Usage ---
-  // The reducer is pure, so we track side-effects in the hook reacting to state changes.
-  const prevMovesLength = useRef(state.movesHistory.length);
+  // --- Orchestration Logic ---
+
+  // Connect Solver to Core
   useEffect(() => {
-      if (state.movesHistory.length > prevMovesLength.current) {
-          const lastMove = state.movesHistory[state.movesHistory.length - 1];
-          trackToolInteraction(lastMove.tool, 'use');
-      }
-      prevMovesLength.current = state.movesHistory.length;
-  }, [state.movesHistory, trackToolInteraction]);
+    // Sync Optimal Score
+    if (solverState.optimalScore !== null && (coreState.optimalScore === null || coreState.optimalScore !== solverState.optimalScore)) {
+      coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
+    }
 
+    // Sync Worst Score
+    if (solverState.worstScore !== null && (coreState.worstScore === null || coreState.worstScore !== solverState.worstScore)) {
+      coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
+    }
+  }, [solverState.optimalScore, solverState.worstScore, coreState.optimalScore, coreState.worstScore, coreDispatch]);
 
+  // Handle Game Completion (Bridging Core loop -> Meta save)
+  // useCoreGame takes an onGameComplete prop? No, I defined `useCoreGame` to take props but I didn't pass them above.
+  // I should probably pass the callback or use an effect here.
+  // useCoreGame dispatches SET_PHASE RESULTS. We can watch for that.
 
-  // --- Persistence ---
-  const persistenceState = {
-      movesHistory: state.movesHistory,
-      phase: state.phase,
-      toolsAvailable: state.toolsAvailable,
-      levelScore: state.levelScore,
-      optimalScore: state.optimalScore,
-      worstScore: state.worstScore || null,
-      list: state.list
-  };
+  const prevPhaseRef = useMemo(() => coreState.phase, [coreState.phase]); // Actually ref is better for comparison
+  // But simpler: just use effect on phase change.
 
-  const { loadedState, dailyResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded);
-
-  // --- Loop Callback ---
-  const handleGameCompletion = useCallback(() => {
-      if (gameMode === 'DAILY') {
-          saveDailyScore(getTodayDateString(), state.levelScore);
-          dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-      }
-      dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
-      setResistancePending(true);
-      
-      dispatch({ type: 'SET_TOTAL_SCORE', payload: { score: state.totalScore + state.levelScore } });
-      if (state.optimalScore) {
-          dispatch({ type: 'SET_TOTAL_OPTIMAL_SCORE', payload: { score: state.totalOptimalScore + state.optimalScore } });
-      }
-      trackGameComplete(gameMode, state.levelScore, state.optimalScore);
-  }, [gameMode, state.levelScore, dispatch, state.totalScore, state.totalOptimalScore, state.optimalScore, trackGameComplete]);
-
-  // --- Loop ---
-  // Note: useGameLoop logic remains the same (Inspection Logic)
-  const loop = useGameLoop(state.list, dispatch, handleGameCompletion);
-
-  // --- Hydration & Initialization ---
+  // Hydration & Initialization (The complex part from original useGame)
   useEffect(() => {
-    if (isGameLoaded) return;
+    if (metaState.isGameLoaded) return;
 
     const today = getTodayDateString();
 
-    if (gameMode === 'DAILY') {
-        const savedStateStr = localStorage.getItem(`daily_state_${today}`);
-        const savedResultStr = localStorage.getItem(`daily_result_${today}`);
-        const directLoadedState = savedStateStr ? JSON.parse(savedStateStr) : null;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const directDailyResult = savedResultStr ? JSON.parse(savedResultStr) : null;
+    if (metaState.gameMode === 'DAILY') {
+      const seed = stringToSeed(today);
 
-        if (directLoadedState) {
-            const seed = stringToSeed(today);
-            let currentList = generateLevel(9, seed);
-            let currentTools = directLoadedState.tools;
-            if (!currentTools) {
-              currentTools = generateTools(seed);
-            } else {
-              currentTools = currentTools.map((t: ToolInstance) => ({ ...t, used: false }));
-            }
+      if (metaState.loadedState) {
+        // --- Resume from Save ---
+        let currentList = generateLevel(9, seed);
+        let currentTools = generateTools(seed);
+        let currentFlavorMap = generateFlavorMap(seed);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            directLoadedState.moves.forEach((move: any) => {
-                currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
-                const toolIndex = currentTools.findIndex((t: ToolInstance) => t.type === move.tool && !t.used);
-                if (toolIndex !== -1) currentTools[toolIndex].used = true;
-            });
-
-            dispatch({
-                type: 'START_LEVEL',
-                payload: {
-                    level: 1,
-                    list: currentList,
-                    tools: currentTools,
-                    seed: seed,
-                    movesHistory: directLoadedState.moves
-                }
-            });
-            
-            if (directLoadedState.phase) {
-                 dispatch({ type: 'SET_PHASE', payload: { phase: directLoadedState.phase } });
-            }
-
-            if (directLoadedState.phase === GamePhase.RESULTS) {
-                dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-                const { score, gradedList } = gradeLevel(currentList);
-                dispatch({ type: 'SET_LIST', payload: { list: gradedList } });
-                dispatch({ type: 'SET_LEVEL_SCORE', payload: { score: score } });
-            } else {
-                 dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-                 dispatch({ type: 'SET_LIST', payload: { list: currentList } });
-            }
-
-        } else if (directDailyResult) {
-             dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-             dispatch({
-                 type: 'START_LEVEL',
-                 payload: {
-                     level: 1,
-                     list: generateLevel(9, stringToSeed(today)),
-                     tools: generateTools(stringToSeed(today)),
-                     seed: stringToSeed(today)
-                 }
-             });
-             dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
-             dispatch({ type: 'SET_LEVEL_SCORE', payload: { score: directDailyResult.score } });
-        } else {
-             startLevel(1, 'DAILY');
+        // Replay moves
+        if (metaState.loadedState.moves) {
+          metaState.loadedState.moves.forEach((move: any) => {
+            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+            const toolIndex = currentTools.findIndex((t: ToolInstance) => t.type === move.tool && !t.used);
+            if (toolIndex !== -1) currentTools[toolIndex].used = true;
+          });
         }
+
+        // Restore Phase
+        let phase = GamePhase.PLANNING;
+        if (metaState.loadedState.snapshot?.phase) {
+          phase = metaState.loadedState.snapshot.phase;
+        }
+
+        // Core Init
+        coreActions.initLevel(1, currentList, currentTools, seed, currentFlavorMap, metaState.loadedState.moves);
+
+        if (phase) {
+          coreDispatch({ type: 'SET_PHASE', payload: { phase } });
+        }
+
+        // Handle Results State restoration
+        if (phase === GamePhase.RESULTS) {
+          coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
+          const { score, gradedList } = gradeLevel(currentList);
+          coreDispatch({ type: 'SET_LIST', payload: { list: gradedList } });
+          coreDispatch({ type: 'SET_LEVEL_SCORE', payload: { score: score } });
+        } else {
+          coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
+        }
+
+      } else if (metaState.dailyResult) {
+        // --- Completed but no state ---
+        coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
+        coreActions.initLevel(
+          1,
+          generateLevel(9, seed),
+          generateTools(seed),
+          seed,
+          generateFlavorMap(seed)
+        );
+        coreDispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
+        coreDispatch({ type: 'SET_LEVEL_SCORE', payload: { score: metaState.dailyResult.score } });
+      } else {
+        // --- New Game ---
+        startLevel(1, 'DAILY');
+      }
     } else {
-        startLevel(1, gameMode);
+      startLevel(1, metaState.gameMode);
     }
 
-    setIsGameLoaded(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGameLoaded, gameMode, dispatch]);
+    metaActions.setIsGameLoaded(true);
+  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, coreDispatch, coreActions, metaActions]);
 
-  const startLevel = (lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
-    const activeMode = modeOverride || gameMode;
 
+  const startLevel = useCallback((lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
+    const activeMode = modeOverride || metaState.gameMode;
     let len = 0;
     let seed: number | undefined = undefined;
     let tools: ToolInstance[] = [];
@@ -189,253 +143,127 @@ export function useGame() {
     }
 
     const list = generateLevel(len, seed);
+    const flavorMap = generateFlavorMap(seed);
 
-    dispatch({
-        type: 'START_LEVEL',
-        payload: {
-            level: lvl,
-            list,
-            tools,
-            seed
-        }
-    });
-    
+    coreActions.initLevel(lvl, list, tools, seed, flavorMap, []);
+
     if (seed !== undefined) {
-        trackGameStart(activeMode, seed);
+      metaActions.trackGameStart(activeMode, seed);
     }
-  };
+  }, [metaState.gameMode, coreActions, metaActions]);
 
-  const triggerResistance = useCallback(() => {
-      setResistanceActive(true);
-      setAuditState(null);
-  }, []);
 
-  const closeResistance = useCallback(() => {
-      setResistanceActive(false);
-  }, []);
-
-  // --- Effects ---
-
-  // --- Worker Integration ---
-  const workerRef = useRef<Worker | null>(null);
-
+  // Zero-Yield Safety Net (Triggering Resistance)
   useEffect(() => {
-    // Initialize Worker
-    workerRef.current = new Worker(new URL('../workers/gameSolver.worker.ts', import.meta.url), { type: 'module' });
+    const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
+    const joined = localStorage.getItem('joinedResistance') === 'true';
 
-    // Handle messages
-    workerRef.current.onmessage = (e) => {
-      const { id, optimalScore, worstScore } = e.data;
-      
-      // Prevent Race Conditions:
-      // Ensure the result matches the current level's seed.
-      // If seed is undefined (Career), we fall back to checking if the score is still needed (null).
-      // Ideally we want to match the seed exactly.
-      if (id === state.currentSeed) {
-           dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: optimalScore } });
-           if (worstScore !== undefined) {
-               dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
-           }
-
-           // Cache solution
-           if (id !== undefined && gameMode === 'DAILY') {
-              const cacheKey = `tgs_solution_${id}`;
-              localStorage.setItem(cacheKey, JSON.stringify({ optimalScore, worstScore }));
-           }
-      }
-    };
-
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, [dispatch, state.currentSeed, gameMode]); // Re-binding listener if seed changes isn't needed, but dispatch might change. Actually we can keep the worker stable.
-
-  // --- Resistance Check ---
-  useEffect(() => {
-    if (gameMode === 'DAILY' && 
-        state.phase === GamePhase.RESULTS && 
-        state.optimalScore !== null && 
-        state.worstScore !== null &&
-        resistancePending) {
-        
-        const efficiency = calculateRelativeEfficiency(
-            state.levelScore,
-            state.optimalScore,
-            state.worstScore
-        );
-
-        if (efficiency === 0) {
-            // Delay for dramatic effect (800ms-1000ms)
-            const timer = setTimeout(() => {
-                setResistanceActive(true);
-                setResistancePending(false);
-            }, 1000);
-            return () => clearTimeout(timer);
-        } else {
-            setResistancePending(false);
-        }
+    if (scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
+      metaActions.triggerResistance();
     }
-  }, [gameMode, state.phase, state.optimalScore, state.worstScore, state.levelScore, resistancePending]);
+  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions]);
 
-  // Trigger Calculation
-  useEffect(() => {
-    // Only calculate if we haven't already and we are in a valid state
-    // We prioritize using currentSeed as the ID.
-    if (state.list.length > 0 && state.optimalScore === null && workerRef.current) {
-        
-        // Cache Check
-        if (state.currentSeed !== undefined && gameMode === 'DAILY') {
-            const cacheKey = `tgs_solution_${state.currentSeed}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                try {
-                    const { optimalScore, worstScore } = JSON.parse(cached);
-                    dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: optimalScore } });
-                    if (worstScore !== undefined) {
-                        dispatch({ type: 'SET_WORST_SCORE', payload: { score: worstScore } });
-                    }
-                    return; // Skip calculation
-                } catch (e) {
-                   console.error("Failed to parse cached solution", e);
-                }
-            }
-        }
 
-        // Determine mode
-        const mode = (gameMode === 'DAILY' || gameMode === 'RESULTS') ? 'BOTH' : 'OPTIMAL';
-        
-        let listToSolve = state.list;
-        let toolsToSolve = state.toolsAvailable;
+  const closeResistanceAndReset = useCallback(() => {
+    metaActions.closeResistance();
 
-        // CRITICAL FIX: Ensure we solve for the INITIAL state, not the current (potentially in-progress) state.
-        // In DAILY mode, we might have hydrated a state where moves are already made.
-        // We must regenerate the fresh level/tools from the seed.
-        if (state.currentSeed !== undefined) {
-             // For Daily and Practice, length is always 9.
-             listToSolve = generateLevel(9, state.currentSeed);
-             toolsToSolve = generateTools(state.currentSeed);
-        }
+    // Safety Net Reset Logic
+    if (coreState.currentSeed !== undefined) {
+      // In PRACTICE, give a new seed to avoid "cursed" levels where start == worst.
+      // In DAILY, we must persist the seed.
+      const isDaily = metaState.gameMode === 'DAILY';
+      const seed = isDaily ? coreState.currentSeed : Math.random() * 1000000;
 
-        workerRef.current.postMessage({
-            list: listToSolve,
-            tools: toolsToSolve,
-            mode,
-            id: state.currentSeed
-        });
+      const list = generateLevel(9, seed);
+      const tools = generateTools(seed);
+      coreActions.initLevel(coreState.level, list, tools, seed, generateFlavorMap(seed), []);
+      coreDispatch({ type: 'RESET_STATS' });
     }
-  }, [state.list, state.toolsAvailable, state.optimalScore, state.currentSeed, gameMode]);
+  }, [metaActions, coreState.currentSeed, coreState.level, coreActions, coreDispatch, metaState.gameMode]);
 
-  const changeMode = (newMode: GameMode) => {
-    setAuditState(null);
-    loop.stopLoop();
+
+  const changeMode = useCallback((newMode: GameMode) => {
+    metaActions.closeAudit();
+    coreActions.stopLoop();
 
     if (newMode === 'DAILY') {
-        const today = getTodayDateString();
-        const savedStateStr = localStorage.getItem(`daily_state_${today}`);
-        const savedResultStr = localStorage.getItem(`daily_result_${today}`);
+      const today = getTodayDateString();
+      const savedState = PersistenceService.loadDailyState(today);
+      const savedResult = PersistenceService.getDailyResult(today);
 
-        if (savedStateStr || savedResultStr) {
-             setGameMode('DAILY');
-             setIsGameLoaded(false);
-             return;
-        }
-
-        setGameMode(newMode);
-        dispatch({ type: 'RESET_STATS' });
-        dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-        startLevel(1, 'DAILY');
-    } else {
-        setGameMode(newMode);
-        dispatch({ type: 'RESET_STATS' });
-        dispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-        startLevel(1, newMode);
-    }
-  };
-
-  const nextLevel = () => {
-      startLevel(1, 'PRACTICE');
-  };
-
-  const retryPractice = () => {
-      if (gameMode === 'PRACTICE' && state.currentSeed !== undefined) {
-          startLevel(1, 'PRACTICE', state.currentSeed);
+      if (savedState || savedResult) {
+        metaActions.setGameMode('DAILY');
+        metaActions.setIsGameLoaded(false); // Trigger re-hydration
+        return;
       }
-  };
+    }
 
-  const retryDaily = () => {
-      startLevel(1, 'DAILY');
-  };
+    metaActions.setGameMode(newMode);
+    coreDispatch({ type: 'RESET_STATS' });
+    coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
 
-  const resetGame = () => {
-      if (gameMode === 'DAILY') return;
-      dispatch({ type: 'RESET_STATS' });
-      startLevel(1);
-  };
+    // Need to defer startLevel? No, simpler to just rely on effect or call it directly?
+    // startLevel uses 'metaState.gameMode' which might be stale in this closure if not careful.
+    // Better to pass explicit mode
+    startLevel(1, newMode);
 
+  }, [metaActions, coreActions, coreDispatch, startLevel]);
+
+
+  // Core Completion Bridge
+  useEffect(() => {
+    if (coreState.phase === GamePhase.RESULTS && metaState.gameMode === 'DAILY' && !coreState.dailyCompleted) {
+      metaActions.saveDaily();
+    }
+  }, [coreState.phase, metaState.gameMode, coreState.dailyCompleted, metaActions]);
+
+  // --- Actions ---
   const shareResult = async () => {
     const today = getTodayDateString();
-
-    if (gameMode === 'DAILY') {
-        const entry = getDailyEntry(today);
-        const attempts = entry ? entry.attempts : 1;
-        const text = `The Great Sort Daily ${today}\nScore: ${state.levelScore}\nAttempts: ${attempts}`;
-        try {
-          await navigator.clipboard.writeText(text);
-          alert('Result copied to clipboard!');
-        } catch (err) {
-          console.error('Failed to copy:', err);
-          alert(text);
-        }
-        return;
+    if (metaState.gameMode === 'DAILY') {
+      const entry = getDailyEntry(today);
+      const attempts = entry ? entry.attempts : 1;
+      const text = `The Great Sort Daily ${today}\nScore: ${coreState.levelScore}\nAttempts: ${attempts}`;
+      try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
+      return;
     }
-
-    const efficiency = !state.optimalScore ? 0 : Math.min(100, Math.round((state.levelScore / state.optimalScore) * 100));
-    const text = `The Great Sort\nScore: ${state.levelScore}\nEfficiency: ${efficiency}%`;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      alert('Result copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      alert(text);
-    }
+    const efficiency = !coreState.optimalScore ? 0 : Math.min(100, Math.round((coreState.levelScore / coreState.optimalScore) * 100));
+    const text = `The Great Sort\nScore: ${coreState.levelScore}\nEfficiency: ${efficiency}%`;
+    try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
   };
-
-  const closeAudit = () => {
-      setAuditState(null);
-  };
-
-  const triggerCurrentAudit = useCallback(() => {
-    const today = getTodayDateString();
-    setAuditState({ date: today, userScore: state.levelScore });
-    trackDailyAuditViewed(today, 'passed');
-  }, [state.levelScore, trackDailyAuditViewed]);
 
   return {
     state: {
-      ...state,
-      gameMode,
-      auditState,
-      resistanceActive,
-      selectedTool: state.selectedToolInstanceId,
+      ...coreState,
+      ...metaState, // Merges gameMode, auditState, resistanceActive/Pending
+      selectedTool: coreState.selectedToolInstanceId,
+      compliancePercentage,
+      mood,
     },
     actions: {
       changeMode,
-      handleUndo,
-      handleToolClick,
-      handleCardClick,
-      handleBackgroundClick,
-      startInspection: loop.startInspection,
-      nextLevel,
-      retryPractice,
-      retryDaily,
-      resetGame,
+      handleUndo: coreActions.handleUndo,
+      handleToolClick: coreActions.handleToolClick,
+      handleCardClick: coreActions.handleCardClick,
+      handleBackgroundClick: coreActions.handleBackgroundClick,
+      startInspection: coreActions.startInspection,
+      nextLevel: () => startLevel(1, 'PRACTICE'),
+      retryPractice: () => {
+        if (metaState.gameMode === 'PRACTICE' && coreState.currentSeed !== undefined) {
+          startLevel(1, 'PRACTICE', coreState.currentSeed);
+        }
+      },
+      retryDaily: () => startLevel(1, 'DAILY'),
+      resetGame: () => {
+        if (metaState.gameMode === 'DAILY') return;
+        coreDispatch({ type: 'RESET_STATS' });
+        startLevel(1);
+      },
       shareResult,
- 
-      closeAudit,
-      triggerCurrentAudit,
-      triggerResistance,
-      closeResistance
+      closeAudit: metaActions.closeAudit,
+      triggerCurrentAudit: metaActions.triggerCurrentAudit,
+      triggerResistance: metaActions.triggerResistance,
+      closeResistance: closeResistanceAndReset
     }
   };
 }

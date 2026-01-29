@@ -1,6 +1,5 @@
-import React from 'react';
-import { CardItem, CardStatus } from '../../types';
-
+import React, { useMemo } from 'react';
+import { CardItem } from '../../types';
 import { Play } from 'lucide-react';
 
 interface CardProps {
@@ -16,7 +15,12 @@ interface CardProps {
   variant?: 'standard' | 'wide';
 }
 
-const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidate, style, mobileDirection, disableResponsiveOverrides, isDisabled, mirrorLabel, variant = 'standard' }) => {
+const getCardVisuals = (
+  status: CardItem['status'],
+  isSelected: boolean,
+  isTargetCandidate: boolean,
+  hasShield: boolean
+) => {
   let bgColor = "bg-stone-800";
   let borderColor = "border-stone-600";
   let textColor = "text-stone-300";
@@ -24,26 +28,7 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
   let opacity = "opacity-100";
   let shadow = "shadow-lg";
 
-  // Disabled State
-  if (isDisabled) {
-    return (
-      <div 
-        style={style}
-        className={`
-          flex flex-col items-center justify-center 
-          ${variant === 'wide' ? 'w-20 h-8 text-lg' : 'w-20 h-24 text-3xl'}
-          rounded-sm border sm:border-2 border-stone-800 bg-stone-900/50 text-stone-700
-          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold
-        `}
-      >
-          {/* Minimal Content for Disabled State */}
-          {item.val}
-      </div>
-    );
-  }
-
-  // Status Styles
-  switch (item.status) {
+  switch (status) {
     case 'safe':
       bgColor = "bg-amber-700";
       borderColor = "border-amber-400";
@@ -53,8 +38,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
     case 'eliminated':
       bgColor = "bg-red-950/40";
       borderColor = "border-red-900";
-      textColor = "text-red-800 decoration-red-900 decoration-2 line-through opacity-70"; // Changed text color and removed generic opacity
-      opacity = "opacity-100"; // Keep container opaque so number is legible
+      textColor = "text-red-800 decoration-red-900 decoration-2 line-through opacity-70";
+      opacity = "opacity-100";
       scale = "scale-95";
       shadow = "shadow-none";
       break;
@@ -82,29 +67,68 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
   }
 
   // Shield Visuals (Override)
-  if (item.hasShield) {
+  if (hasShield) {
     borderColor = "border-blue-500 border-4";
-    if (item.status !== 'eliminated') {
-         shadow = "shadow-[0_0_15px_rgba(59,130,246,0.6)]";
+    if (status !== 'eliminated') {
+      shadow = "shadow-[0_0_15px_rgba(59,130,246,0.6)]";
     }
   }
 
-  const desktopArrowKeyClasses = disableResponsiveOverrides 
-    ? "" 
+  return { bgColor, borderColor, textColor, scale, opacity, shadow };
+};
+
+const Card: React.FC<CardProps> = React.memo(({
+  item,
+  onClick,
+  isSelected,
+  isTargetCandidate,
+  style,
+  mobileDirection,
+  disableResponsiveOverrides,
+  isDisabled,
+  mirrorLabel,
+  variant = 'standard'
+}) => {
+
+  const { bgColor, borderColor, textColor, scale, opacity, shadow } = useMemo(() =>
+    getCardVisuals(item.status, isSelected, isTargetCandidate, !!item.hasShield),
+    [item.status, isSelected, isTargetCandidate, item.hasShield]
+  );
+
+  // Disabled State
+  if (isDisabled) {
+    return (
+      <div
+        style={style}
+        className={`
+          flex flex-col items-center justify-center 
+          ${variant === 'wide' ? 'w-20 h-8 text-lg' : 'w-20 h-24 text-3xl'}
+          rounded-sm border sm:border-2 border-stone-800 bg-stone-900/50 text-stone-700
+          grayscale opacity-50 cursor-not-allowed select-none font-serif font-bold
+        `}
+      >
+        {item.val}
+      </div>
+    );
+  }
+
+  const desktopArrowKeyClasses = disableResponsiveOverrides
+    ? ""
     : "sm:left-[calc(100%+14px)] sm:right-auto sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0";
 
   return (
-    <div 
+    <div
       style={style}
+      // Note: onClick is now a stable callback from parent, so it doesn't break memo
       onClick={(e) => {
         e.stopPropagation();
         onClick(item);
       }}
       className={`
         relative flex flex-col items-center justify-center 
-        ${variant === 'wide' 
-            ? 'w-20 h-8 text-lg'         // Mobile (Vertical List): Wide, short row
-            : 'w-20 h-24 text-3xl'       // Desktop (Horizontal Strip): Tall, large card
+        ${variant === 'wide'
+          ? 'w-20 h-8 text-lg'         // Mobile (Vertical List): Wide, short row
+          : 'w-20 h-24 text-3xl'       // Desktop (Horizontal Strip): Tall, large card
         }
         rounded-sm border sm:border-2 ${borderColor} ${bgColor} ${textColor} ${opacity} ${shadow}
         transform transition-all duration-300 ease-out ${scale}
@@ -115,8 +139,8 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
     >
       {/* Directional Chevron (Snake Logic) */}
       {mobileDirection && (
-         <div
-           className={`
+        <div
+          className={`
              absolute pointer-events-none text-amber-500/80
              transition-all duration-300 z-0 flex items-center justify-center
 
@@ -132,9 +156,9 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
              /* Desktop Override: Always Right (Gap 24px -> Center at 14px) */
              ${desktopArrowKeyClasses}
            `}
-         >
-           <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-amber-500" />
-         </div>
+        >
+          <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-amber-500" />
+        </div>
       )}
 
       {/* Decorative 'rivets' */}
@@ -153,25 +177,46 @@ const Card: React.FC<CardProps> = ({ item, onClick, isSelected, isTargetCandidat
           </div>
         </div>
       )}
-      
+
       {/* Link Score Badge */}
-      {item.linkScore !== null && item.linkScore > 0 && (
+      {item.linkScore !== null && item.linkScore !== undefined && item.linkScore > 0 && (
         <div className="absolute -right-1.5 -top-1.5 sm:-right-3 sm:-top-3 z-20 animate-in fade-in zoom-in duration-300">
-           <div className="bg-amber-500 text-red-950 text-[10px] sm:text-sm font-bold px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full shadow-lg border sm:border-2 border-red-900 min-w-[1.2rem] sm:min-w-[1.8rem] text-center font-mono">
-             +{item.linkScore}
-           </div>
+          <div className="bg-amber-500 text-red-950 text-[10px] sm:text-sm font-bold px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full shadow-lg border sm:border-2 border-red-900 min-w-[1.2rem] sm:min-w-[1.8rem] text-center font-mono">
+            +{item.linkScore}
+          </div>
         </div>
       )}
       {/* Mirror Label Badge */}
       {mirrorLabel && (
         <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
-           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[8px] sm:text-[10px] uppercase px-1 sm:px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
-             {mirrorLabel}
-           </div>
+          <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[8px] sm:text-[10px] uppercase px-1 sm:px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+            {mirrorLabel}
+          </div>
         </div>
       )}
     </div>
   );
+});
+
+const arePropsEqual = (prev: CardProps, next: CardProps) => {
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.isTargetCandidate === next.isTargetCandidate &&
+    prev.isDisabled === next.isDisabled &&
+    prev.mobileDirection === next.mobileDirection &&
+    prev.disableResponsiveOverrides === next.disableResponsiveOverrides &&
+    prev.mirrorLabel === next.mirrorLabel &&
+    prev.variant === next.variant &&
+    prev.onClick === next.onClick &&
+    // Item checks (Deep check on relevant fields to handle reference instability)
+    prev.item.val === next.item.val &&
+    prev.item.status === next.item.status &&
+    prev.item.hasShield === next.item.hasShield &&
+    prev.item.linkScore === next.item.linkScore &&
+    prev.item.id === next.item.id
+  );
 };
 
-export default Card;
+export default React.memo(Card, arePropsEqual);
+
+

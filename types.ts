@@ -1,4 +1,3 @@
-// import { LucideIcon } from 'lucide-react';
 
 export type CardStatus = 'pending' | 'scanning' | 'safe' | 'eliminated';
 
