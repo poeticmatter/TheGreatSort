@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CardItem } from '../types';
+import { CardItem } from '../../types';
 import { gradeLevel, calculateBatchScore } from '../utils/gameLogic';
 
 interface ProjectedMetrics {
