@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { CardItem, ToolInstance } from '../types';
+import { CardItem, ToolInstance } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { generateLevel, generateTools } from '../utils/gameLogic';
 

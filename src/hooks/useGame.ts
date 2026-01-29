@@ -6,8 +6,9 @@ import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
 import { stringToSeed, generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
 import { getTodayDateString } from '../utils/dateUtils';
-import { GamePhase, GameMode, ToolInstance } from '../types';
+import { GamePhase, GameMode, ToolInstance } from '../../types';
 import { PersistenceService } from '../services/persistence';
+import { getDailyEntry } from './useGamePersistence';
 
 export function useGame() {
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { GamePhase } from '../../types';
+import { GamePhase } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Header from '../Header';
 import Footer from '../Footer';

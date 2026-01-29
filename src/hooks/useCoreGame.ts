@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
-import { GamePhase, CardItem, ToolInstance } from '../types';
+import { GamePhase, CardItem, ToolInstance } from '../../types';
 import { useGameLoop } from './useGameLoop';
 import { useAnalytics } from './useAnalytics';
 

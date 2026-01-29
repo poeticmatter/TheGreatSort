@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { GameMode, GamePhase } from '../types';
+import { GameMode, GamePhase } from '../../types'
 import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
-import { PersistenceService } from '../services/persistence';
 import { useAnalytics } from './useAnalytics';
 import { getTodayDateString } from '../utils/dateUtils';
 import { calculateRelativeEfficiency } from '../utils/gameLogic';
