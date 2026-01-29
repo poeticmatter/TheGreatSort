@@ -36,13 +36,16 @@ export function useGame() {
 
   // Connect Solver to Core
   useEffect(() => {
-    if (solverState.optimalScore !== null) {
+    // Sync Optimal Score
+    if (solverState.optimalScore !== null && (coreState.optimalScore === null || coreState.optimalScore !== solverState.optimalScore)) {
       coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
-      if (solverState.worstScore !== null) {
-        coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
-      }
     }
-  }, [solverState.optimalScore, solverState.worstScore, coreDispatch]);
+
+    // Sync Worst Score
+    if (solverState.worstScore !== null && (coreState.worstScore === null || coreState.worstScore !== solverState.worstScore)) {
+      coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
+    }
+  }, [solverState.optimalScore, solverState.worstScore, coreState.optimalScore, coreState.worstScore, coreDispatch]);
 
   // Handle Game Completion (Bridging Core loop -> Meta save)
   // useCoreGame takes an onGameComplete prop? No, I defined `useCoreGame` to take props but I didn't pass them above.
