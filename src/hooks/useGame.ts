@@ -9,6 +9,7 @@ import { getTodayDateString } from '../utils/dateUtils';
 import { GamePhase, GameMode, ToolInstance } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { getDailyEntry } from './useGamePersistence';
+import { PuzzleRepository } from '../services/puzzleRepository';
 
 export function useGame() {
 
@@ -19,7 +20,7 @@ export function useGame() {
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch);
 
   // 3. Solver Service
-  const solverState = useSolverService(coreState.currentSeed, metaState.gameMode, coreState.list, coreState.toolsAvailable);
+  const solverState = useSolverService(coreState.currentSeed, metaState.gameMode, coreState.list, coreState.toolsAvailable, coreState.optimalScore, coreState.worstScore);
 
   // 4. Derived Metrics & Mood
   const {
@@ -128,24 +129,50 @@ export function useGame() {
 
   const startLevel = useCallback((lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
     const activeMode = modeOverride || metaState.gameMode;
-    let len = 0;
-    let seed: number | undefined = undefined;
+    let list: any[] = [];
     let tools: ToolInstance[] = [];
+    let seed: number | undefined = undefined;
+    let flavorMap: any = {};
+    let scores: { optimalScore: number | null, worstScore: number | null } = { optimalScore: null, worstScore: null };
 
     if (activeMode === 'DAILY') {
-      len = 9;
-      seed = stringToSeed(getTodayDateString());
-      tools = generateTools(seed);
+      const today = new Date(); // Uses local time, but puzzle repo normalizes. 
+      // User requirement: "Fetch the puzzle data from PuzzleRepository"
+      const puzzle = PuzzleRepository.getDailyPuzzle(today);
+
+      // Hydrate
+      list = PuzzleRepository.hydrateSequence(puzzle.sequence);
+      tools = PuzzleRepository.hydrateTools(puzzle.tools);
+
+      // Inject Targets
+      scores = {
+        optimalScore: puzzle.targets.max, // JSON max is usually optimal (highest yield)
+        worstScore: puzzle.targets.min
+      };
+
+      seed = puzzle.id; // Use puzzle ID as seed for tracking
+      flavorMap = generateFlavorMap(seed); // Still generate flavor from seed/id
+
     } else if (activeMode === 'PRACTICE') {
-      len = 9;
+      const len = 9;
       seed = seedOverride !== undefined ? seedOverride : Math.random() * 1000000;
       tools = generateTools(seed);
+      list = generateLevel(len, seed);
+      flavorMap = generateFlavorMap(seed);
     }
 
-    const list = generateLevel(len, seed);
-    const flavorMap = generateFlavorMap(seed);
+    // Pass scores to initLevel? 
+    // Types might need update or we pass them in coreActions.initLevel if it supports it, 
+    // OR we dispatch SET_OPTIMAL/WORST immediately after.
+    // coreActions.initLevel signature: (level, list, tools, seed, flavorMap, moves)
+    // It doesn't seem to take scores. We should dispatch them manually.
 
     coreActions.initLevel(lvl, list, tools, seed, flavorMap, []);
+
+    if (activeMode === 'DAILY') {
+      if (scores.optimalScore !== null) coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: scores.optimalScore } });
+      if (scores.worstScore !== null) coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: scores.worstScore } });
+    }
 
     if (seed !== undefined) {
       metaActions.trackGameStart(activeMode, seed);

@@ -13,7 +13,9 @@ export function useSolverService(
     currentSeed: number | undefined,
     gameMode: string,
     list: CardItem[],
-    tools: ToolInstance[]
+    tools: ToolInstance[],
+    existingOptimal: number | null = null,
+    existingWorst: number | null = null
 ) {
     const [solverState, setSolverState] = useState<SolverState>({
         optimalScore: null,
@@ -61,6 +63,16 @@ export function useSolverService(
 
     // Trigger Calculation
     const triggerCalculation = useCallback(() => {
+        // Optimization: If scores are already provided (e.g. from static Daily data), skip calculation
+        if (existingOptimal !== null && existingWorst !== null) {
+            setSolverState({
+                optimalScore: existingOptimal,
+                worstScore: existingWorst,
+                isCalculating: false
+            });
+            return;
+        }
+
         if (list.length > 0 && solverState.optimalScore === null && workerRef.current) {
 
             // Cache Check
@@ -105,7 +117,7 @@ export function useSolverService(
                 tools: toolsToSolve
             });
         }
-    }, [list, tools, currentSeed, gameMode, solverState.optimalScore]);
+    }, [list, tools, currentSeed, gameMode, solverState.optimalScore, existingOptimal, existingWorst]);
 
     // Auto-trigger when dependencies change (like new level start)
     useEffect(() => {
