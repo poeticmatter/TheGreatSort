@@ -167,49 +167,62 @@ async function main() {
 
     let generatedCount = 0;
     while (generatedCount < count) {
-        // Generate Level (Random, no seed)
-        const level = generateLevel(LEVEL_LENGTH);
+        // Generate Tools (Keep these constant across retries to preserve weight distribution)
         const toolInstances = generateTools();
         const toolTypes = toolInstances.map(t => t.type);
 
-        console.log(`[${generatedCount + 1}/${count}] Analyzing...`);
+        let validCandidateFound = false;
 
-        // Deep Analysis (Max Yield & others)
-        const analysis = solve(level, toolTypes);
+        while (!validCandidateFound) {
+            // Generate Level (Random, no seed)
+            const level = generateLevel(LEVEL_LENGTH);
 
-        // Filter: Check if analysis.minSolutionDepth >= MIN_SOLUTION_DEPTH.
-        if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH) {
-            console.log(`Discarding candidate (Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH})`);
-            continue;
+            console.log(`[${generatedCount + 1}/${count}] Analyzing...`);
+
+            // Deep Analysis (Max Yield & others)
+            const analysis = solve(level, toolTypes);
+
+            // Filter: Depth
+            if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH) {
+                console.log(`Discarding candidate (Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH}) - Retrying with same tools`);
+                continue;
+            }
+
+            // Filter: Distinct Solved States
+            if (analysis.distinctSolvedStates > 1) {
+                console.log(`Discarding candidate (Distinct Solved States ${analysis.distinctSolvedStates} > 1) - Retrying with same tools`);
+                continue;
+            }
+
+            // Initial Yield
+            const initialYield = calculateBatchScore(level);
+
+            // Min Yield (Worst Case)
+            // findWorstSolution returns { score, moves }
+            const minSol = findWorstSolution(level, toolTypes);
+            const minYield = minSol.score;
+
+            const puzzle: PuzzleCandidate = {
+                initialSequence: level.map(i => i.val),
+                tools: toolTypes,
+                solvedState: analysis.bestState,
+                metrics: {
+                    initialYield,
+                    minYield,
+                    maxYield: analysis.maxYield,
+                    distinctSolvedStates: analysis.distinctSolvedStates,
+                    distinctToolPaths: analysis.distinctToolPaths,
+                    computationalComplexity: analysis.computationalComplexity,
+                    minSolutionDepth: analysis.minSolutionDepth
+                },
+                solutions: analysis.solutions
+            };
+
+            console.log(`Accepted (Depth ${analysis.minSolutionDepth}, Complexity ${analysis.computationalComplexity})`);
+
+            candidates.push(puzzle);
+            validCandidateFound = true;
         }
-
-        // Initial Yield
-        const initialYield = calculateBatchScore(level);
-
-        // Min Yield (Worst Case)
-        // findWorstSolution returns { score, moves }
-        const minSol = findWorstSolution(level, toolTypes);
-        const minYield = minSol.score;
-
-        const puzzle: PuzzleCandidate = {
-            initialSequence: level.map(i => i.val),
-            tools: toolTypes,
-            solvedState: analysis.bestState,
-            metrics: {
-                initialYield,
-                minYield,
-                maxYield: analysis.maxYield,
-                distinctSolvedStates: analysis.distinctSolvedStates,
-                distinctToolPaths: analysis.distinctToolPaths,
-                computationalComplexity: analysis.computationalComplexity,
-                minSolutionDepth: analysis.minSolutionDepth
-            },
-            solutions: analysis.solutions
-        };
-
-        console.log(`Accepted (Depth ${analysis.minSolutionDepth}, Complexity ${analysis.computationalComplexity})`);
-
-        candidates.push(puzzle);
         generatedCount++;
     }
 
