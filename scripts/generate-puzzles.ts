@@ -1,3 +1,4 @@
+
 import fs from 'fs';
 import path from 'path';
 import {
@@ -9,52 +10,53 @@ import {
 import { TOOL_REGISTRY } from '../src/tools/index';
 import { ToolType, ISortable } from '../types';
 
-const PUZZLE_FILE_PATH = path.join(process.cwd(), 'puzzles/puzzle-candidates.json');
+const OUTPUT_FILE_PATH = path.join(process.cwd(), 'puzzles/daily_puzzles.json');
 const LEVEL_LENGTH = 9;
 const MIN_SOLUTION_DEPTH = 4;
 
-interface PuzzleCandidate {
-    initialSequence: number[];
-    tools: string[];
-    solvedState: number[]; // The most efficient one found
-    metrics: {
-        initialYield: number;
-        minYield: number;
-        maxYield: number;
-        distinctSolvedStates: number; // count of map entries
-        distinctToolPaths: number; // count of all valid move sequences to max score
-        computationalComplexity: number; // nodes visited
-        minSolutionDepth: number;
+// --- Production Schema Definitions ---
+
+interface DailyPuzzleMove {
+    tool: string;
+    i: number;
+    t?: number;
+}
+
+interface DailyPuzzle {
+    id: number;           // Day Index (0, 1, 2...)
+    sequence: number[];   // Raw values only
+    tools: string[];      // Tool IDs (Types) available
+    targets: {
+        min: number;
+        max: number;
     };
-    solutions: Array<{
-        state: number[];
-        moves: string[]; // Human-readable strings, e.g., "swap @ 0"
-    }>;
+    solution: DailyPuzzleMove[];
 }
 
 /**
- * Custom recursive solver to find all requested metrics.
- * Explores the full state space defined by the available tools.
+ * Custom recursive solver to find the optimal solution and metrics.
+ * Now tracks moves as objects (DailyPuzzleMove) instead of strings.
  */
 function solve(initialSequence: ISortable[], initialTools: ToolType[]): {
     maxYield: number;
     distinctSolvedStates: number;
-    distinctToolPaths: number;
-    computationalComplexity: number;
     minSolutionDepth: number;
     bestState: number[];
-    solutions: Array<{ state: number[], moves: string[] }>;
+    bestSolution: DailyPuzzleMove[];
+    computationalComplexity: number;
 } {
     let globalMaxScore = -Infinity;
-    // Map<stateString, movePath[]>
+
+    // Map<stateString, DailyPuzzleMove[]>
     // Stores the shortest path to reach a specific state that achieves globalMaxScore
-    let bestSolutionsMap = new Map<string, string[]>();
-    let totalPathsToMax = 0;
+    let bestSolutionsMap = new Map<string, DailyPuzzleMove[]>();
     let nodesVisited = 0;
 
-    function search(currentSeq: ISortable[], currentTools: ToolType[], currentPath: string[]) {
+    function search(currentSeq: ISortable[], currentTools: ToolType[], currentPath: DailyPuzzleMove[]) {
         nodesVisited++;
-        // Pruning Rule: Discard branch if any number is less than 0
+
+        // Pruning Rule: Discard branch if any number is less than 0 (if logic allows negative numbers somehow, but standard game is positive)
+        // Adjust based on game rules if necessary, but existing script had this.
         if (currentSeq.some(s => s.val < 0)) {
             return;
         }
@@ -65,11 +67,9 @@ function solve(initialSequence: ISortable[], initialTools: ToolType[]): {
         // Logic: Update globalMaxScore and Map
         if (score > globalMaxScore) {
             globalMaxScore = score;
-            totalPathsToMax = 1;
             bestSolutionsMap.clear();
             bestSolutionsMap.set(stateValString, [...currentPath]);
         } else if (score === globalMaxScore) {
-            totalPathsToMax++;
             // If New State: Add it.
             // If Existing State: Keep shorter path.
             if (bestSolutionsMap.has(stateValString)) {
@@ -99,35 +99,39 @@ function solve(initialSequence: ISortable[], initialTools: ToolType[]): {
             const moves = strategy.generateMoves(currentSeq);
 
             for (const move of moves) {
-                const nextSeq = strategy.apply(currentSeq, move.index, move.targetIndex) as ISortable[];
-                // Format move string. user example: "swap @ 0"
-                const moveStr = `${toolType} @ ${move.index}`;
-                search(nextSeq, nextTools, [...currentPath, moveStr]);
+                // Apply the move
+                const nextSeq = strategy.apply(currentSeq, move.index, move.targetIndex);
+
+                // Construct the Move Object
+                const moveObj: DailyPuzzleMove = {
+                    tool: toolType,
+                    i: move.index
+                };
+                if (move.targetIndex !== undefined) {
+                    moveObj.t = move.targetIndex;
+                }
+
+                search(nextSeq, nextTools, [...currentPath, moveObj]);
             }
         }
     }
 
     search(initialSequence, initialTools, []);
 
-    // Post-Processing Selection
+    // Select the best solution (Shortest Path) among the best states
     let minSolutionDepth = Infinity;
     let bestState: number[] = [];
-    const solutionObjects: Array<{ state: number[], moves: string[] }> = [];
+    let bestSolution: DailyPuzzleMove[] = [];
 
     for (const [stateStr, moves] of bestSolutionsMap.entries()) {
-        const state = JSON.parse(stateStr);
-        solutionObjects.push({
-            state: state,
-            moves: moves
-        });
-
         if (moves.length < minSolutionDepth) {
             minSolutionDepth = moves.length;
-            bestState = state;
+            bestState = JSON.parse(stateStr);
+            bestSolution = moves;
         }
     }
 
-    // Default fallback if no valid state found (unlikely unless initial state is invalid)
+    // Default fallback
     if (bestState.length === 0) {
         bestState = initialSequence.map(s => s.val);
         minSolutionDepth = 0;
@@ -136,98 +140,120 @@ function solve(initialSequence: ISortable[], initialTools: ToolType[]): {
     return {
         maxYield: globalMaxScore,
         distinctSolvedStates: bestSolutionsMap.size,
-        distinctToolPaths: totalPathsToMax,
-        computationalComplexity: nodesVisited,
-        minSolutionDepth: minSolutionDepth,
-        bestState: bestState,
-        solutions: solutionObjects
+        minSolutionDepth,
+        bestState,
+        bestSolution,
+        computationalComplexity: nodesVisited
     };
+}
+
+/**
+ * Verifies that the serialized solution actually produces the promised max score.
+ */
+function verifyPuzzle(puzzle: DailyPuzzle): boolean {
+    // Reconstruct Level
+    let currentSeq: ISortable[] = puzzle.sequence.map(val => ({ val }));
+
+    // Apply Moves
+    for (const move of puzzle.solution) {
+        const toolType = move.tool as ToolType;
+        const strategy = TOOL_REGISTRY[toolType];
+        if (!strategy) {
+            console.error(`Verification Failed: Unknown tool ${toolType}`);
+            return false;
+        }
+        currentSeq = strategy.apply(currentSeq, move.i, move.t);
+    }
+
+    // Check Score
+    const finalScore = calculateBatchScore(currentSeq);
+    const success = finalScore === puzzle.targets.max;
+
+    if (!success) {
+        console.error(`Verification Failed: Expected ${puzzle.targets.max}, got ${finalScore}`);
+    }
+    return success;
 }
 
 async function main() {
     const args = process.argv.slice(2);
     const count = parseInt(args[0], 10) || 1;
 
-    console.log(`Generating ${count} puzzle candidates...`);
+    console.log(`Generating ${count} daily puzzles...`);
 
-    let candidates: PuzzleCandidate[] = [];
-    if (fs.existsSync(PUZZLE_FILE_PATH)) {
-        try {
-            const data = fs.readFileSync(PUZZLE_FILE_PATH, 'utf-8');
-            candidates = JSON.parse(data);
-        } catch (e) {
-            console.warn('Could not read existing candidates, starting fresh.');
-            candidates = [];
-        }
-    }
-
-    if (!Array.isArray(candidates)) {
-        candidates = [];
-    }
+    // We start from Day 0 for this batch, or append?
+    // The requirement says "Assign them IDs 0 to N-1". 
+    // Usually implies a fresh generation for a set. 
+    // Only overwriting the file implies fresh generation.
+    const puzzles: DailyPuzzle[] = [];
 
     let generatedCount = 0;
     while (generatedCount < count) {
-        // Generate Tools (Keep these constant across retries to preserve weight distribution)
+        // Generate Tools
         const toolInstances = generateTools();
         const toolTypes = toolInstances.map(t => t.type);
 
         let validCandidateFound = false;
 
         while (!validCandidateFound) {
-            // Generate Level (Random, no seed)
+            // Generate Level
             const level = generateLevel(LEVEL_LENGTH);
+            const initialSequenceNumbers = level.map(c => c.val);
 
-            console.log(`[${generatedCount + 1}/${count}] Analyzing...`);
+            // Log progress
+            process.stdout.write(`\r[${generatedCount + 1}/${count}] searching...`);
 
-            // Deep Analysis (Max Yield & others)
+            // Solve
             const analysis = solve(level, toolTypes);
 
             // Filter: Depth
             if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH) {
-                console.log(`Discarding candidate (Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH}) - Retrying with same tools`);
-                continue;
+                continue; // Retry with same tools
             }
 
             // Filter: Distinct Solved States
             if (analysis.distinctSolvedStates > 1) {
-                console.log(`Discarding candidate (Distinct Solved States ${analysis.distinctSolvedStates} > 1) - Retrying with same tools`);
-                continue;
+                continue; // Retry with same tools
             }
 
-            // Initial Yield
-            const initialYield = calculateBatchScore(level);
-
-            // Min Yield (Worst Case)
-            // findWorstSolution returns { score, moves }
+            // Calculate Metrics
             const minSol = findWorstSolution(level, toolTypes);
             const minYield = minSol.score;
 
-            const puzzle: PuzzleCandidate = {
-                initialSequence: level.map(i => i.val),
+            // Construct Puzzle Object
+            const puzzle: DailyPuzzle = {
+                id: generatedCount, // 0 to N-1
+                sequence: initialSequenceNumbers,
                 tools: toolTypes,
-                solvedState: analysis.bestState,
-                metrics: {
-                    initialYield,
-                    minYield,
-                    maxYield: analysis.maxYield,
-                    distinctSolvedStates: analysis.distinctSolvedStates,
-                    distinctToolPaths: analysis.distinctToolPaths,
-                    computationalComplexity: analysis.computationalComplexity,
-                    minSolutionDepth: analysis.minSolutionDepth
+                targets: {
+                    min: minYield,
+                    max: analysis.maxYield
                 },
-                solutions: analysis.solutions
+                solution: analysis.bestSolution
             };
 
-            console.log(`Accepted (Depth ${analysis.minSolutionDepth}, Complexity ${analysis.computationalComplexity})`);
+            // Verification Step
+            if (!verifyPuzzle(puzzle)) {
+                console.warn("\nVerification failed for candidate. Discarding.");
+                continue;
+            }
 
-            candidates.push(puzzle);
+            puzzles.push(puzzle);
             validCandidateFound = true;
+            console.log(` -> Found! (Depth: ${analysis.minSolutionDepth}, Nodes: ${analysis.computationalComplexity})`);
         }
         generatedCount++;
     }
 
-    fs.writeFileSync(PUZZLE_FILE_PATH, JSON.stringify(candidates, null, 2));
-    console.log(`Successfully generated ${count} puzzles. Saved to ${PUZZLE_FILE_PATH}`);
+    // Ensure output directory exists
+    const dir = path.dirname(OUTPUT_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(OUTPUT_FILE_PATH, JSON.stringify(puzzles, null, 2));
+    console.log(`\nSuccessfully generated ${count} puzzles.`);
+    console.log(`Saved to ${OUTPUT_FILE_PATH}`);
 }
 
 main();
