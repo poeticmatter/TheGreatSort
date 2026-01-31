@@ -108,12 +108,15 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
             variant: 'default' as const,
             Icon: RotateCcw,
             onClick: actions.handleUndo,
-            disabled: state.movesHistory.length === 0 || isLocked
+            disabled: state.movesHistory.length === 0 || isLocked || state.phase === GamePhase.INSPECTING
         };
     }, [state.gameMode, state.phase, isLocked, state.compliancePercentage, state.optimalScore, state.levelScore, actions, state.movesHistory.length]);
 
-    const isSubmitDisabled = isBoardDisabled && buttonConfig.label !== 'Training';
-    const controlsDisabled = isBoardDisabled || state.phase !== GamePhase.PLANNING;
+    const isSubmitDisabled = (isBoardDisabled && buttonConfig.label !== 'Training') || state.phase === GamePhase.INSPECTING;
+    // We only global-disable the ToolBelt container if the board is locked or we are inspecting.
+    // In RESULTS phase, we want it enabled so the "Retry" button (which lives in ToolBelt) can be clicked.
+    // Individual tools will self-disable based on the phase != PLANNING check inside ToolBelt.
+    const controlsDisabled = isBoardDisabled || state.phase === GamePhase.INSPECTING;
 
     // Detect if we should show AuditBoard logic
     // Logic: If Locked DAILY mode OR if auditState is present
