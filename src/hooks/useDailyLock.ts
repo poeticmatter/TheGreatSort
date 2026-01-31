@@ -4,7 +4,6 @@ const LOCK_PREFIX = 'tgs_daily_lock_';
 
 export function useDailyLock(dateKey: string, onLockConfirmed: () => void) {
   const [isLocked, setIsLocked] = useState(false);
-  const [isWarningOpen, setIsWarningOpen] = useState(false);
 
   useEffect(() => {
     const locked = localStorage.getItem(`${LOCK_PREFIX}${dateKey}`) === 'true';
@@ -12,24 +11,12 @@ export function useDailyLock(dateKey: string, onLockConfirmed: () => void) {
   }, [dateKey]);
 
   const requestAudit = () => {
-    // If already locked, we just proceed (user is viewing audit again)
-    // If not locked, we warn them
-    if (isLocked) {
-      onLockConfirmed();
-    } else {
-      setIsWarningOpen(true);
+    // Immediately lock and confirm
+    if (!isLocked) {
+      setIsLocked(true);
+      localStorage.setItem(`${LOCK_PREFIX}${dateKey}`, 'true');
     }
-  };
-
-  const confirmAuditLock = () => {
-    setIsLocked(true);
-    localStorage.setItem(`${LOCK_PREFIX}${dateKey}`, 'true');
-    setIsWarningOpen(false);
     onLockConfirmed();
-  };
-
-  const cancelAuditLock = () => {
-    setIsWarningOpen(false);
   };
 
   const lockSession = () => {
@@ -39,10 +26,7 @@ export function useDailyLock(dateKey: string, onLockConfirmed: () => void) {
 
   return {
     isLocked,
-    isWarningOpen,
     requestAudit,
-    confirmAuditLock,
-    cancelAuditLock,
     lockSession
   };
 }

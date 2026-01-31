@@ -18,10 +18,9 @@ interface GameViewProps {
     onLayoutChange: (layout: LayoutType) => void;
     layout: LayoutType;
     onForfeit: () => void;
-    onSubmitToAudit: () => void;
 }
 
-export function GameView({ state, actions, isLocked, onRequestAudit, layout, onForfeit, onSubmitToAudit }: GameViewProps) {
+export function GameView({ state, actions, isLocked, onRequestAudit, layout, onForfeit }: GameViewProps) {
 
     // --- Visual Feedback ---
     const [isShaking, setIsShaking] = useState(false);
@@ -53,6 +52,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                     Icon: Play,
                     onClick: () => {
                         actions.saveDaily();
+                        onRequestAudit(); // Lock the session
                         actions.triggerCurrentAudit();
                     }
                 };
@@ -70,7 +70,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
             } else if (compliancePercentage >= 100) {
                 actions.startInspection();
             } else if (['PERFECT', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
-                onRequestAudit();
+                actions.startInspection();
             } else if (mood === 'NORMAL') {
                 actions.startInspection();
             } else if (mood === 'CONCERNED') {
@@ -85,7 +85,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
         };
 
         return { ...config, onClick };
-    }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit, onSubmitToAudit]);
+    }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit]);
 
     // --- Secondary Button Configuration (Undo / Retry) ---
     const secondaryConfig = useMemo(() => {

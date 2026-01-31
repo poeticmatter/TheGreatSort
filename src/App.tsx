@@ -6,7 +6,6 @@ import { getTodayDateString } from './utils/dateUtils';
 import { LayoutType } from './components/InventoryGrid';
 import { GameProvider } from './context/GameContext';
 
-import AuditWarningModal from './components/AuditWarningModal';
 import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
 
@@ -39,10 +38,7 @@ function TheGreatSortContent() {
   // --- Daily Lock & Warnings ---
   const {
     isLocked,
-    isWarningOpen,
     requestAudit,
-    confirmAuditLock,
-    cancelAuditLock,
     lockSession
   } = useDailyLock(sessionDate, () => { });
 
@@ -67,7 +63,6 @@ function TheGreatSortContent() {
         isLocked={isLocked}
         onRequestAudit={requestAudit}
         onForfeit={lockSession}
-        onSubmitToAudit={confirmAuditLock}
         layout={layout}
         onLayoutChange={setLayout}
       />
@@ -76,11 +71,6 @@ function TheGreatSortContent() {
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
-      <AuditWarningModal
-        isOpen={isWarningOpen}
-        onConfirm={confirmAuditLock}
-        onCancel={cancelAuditLock}
-      />
       {getView()}
     </div>
   );
