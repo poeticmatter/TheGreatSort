@@ -133,7 +133,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                 <div className="w-full h-full overflow-y-auto custom-scrollbar p-6">
                     <DailyAudit
                         date={state.sessionDate}
-                        userHighScore={state.levelScore}
+                        userHighScore={state.dailyResult?.score || state.levelScore}
                         onClose={() => { }}
                         onDetectResistance={onRequestAudit}
                         flavorText={state.flavorMap?.['DONE']}

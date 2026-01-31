@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, Move, CardItem } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { SaveStateSchema, DailyResult } from '../services/persistence/types';
@@ -30,6 +30,7 @@ export const useGamePersistence = (
   const [persistenceLoaded, setPersistenceLoaded] = useState(false);
 
   const [isLocked, setIsLocked] = useState(false);
+  const hasRecordedResult = useRef(false);
 
   // Load Daily Data
   const loadDaily = () => {
@@ -46,8 +47,16 @@ export const useGamePersistence = (
       setLoadedState(state);
       setDailyResult(result);
       setIsLocked(locked);
+
+      // Prevent double-counting history if reloading on Results screen
+      if (state?.snapshot?.phase === GamePhase.RESULTS) {
+        hasRecordedResult.current = true;
+      } else {
+        hasRecordedResult.current = false;
+      }
     } else {
       setIsLocked(false);
+      hasRecordedResult.current = false;
     }
     setPersistenceLoaded(true);
   }, [gameMode, sessionDate]); // Add sessionDate dependency if needed (usually stable)
@@ -76,12 +85,32 @@ export const useGamePersistence = (
     // Use sessionDate from prop, not fresh date
     const today = sessionDate;
 
-    // 1. Save Result if finished
+    // 1. Save Result if finished (Idempotent Guard)
     if (currentState.phase === GamePhase.RESULTS) {
-      PersistenceService.saveDailyResult(today, {
-        score: currentState.levelScore,
-        // optimal: currentState.optimalScore // Optional: decide if we save this
-      });
+      if (!hasRecordedResult.current) {
+        // A. Update History (High Score & Attempts)
+        PersistenceService.updateDailyHistory(today, currentState.levelScore);
+
+        // B. Save Last Result
+        const newResult = {
+          score: currentState.levelScore,
+          date: today
+          // optimal: currentState.optimalScore 
+        };
+        PersistenceService.saveDailyResult(today, newResult);
+
+        // C. Update Local State (so UI/Audit sees it immediately)
+        setDailyResult(newResult);
+
+        // D. Lock Guard
+        hasRecordedResult.current = true;
+      }
+    } else {
+      // Reset guard if we leave the results screen (e.g. replay/reset level)
+      // preventing duplicate recording for the *same* completion, but allowing *new* completions.
+      if (hasRecordedResult.current) {
+        hasRecordedResult.current = false;
+      }
     }
 
     // 2. Save State (Snapshots)
@@ -107,7 +136,8 @@ export const useGamePersistence = (
     currentState.movesHistory,
     currentState.toolsAvailable,
     currentState.list,
-    currentState.currentSeed
+    currentState.currentSeed,
+    sessionDate // Added sessionDate to dependency array to be safe
   ]);
 
   return {
