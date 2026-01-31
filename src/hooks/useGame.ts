@@ -113,6 +113,12 @@ export function useGame(sessionDate: string) {
           coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
         }
 
+        // Set Scores immediately for Daily
+        if (puzzle.targets) {
+          coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: puzzle.targets.max } });
+          coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: puzzle.targets.min } });
+        }
+
       } else if (metaState.dailyResult) {
         // --- Completed but no state ---
         // If LOCKED, we want to show the solved state, but if we don't have the moves, we can't reconstruct it perfectly.
@@ -136,6 +142,11 @@ export function useGame(sessionDate: string) {
         );
         coreDispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
         coreDispatch({ type: 'SET_LEVEL_SCORE', payload: { score: metaState.dailyResult.score } });
+
+        if (puzzle.targets) {
+          coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: puzzle.targets.max } });
+          coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: puzzle.targets.min } });
+        }
       } else {
         // --- New Game ---
         startLevel(1, 'DAILY');
