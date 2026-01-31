@@ -15,8 +15,6 @@ interface FooterProps {
   shouldShake: boolean;
   listLength: number;
   onToolClick: (toolId: string) => void;
-  onUndo: () => void;
-  canUndo: boolean;
   disabled?: boolean;
   layout: LayoutType;
   submitConfig: {
@@ -26,11 +24,18 @@ interface FooterProps {
     onClick: () => void;
     disabled?: boolean;
   };
+  secondaryConfig: {
+    label?: string;
+    variant?: 'default' | 'warning' | 'muted';
+    Icon?: LucideIcon;
+    onClick: () => void;
+    disabled: boolean;
+  };
 }
 
 const Footer: React.FC<FooterProps> = ({
   phase, gameMode, toolsAvailable, selectedTool, shouldShake, listLength,
-  onToolClick, onUndo, canUndo, disabled, layout, submitConfig
+  onToolClick, disabled, layout, submitConfig, secondaryConfig
 }) => {
   // Controls are disabled if global disable is on OR if we are not in the planning phase (Inspection/Results)
   const controlsDisabled = disabled || phase !== GamePhase.PLANNING;
@@ -45,8 +50,7 @@ const Footer: React.FC<FooterProps> = ({
       phase={phase}
       onToolClick={onToolClick}
       orientation={layout === 'VERTICAL_LIST' ? 'vertical' : 'horizontal'}
-      onUndo={onUndo}
-      canUndo={canUndo}
+      secondaryAction={secondaryConfig}
       isDisabled={controlsDisabled}
     />
   );

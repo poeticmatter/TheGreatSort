@@ -281,11 +281,12 @@ export function useGame(sessionDate: string) {
 
 
   // Core Completion Bridge
-  useEffect(() => {
-    if (coreState.phase === GamePhase.RESULTS && metaState.gameMode === 'DAILY' && !coreState.dailyCompleted) {
-      metaActions.saveDaily();
-    }
-  }, [coreState.phase, metaState.gameMode, coreState.dailyCompleted, metaActions]);
+  // REMOVED: Auto-save logic. Result saving is now deferred to "View Audit" button (Manual Trigger).
+  // useEffect(() => {
+  //   if (coreState.phase === GamePhase.RESULTS && metaState.gameMode === 'DAILY' && !coreState.dailyCompleted) {
+  //     metaActions.saveDaily();
+  //   }
+  // }, [coreState.phase, metaState.gameMode, coreState.dailyCompleted, metaActions]);
 
   // --- Actions ---
   const shareResult = async () => {
@@ -333,7 +334,8 @@ export function useGame(sessionDate: string) {
       closeAudit: metaActions.closeAudit,
       triggerCurrentAudit: metaActions.triggerCurrentAudit,
       triggerResistance: metaActions.triggerResistance,
-      closeResistance: closeResistanceAndReset
+      closeResistance: closeResistanceAndReset,
+      saveDaily: metaActions.saveDaily
     }
   };
 }

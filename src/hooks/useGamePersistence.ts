@@ -79,7 +79,38 @@ export const useGamePersistence = (
     });
   }, [sessionDate]);
 
-  // Save Effect
+  // Manual Persistence Trigger
+  const persistResult = () => {
+    if (gameMode !== 'DAILY') return;
+    const today = sessionDate;
+
+    // A. Update History (High Score & Attempts)
+    PersistenceService.updateDailyHistory(today, currentState.levelScore);
+
+    // B. Save Last Result
+    const newResult = {
+      score: currentState.levelScore,
+      date: today
+    };
+    PersistenceService.saveDailyResult(today, newResult);
+
+    // C. Update Local State (High Score Sync)
+    const historyEntry = PersistenceService.getDailyHistoryEntry(today);
+    if (historyEntry) {
+      setDailyResult({
+        score: historyEntry.highScore,
+        date: today,
+      });
+    } else {
+      setDailyResult(newResult);
+    }
+
+    // D. Lock and Mark Recorded
+    setIsLocked(true);
+    historyRecordedRef.current = true;
+  };
+
+  // Save Effect (Snapshots Only)
   useEffect(() => {
     if (!isGameLoaded) return;
     if (gameMode !== 'DAILY') return;
@@ -87,49 +118,7 @@ export const useGamePersistence = (
     // Use sessionDate from prop, not fresh date
     const today = sessionDate;
 
-    // 1. Save Result if finished (Idempotent Guard)
-    if (currentState.phase === GamePhase.RESULTS) {
-      if (!historyRecordedRef.current) {
-
-        // A. Update History (High Score & Attempts)
-        PersistenceService.updateDailyHistory(today, currentState.levelScore);
-
-        // B. Save Last Result
-        const newResult = {
-          score: currentState.levelScore,
-          date: today
-          // optimal: currentState.optimalScore 
-        };
-        PersistenceService.saveDailyResult(today, newResult);
-
-        // NEW: Critical UI Sync - Fetch updated history (High Score) to show in Audit
-        const historyEntry = PersistenceService.getDailyHistoryEntry(today);
-        if (historyEntry) {
-          // Map history entry to DailyResult format for UI display
-          // We use history 'highScore' as the 'score' for the audit view
-          setDailyResult({
-            score: historyEntry.highScore,
-            date: today,
-            // preserve optimal if needed or fetched
-          });
-        } else {
-          // Fallback if fetch fails (shouldn't happen)
-          setDailyResult(newResult);
-        }
-
-        // C. Lock Guard
-        historyRecordedRef.current = true;
-      }
-    }
-    // Note: We do NOT reset the guard here in 'else' block because the separate 
-    // reset effect handles seed/date changes. Explicitly resetting on phase change 
-    // might be risky if we bounce between results and inspecting. 
-    // But existing code had logic for that. 
-    // User Requirement: "Reset this ref must be reset to false whenever the sessionDate changes or the currentState.currentSeed changes".
-    // This implies we don't reset it just because we left RESULTS phase (e.g. to inspect).
-    // So excluding the 'else' block is correct based on new requirements.
-
-    // 2. Save State (Snapshots)
+    // Save State (Snapshots)
     // If inspecting, we save as PLANNING so we can resume smoothly
     const phaseToSave = currentState.phase === GamePhase.INSPECTING ? GamePhase.PLANNING : currentState.phase;
 
@@ -160,6 +149,7 @@ export const useGamePersistence = (
     loadedState,
     dailyResult,
     isLocked,
-    persistenceLoaded
+    persistenceLoaded,
+    persistResult
   };
 };

@@ -26,15 +26,15 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
         currentSeed: coreState.currentSeed
     }), [coreState]);
 
-    const { loadedState, dailyResult, isLocked, persistenceLoaded } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
+    const { loadedState, dailyResult, isLocked, persistenceLoaded, persistResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
 
 
     const saveDaily = useCallback(() => {
-        // saveDailyScore(sessionDate, coreState.levelScore); // Handled by useGamePersistence
+        persistResult();
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
         setResistancePending(true);
         trackGameComplete(gameMode, coreState.levelScore, coreState.optimalScore);
-    }, [coreState.levelScore, coreState.optimalScore, gameMode, coreDispatch, trackGameComplete, sessionDate]);
+    }, [coreState.levelScore, coreState.optimalScore, gameMode, coreDispatch, trackGameComplete, sessionDate, persistResult]);
 
 
     const triggerResistance = useCallback(() => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Play, Repeat } from 'lucide-react';
+import { Play, Repeat, RotateCcw } from 'lucide-react';
 import { getSubmitButtonConfig } from '../../config/submitButtonConfig';
 import { GamePhase } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
@@ -57,6 +57,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
 
     const isBoardDisabled = state.gameMode === 'DAILY' && isLocked;
 
+    // --- Main Button Configuration (Submit / Next / Audit) ---
     const buttonConfig = useMemo(() => {
         if (state.gameMode === 'DAILY' && isLocked) {
             return { label: 'Training', variant: 'destructive' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
@@ -64,7 +65,16 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
 
         if (state.phase === GamePhase.RESULTS) {
             if (state.gameMode === 'DAILY') {
-                return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
+                // Provisional Results Phase: User must explictly commit
+                return {
+                    label: 'View Audit',
+                    variant: 'warning' as const,
+                    Icon: Play,
+                    onClick: () => {
+                        actions.saveDaily();
+                        actions.triggerCurrentAudit();
+                    }
+                };
             } else {
                 return { label: 'Next Level', variant: 'warning' as const, Icon: Play, onClick: actions.nextLevel };
             }
@@ -95,6 +105,32 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
 
         return { ...config, onClick };
     }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit, onSubmitToAudit]);
+
+    // --- Secondary Button Configuration (Undo / Retry) ---
+    const secondaryConfig = useMemo(() => {
+        // Daily Results Phase: Retry Button
+        if (state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && !isLocked) {
+            const isPerfect = state.compliancePercentage >= 100 || state.optimalScore === state.levelScore;
+
+            return {
+                label: 'RETRY',
+                variant: (isPerfect ? 'muted' : 'default') as 'muted' | 'default',
+                Icon: Repeat,
+                onClick: actions.retryDaily,
+                disabled: false
+            };
+        }
+
+        // Default: Undo Button
+        return {
+            label: 'UNDO',
+            variant: 'default' as const,
+            Icon: RotateCcw,
+            onClick: actions.handleUndo,
+            disabled: state.movesHistory.length === 0 || isLocked
+        };
+    }, [state.gameMode, state.phase, isLocked, state.compliancePercentage, state.optimalScore, state.levelScore, actions, state.movesHistory.length]);
+
 
     const isSubmitDisabled = isBoardDisabled && buttonConfig.label !== 'Training';
     const controlsDisabled = isBoardDisabled || state.phase !== GamePhase.PLANNING;
@@ -130,7 +166,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
     const gridContent = (
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
             {state.gameMode === 'DAILY' && isLocked ? (
-                <div className="w-full h-full overflow-y-auto custom-scrollbar p-6">
+                <div className="w-full p-6">
                     <DailyAudit
                         date={state.sessionDate}
                         userHighScore={state.dailyResult?.score || state.levelScore}
@@ -230,8 +266,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                                 phase={state.phase}
                                 onToolClick={actions.handleToolClick}
                                 orientation="vertical"
-                                onUndo={actions.handleUndo}
-                                canUndo={state.movesHistory.length > 0}
+                                secondaryAction={secondaryConfig}
                                 isDisabled={controlsDisabled}
                             />
                             <div className="w-8 h-0.5 bg-stone-700 rounded-full opacity-50" />
@@ -307,11 +342,10 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                         shouldShake={isShaking}
                         listLength={state.list.length}
                         onToolClick={actions.handleToolClick}
-                        onUndo={actions.handleUndo}
-                        canUndo={state.movesHistory.length > 0}
                         disabled={isBoardDisabled}
                         layout={layout}
                         submitConfig={{ ...buttonConfig, disabled: isSubmitDisabled }}
+                        secondaryConfig={secondaryConfig}
                     />
                 </>
             )}
