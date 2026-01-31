@@ -6,7 +6,7 @@ export interface SaveStateSchema {
     version: number;
     date: string;
     gameMode: string;
-    seed: number; // The initialization seed
+    puzzleId: number; // The initialization puzzle ID
     moves: Move[]; // The history of moves made
 
     // Snapshot data (Strictly optional, can be reconstructed from moves + seed if needed, 

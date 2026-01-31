@@ -66,7 +66,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...state,
         level: action.payload.level,
         list: action.payload.list,
-        initialList: [...action.payload.list],
+        initialList: action.payload.initialList ? [...action.payload.initialList] : [...action.payload.list],
         toolsAvailable: action.payload.tools,
         currentSeed: action.payload.seed,
         optimalScore: action.payload.optimalScore ?? null,

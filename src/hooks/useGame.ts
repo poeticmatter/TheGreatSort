@@ -58,15 +58,24 @@ export function useGame(sessionDate: string) {
 
   // Hydration & Initialization (The complex part from original useGame)
   useEffect(() => {
+
     if (metaState.isGameLoaded) return;
+    if (!metaState.persistenceLoaded) return;
 
     if (metaState.gameMode === 'DAILY') {
-      const seed = stringToSeed(sessionDate);
+      let seed = stringToSeed(sessionDate);
 
       if (metaState.loadedState) {
+        seed = metaState.loadedState.puzzleId;
         // --- Resume from Save ---
-        let currentList = generateLevel(9, seed);
-        let currentTools = generateTools(seed);
+        // --- Resume from Save ---
+        // Parse date to get the correct puzzle
+        const [y, m, d] = sessionDate.split('-').map(Number);
+        const puzzleDate = new Date(y, m - 1, d);
+        const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
+
+        let currentList = PuzzleRepository.hydrateSequence(puzzle.sequence);
+        let currentTools = PuzzleRepository.hydrateTools(puzzle.tools);
         let currentFlavorMap = generateFlavorMap(seed);
 
         // Replay moves
@@ -85,7 +94,10 @@ export function useGame(sessionDate: string) {
         }
 
         // Core Init
-        coreActions.initLevel(1, currentList, currentTools, seed, currentFlavorMap, metaState.loadedState.moves);
+        // We must pass the *original* start list as the 7th argument for UNDO to work correctly.
+        // It's not efficiently cached, but we can reconstruct it.
+        const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
+        coreActions.initLevel(1, currentList, currentTools, seed, currentFlavorMap, metaState.loadedState.moves, startList);
 
         if (phase) {
           coreDispatch({ type: 'SET_PHASE', payload: { phase } });
@@ -106,25 +118,19 @@ export function useGame(sessionDate: string) {
         // If LOCKED, we want to show the solved state, but if we don't have the moves, we can't reconstruct it perfectly.
         // Best effort: Re-generate level and show as results.
 
-        let currentStateList = generateLevel(9, seed);
+        // Parse date to get the correct puzzle
+        const [y, m, d] = sessionDate.split('-').map(Number);
+        const puzzleDate = new Date(y, m - 1, d);
+        const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
 
-        // If locked and we have stored moves in loadedState (even if we entered this branch?), 
-        // actually if dailyResult exists, loadedState usually exists too if specific key. 
-        // But if we only have result, we might not have moves. 
-        // However, if we are here, we likely have dailyResult. 
-        // Check if we can replay moves from somewhere? 
-        // Persistence service keeps them together usually. 
-
-        // Let's assume if it's locked, we want to show the *Graded* list if possible.
-        // If we have loadedState.moves, we use the first branch.
-        // This branch is for "Result exists but no full state".
+        let currentStateList = PuzzleRepository.hydrateSequence(puzzle.sequence);
 
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
 
         coreActions.initLevel(
           1,
           currentStateList,
-          generateTools(seed),
+          PuzzleRepository.hydrateTools(puzzle.tools),
           seed,
           generateFlavorMap(seed)
         );
@@ -174,6 +180,8 @@ export function useGame(sessionDate: string) {
       };
 
       seed = puzzle.id; // Use puzzle ID as seed for tracking
+      // flavorMap = generateFlavorMap(seed); 
+      // Ensure we map to puzzleId if we use that terminology, effectively seed is puzzleId here.
       flavorMap = generateFlavorMap(seed); // Still generate flavor from seed/id
 
     } else if (activeMode === 'PRACTICE') {

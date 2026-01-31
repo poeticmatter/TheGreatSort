@@ -27,6 +27,7 @@ export const useGamePersistence = (
 ) => {
   const [loadedState, setLoadedState] = useState<SaveStateSchema | null>(null);
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
+  const [persistenceLoaded, setPersistenceLoaded] = useState(false);
 
   const [isLocked, setIsLocked] = useState(false);
 
@@ -48,6 +49,7 @@ export const useGamePersistence = (
     } else {
       setIsLocked(false);
     }
+    setPersistenceLoaded(true);
   }, [gameMode, sessionDate]); // Add sessionDate dependency if needed (usually stable)
 
   // Cleanup old keys (Cleanup Policy)
@@ -87,7 +89,7 @@ export const useGamePersistence = (
     const phaseToSave = currentState.phase === GamePhase.INSPECTING ? GamePhase.PLANNING : currentState.phase;
 
     PersistenceService.saveDailyState(today, {
-      seed: currentState.currentSeed || 0, // Should always exist for Daily
+      puzzleId: currentState.currentSeed || 0, // Should always exist for Daily
       moves: currentState.movesHistory,
       snapshot: {
         list: currentState.list,
@@ -111,7 +113,8 @@ export const useGamePersistence = (
   return {
     loadedState,
     dailyResult,
-    isLocked
+    isLocked,
+    persistenceLoaded
   };
 };
 

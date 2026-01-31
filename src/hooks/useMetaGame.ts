@@ -26,7 +26,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
         currentSeed: coreState.currentSeed
     }), [coreState]);
 
-    const { loadedState, dailyResult, isLocked } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
+    const { loadedState, dailyResult, isLocked, persistenceLoaded } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
 
 
     const saveDaily = useCallback(() => {
@@ -96,7 +96,8 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             resistancePending,
             loadedState,
             dailyResult,
-            isLocked
+            isLocked,
+            persistenceLoaded
         },
         metaActions: {
             setGameMode,
