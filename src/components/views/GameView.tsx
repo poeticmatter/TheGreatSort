@@ -58,13 +58,13 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
     const isBoardDisabled = state.gameMode === 'DAILY' && isLocked;
 
     const buttonConfig = useMemo(() => {
+        if (state.gameMode === 'DAILY' && isLocked) {
+            return { label: 'Training', variant: 'destructive' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
+        }
+
         if (state.phase === GamePhase.RESULTS) {
             if (state.gameMode === 'DAILY') {
-                if (isLocked) {
-                    return { label: 'Training', variant: 'destructive' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
-                } else {
-                    return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
-                }
+                return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
             } else {
                 return { label: 'Next Level', variant: 'warning' as const, Icon: Play, onClick: actions.nextLevel };
             }
