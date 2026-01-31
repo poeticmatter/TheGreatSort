@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { CardItem, Move } from '../../types';
-import { generateLevel, generateTools, findOptimalSolution, findWorstSolution, calculateRelativeEfficiency, calculateBatchScore, stringToSeed, Solution, applyMove } from '../utils/gameLogic';
+import React from 'react';
+import { calculateRelativeEfficiency, calculateBatchScore } from '../utils/gameLogic';
 import { TOOLS } from '../constants';
-import { CheckCircle, AlertTriangle, ArrowLeft, FileText, ArrowDown } from 'lucide-react';
+import { CheckCircle, AlertTriangle, ArrowDown, FileText } from 'lucide-react';
 import InventoryGrid from './InventoryGrid';
+import { useDailyAudit } from '../hooks/useDailyAudit';
 
 interface DailyAuditProps {
   date: string;
@@ -12,111 +12,22 @@ interface DailyAuditProps {
   onDetectResistance: () => void;
 }
 
-interface TimelineStep {
-  list: CardItem[];
-  move: Move | null;
-}
-
-import { PuzzleRepository } from '../services/puzzleRepository';
-
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance }) => {
-  const [isCalculating, setIsCalculating] = useState(true);
-  const [solution, setSolution] = useState<Solution | null>(null);
-  const [worstScore, setWorstScore] = useState<number>(0);
-  const [initialList, setInitialList] = useState<CardItem[]>([]);
+  const { loading, solution, timeline, initialList, stats } = useDailyAudit(date, userHighScore);
+  const { userScore, optimalScore, worstScore } = stats;
 
-  useEffect(() => {
-    setIsCalculating(true);
-    // Short timeout to allow UI to mount before "heavy" work (though it's light now)
-    const timer = setTimeout(() => {
-      try {
-        // Parse date string (YYYY-MM-DD or similar) as Local Time
-        const [y, m, d] = date.split('-').map(Number);
-        const dateObj = new Date(y, m - 1, d);
-
-        const puzzle = PuzzleRepository.getDailyPuzzle(dateObj);
-
-        // Hydrate Initial List
-        const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
-        setInitialList(list);
-
-        // Set Scores
-        setWorstScore(puzzle.targets.min);
-
-        // Map Solution
-        // JSON: { tool: string, i: number, t?: number }
-        // Runtime 'Move': { tool: ToolType, index: number, targetIndex?: number, description?: string }
-        // Runtime 'Solution': { score: number, moves: Move[], ... }
-        const mappedMoves: Move[] = puzzle.solution.map(step => ({
-          tool: step.tool as any, // Cast to ToolType
-          index: step.i,
-          targetIndex: step.t,
-          description: `Use ${step.tool} at ${step.i}`
-        }));
-
-        const sol: Solution = {
-          score: puzzle.targets.max,
-          moves: mappedMoves
-        };
-
-        setSolution(sol);
-      } catch (e) {
-        console.error("Failed to load daily audit:", e);
-      } finally {
-        setIsCalculating(false);
-      }
-    }, 50);
-
-    return () => clearTimeout(timer);
-  }, [date]);
-
-  // Calculate Adherence & Trigger Resistance
-  const passed = solution ? userHighScore >= solution.score : false;
+  // Calculate Adherence
+  const passed = solution ? userScore >= optimalScore : false;
   const adherence = solution
-    ? calculateRelativeEfficiency(userHighScore, solution.score, worstScore)
+    ? calculateRelativeEfficiency(userScore, optimalScore, worstScore)
     : 0;
 
   // Determine Interrogation Status
   // If user score is worse than the initial board state score
   const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
-  const isInterrogation = userHighScore < initialScore;
+  const isInterrogation = userScore < initialScore;
 
-
-
-  // Derive Timeline
-  const timeline = useMemo(() => {
-    if (!solution || initialList.length === 0) return [];
-
-    const steps: TimelineStep[] = [];
-    let currentList = initialList.map(i => ({ ...i })); // Deep copy to start
-
-    // 1. Initial State
-    // We process moves. Each step is (State Before) -> (Move) -> (State After)
-    // Actually, we want to render: State 0, Arrow (Move 0), State 1, Arrow (Move 1), ...
-
-    // Push initial state paired with the first move
-    // Loop through moves
-    for (let i = 0; i < solution.moves.length; i++) {
-      const move = solution.moves[i];
-      steps.push({
-        list: currentList,
-        move: move
-      });
-
-      // Apply move to get next state
-      currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
-    }
-
-    // 2. Final Result State
-    steps.push({
-      list: currentList,
-      move: null
-    });
-
-    return steps;
-  }, [solution, initialList]);
-
-  if (isCalculating || !solution) {
+  if (loading || !solution) {
     return (
       <div className="flex flex-col items-center justify-center p-12 w-full h-full min-h-[50vh]">
         <div className="bg-stone-900/50 border-2 border-amber-900/30 p-8 rounded shadow-xl animate-pulse flex flex-col items-center">
@@ -127,12 +38,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     );
   }
 
-
-
   return (
     <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
-
-
 
       {/* Main Report Card */}
       <div className="w-full max-w-full bg-transparent relative overflow-hidden">
@@ -155,11 +62,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
               <div className="text-xs uppercase text-stone-500 mb-1">Citizen Yield</div>
-              <div className="text-3xl font-bold text-stone-200">{userHighScore}</div>
+              <div className="text-3xl font-bold text-stone-200">{userScore}</div>
             </div>
             <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
               <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
-              <div className="text-3xl font-bold text-amber-500">{solution.score}</div>
+              <div className="text-3xl font-bold text-amber-500">{optimalScore}</div>
             </div>
             <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${adherence >= 100 ? 'border-green-900/50'
               : adherence >= 90 ? 'border-amber-900/50'
