@@ -12,6 +12,7 @@ import ToolBelt from '../ToolBelt';
 import SubmitButton from '../SubmitButton';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
+import { DailyAudit } from '../DailyAudit';
 
 interface GameViewProps {
     state: any; // Ideally typed from useGame return type
@@ -128,7 +129,17 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
     // Grid Content
     const gridContent = (
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
-            {state.list.length > 0 ? (
+            {state.gameMode === 'DAILY' && isLocked ? (
+                <div className="w-full h-full overflow-y-auto custom-scrollbar p-6">
+                    <DailyAudit
+                        date={state.sessionDate}
+                        userHighScore={state.levelScore}
+                        onClose={() => { }}
+                        onDetectResistance={onRequestAudit}
+                        flavorText={state.flavorMap?.['DONE']}
+                    />
+                </div>
+            ) : state.list.length > 0 ? (
                 <InventoryGrid
                     cards={gridCards}
                     onItemClick={handleCardClickWrapper}
@@ -169,30 +180,36 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
             {layout === 'VERTICAL_LIST' ? (
                 <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                     <div className="shrink-0 w-full px-2 pt-2 z-10">
-                        <Tooltip
-                            phase={state.phase}
-                            selectedTool={state.toolsAvailable.find((t: any) => t.instanceId === state.selectedTool)?.type || null}
-                            selection={state.selection}
-                            detectedMode={state.detectedMode}
-                            levelScore={state.levelScore}
-                            optimalScore={state.optimalScore}
-                            worstScore={state.worstScore}
-                            gameMode={state.gameMode}
-                            onShareResult={actions.shareResult}
-                            onRetryPractice={actions.retryPractice}
-                            onViewAudit={onRequestAudit}
-                            isLocked={isLocked}
-                        />
-                        <FlavorText mood={state.mood} text={flavorText} />
+                        {!(state.gameMode === 'DAILY' && isLocked) && (
+                            <>
+                                <Tooltip
+                                    phase={state.phase}
+                                    selectedTool={state.toolsAvailable.find((t: any) => t.instanceId === state.selectedTool)?.type || null}
+                                    selection={state.selection}
+                                    detectedMode={state.detectedMode}
+                                    levelScore={state.levelScore}
+                                    optimalScore={state.optimalScore}
+                                    worstScore={state.worstScore}
+                                    gameMode={state.gameMode}
+                                    onShareResult={actions.shareResult}
+                                    onRetryPractice={actions.retryPractice}
+                                    onViewAudit={onRequestAudit}
+                                    isLocked={isLocked}
+                                />
+                                <FlavorText mood={state.mood} text={flavorText} />
+                            </>
+                        )}
                     </div>
 
                     <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
                         <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
                             <div className="pointer-events-auto h-full flex items-center">
-                                <ComplianceMeter
-                                    compliancePercentage={state.compliancePercentage}
-                                    layout={layout}
-                                />
+                                {!(state.gameMode === 'DAILY' && isLocked) && (
+                                    <ComplianceMeter
+                                        compliancePercentage={state.compliancePercentage}
+                                        layout={layout}
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -238,29 +255,35 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                         <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#78350f_1px,transparent_1px)] [background-size:20px_20px]"></div>
 
                         <div className="w-full relative z-20">
-                            <Tooltip
-                                phase={state.phase}
-                                selectedTool={state.toolsAvailable.find((t: any) => t.instanceId === state.selectedTool)?.type || null}
-                                selection={state.selection}
-                                detectedMode={state.detectedMode}
-                                levelScore={state.levelScore}
-                                optimalScore={state.optimalScore}
-                                worstScore={state.worstScore}
-                                gameMode={state.gameMode}
-                                onShareResult={actions.shareResult}
-                                onRetryPractice={actions.retryPractice}
-                                onViewAudit={onRequestAudit}
-                                isLocked={isLocked}
-                            />
-                            <FlavorText mood={state.mood} text={flavorText} />
+                            {!(state.gameMode === 'DAILY' && isLocked) && (
+                                <>
+                                    <Tooltip
+                                        phase={state.phase}
+                                        selectedTool={state.toolsAvailable.find((t: any) => t.instanceId === state.selectedTool)?.type || null}
+                                        selection={state.selection}
+                                        detectedMode={state.detectedMode}
+                                        levelScore={state.levelScore}
+                                        optimalScore={state.optimalScore}
+                                        worstScore={state.worstScore}
+                                        gameMode={state.gameMode}
+                                        onShareResult={actions.shareResult}
+                                        onRetryPractice={actions.retryPractice}
+                                        onViewAudit={onRequestAudit}
+                                        isLocked={isLocked}
+                                    />
+                                    <FlavorText mood={state.mood} text={flavorText} />
+                                </>
+                            )}
                         </div>
 
                         {gridContent}
 
-                        <ComplianceMeter
-                            compliancePercentage={state.compliancePercentage}
-                            layout={layout}
-                        />
+                        {!(state.gameMode === 'DAILY' && isLocked) && (
+                            <ComplianceMeter
+                                compliancePercentage={state.compliancePercentage}
+                                layout={layout}
+                            />
+                        )}
 
 
                         {/* Help / Rules Overlay */}

@@ -289,6 +289,7 @@ export function useGame(sessionDate: string) {
       selectedTool: coreState.selectedToolInstanceId,
       compliancePercentage,
       mood,
+      sessionDate,
     },
     actions: {
       changeMode,
