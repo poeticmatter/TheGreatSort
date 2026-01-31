@@ -1,4 +1,4 @@
-export type FlavorKey = 'DONE' | 'ACCEPTABLE' | 'ADEQUATE' | 'NORMAL' | 'CONCERNED' | 'HOSTILE' | 'SUSPICIOUS';
+export type FlavorKey = 'PERFECT' | 'DONE' | 'ACCEPTABLE' | 'ADEQUATE' | 'NORMAL' | 'CONCERNED' | 'HOSTILE' | 'SUSPICIOUS';
 
 export interface FlavorEntry {
     text: string;
@@ -6,7 +6,7 @@ export interface FlavorEntry {
 }
 
 export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
-    DONE: [
+    PERFECT: [
         { text: "Efficiency Absolute.", weight: 10 },
         { text: "Compliance: 100%.", weight: 10 },
         { text: "The System is perfect.", weight: 10 },
@@ -17,6 +17,9 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "Perfection achieved.", weight: 1 },
         { text: "No deviation detected.", weight: 1 },
         { text: "Model efficiency.", weight: 1 },
+    ],
+    DONE: [
+        { text: "Daily quota complete, comrade. Your duties lie with your family now, come back tomorrow for more work.", weight: 10 }
     ],
     ACCEPTABLE: [
         { text: "Acceptable deviation.", weight: 10 },
@@ -93,7 +96,8 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
 };
 
 export const FLAVOR_COLORS: Record<FlavorKey, string> = {
-    DONE: "text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] font-bold",
+    PERFECT: "text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] font-bold",
+    DONE: "text-stone-500 italic",
     ACCEPTABLE: "text-amber-400 font-semibold",
     ADEQUATE: "text-amber-500/90",
     NORMAL: "text-stone-500",

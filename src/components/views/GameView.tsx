@@ -54,8 +54,49 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
         return strategy.isValid(state.list, idx, state.selection);
     };
 
-    const isGameDisabled = state.gameMode === 'DAILY' && isLocked;
-    const controlsDisabled = isGameDisabled || state.phase !== GamePhase.PLANNING;
+    const isBoardDisabled = state.gameMode === 'DAILY' && isLocked;
+
+    const buttonConfig = useMemo(() => {
+        if (state.phase === GamePhase.RESULTS) {
+            if (state.gameMode === 'DAILY') {
+                if (isLocked) {
+                    return { label: 'Training', variant: 'destructive' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
+                } else {
+                    return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
+                }
+            } else {
+                return { label: 'Next Level', variant: 'warning' as const, Icon: Play, onClick: actions.nextLevel };
+            }
+        }
+
+        // Planning Phase
+        const config = getSubmitButtonConfig(state.mood);
+        const onClick = () => {
+            const { mood, compliancePercentage } = state;
+            if (mood === 'DONE') {
+                actions.changeMode('PRACTICE');
+            } else if (compliancePercentage >= 100) {
+                onSubmitToAudit();
+            } else if (['PERFECT', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
+                onRequestAudit();
+            } else if (mood === 'NORMAL') {
+                actions.startInspection();
+            } else if (mood === 'CONCERNED') {
+                actions.retryDaily();
+            } else if (mood === 'SUSPICIOUS') {
+                actions.changeMode('PRACTICE');
+            } else if (mood === 'HOSTILE') {
+                onForfeit();
+            } else {
+                actions.startInspection();
+            }
+        };
+
+        return { ...config, onClick };
+    }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit, onSubmitToAudit]);
+
+    const isSubmitDisabled = isBoardDisabled && buttonConfig.label !== 'Training';
+    const controlsDisabled = isBoardDisabled || state.phase !== GamePhase.PLANNING;
 
     const candidateIndices = useMemo(() =>
         state.list.map((_: any, idx: number) => idx).filter(isCandidate)
@@ -91,7 +132,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                 <InventoryGrid
                     cards={gridCards}
                     onItemClick={handleCardClickWrapper}
-                    disabled={isGameDisabled}
+                    disabled={isBoardDisabled}
                     layout={layout}
                 />
             ) : (
@@ -107,42 +148,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
         </div>
     );
 
-    const buttonConfig = useMemo(() => {
-        if (state.phase === GamePhase.RESULTS) {
-            if (state.gameMode === 'DAILY') {
-                if (isLocked) {
-                    return { label: 'Training', variant: 'info' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
-                } else {
-                    return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
-                }
-            } else {
-                return { label: 'Next Level', variant: 'warning' as const, Icon: Play, onClick: actions.nextLevel };
-            }
-        }
 
-        // Planning Phase
-        const config = getSubmitButtonConfig(state.mood);
-        const onClick = () => {
-            const { mood, compliancePercentage } = state;
-            if (compliancePercentage >= 100) {
-                onSubmitToAudit();
-            } else if (['DONE', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
-                onRequestAudit();
-            } else if (mood === 'NORMAL') {
-                actions.startInspection();
-            } else if (mood === 'CONCERNED') {
-                actions.retryDaily();
-            } else if (mood === 'SUSPICIOUS') {
-                actions.changeMode('PRACTICE');
-            } else if (mood === 'HOSTILE') {
-                onForfeit();
-            } else {
-                actions.startInspection();
-            }
-        };
-
-        return { ...config, onClick };
-    }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit, onSubmitToAudit]);
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -217,7 +223,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                                 variant={buttonConfig.variant}
                                 Icon={buttonConfig.Icon}
                                 onClick={buttonConfig.onClick}
-                                disabled={isGameDisabled}
+                                disabled={isSubmitDisabled}
                                 compact={true}
                             />
                         </div>
@@ -280,9 +286,9 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
                         onToolClick={actions.handleToolClick}
                         onUndo={actions.handleUndo}
                         canUndo={state.movesHistory.length > 0}
-                        disabled={isGameDisabled}
+                        disabled={isBoardDisabled}
                         layout={layout}
-                        submitConfig={buttonConfig}
+                        submitConfig={{ ...buttonConfig, disabled: isSubmitDisabled }}
                     />
                 </>
             )}

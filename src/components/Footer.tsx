@@ -24,6 +24,7 @@ interface FooterProps {
     variant: ButtonVariant;
     Icon: LucideIcon;
     onClick: () => void;
+    disabled?: boolean;
   };
 }
 
@@ -69,7 +70,7 @@ const Footer: React.FC<FooterProps> = ({
               variant={submitConfig.variant}
               Icon={submitConfig.Icon}
               onClick={submitConfig.onClick}
-              disabled={disabled}
+              disabled={submitConfig.disabled !== undefined ? submitConfig.disabled : disabled}
               compact={false}
             />
           </div>

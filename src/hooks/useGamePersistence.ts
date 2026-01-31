@@ -28,19 +28,25 @@ export const useGamePersistence = (
   const [loadedState, setLoadedState] = useState<SaveStateSchema | null>(null);
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
 
+  const [isLocked, setIsLocked] = useState(false);
+
   // Load Daily Data
   const loadDaily = () => {
     const state = PersistenceService.loadDailyState(sessionDate);
     const result = PersistenceService.getDailyResult(sessionDate);
-    return { state, result };
+    const locked = localStorage.getItem(`tgs_daily_lock_${sessionDate}`) === 'true';
+    return { state, result, locked };
   };
 
   // Initial Load & Mode Change
   useEffect(() => {
     if (gameMode === 'DAILY') {
-      const { state, result } = loadDaily();
+      const { state, result, locked } = loadDaily();
       setLoadedState(state);
       setDailyResult(result);
+      setIsLocked(locked);
+    } else {
+      setIsLocked(false);
     }
   }, [gameMode, sessionDate]); // Add sessionDate dependency if needed (usually stable)
 
@@ -104,7 +110,8 @@ export const useGamePersistence = (
 
   return {
     loadedState,
-    dailyResult
+    dailyResult,
+    isLocked
   };
 };
 

@@ -12,6 +12,8 @@ export interface SubmitButtonConfig {
 export const getSubmitButtonConfig = (mood: SystemMood): SubmitButtonConfig => {
     switch (mood) {
         case 'DONE':
+            return { label: 'Training', variant: 'destructive', Icon: ShieldAlert };
+        case 'PERFECT':
             return { label: 'Submit to Audit', variant: 'gold', Icon: BadgeCheck };
         case 'ACCEPTABLE':
             return { label: 'Submit to Audit', variant: 'silver', Icon: BadgeCheck };
@@ -22,7 +24,7 @@ export const getSubmitButtonConfig = (mood: SystemMood): SubmitButtonConfig => {
         case 'CONCERNED':
             return { label: 'Reset', variant: 'warning', Icon: RotateCcw };
         case 'SUSPICIOUS':
-            return { label: 'Training', variant: 'info', Icon: ShieldAlert };
+            return { label: 'Training', variant: 'destructive', Icon: ShieldAlert };
         case 'HOSTILE':
             return { label: 'Sabotage!', variant: 'destructive', Icon: Lock };
         default:

@@ -8,9 +8,10 @@ export type SystemMood = Exclude<FlavorKey, 'IDLE'>;
 // 90% and above - Adequate
 // Initial State (Normal) > CONCERNED > CRITICAL (Halfway to 0)
 
-export const useSystemMood = (compliancePercentage: number, startingCompliance: number): SystemMood => {
+export const useSystemMood = (compliancePercentage: number, startingCompliance: number, isDailyCompleted: boolean): SystemMood => {
     return useMemo(() => {
-        if (compliancePercentage >= 100) return 'DONE';
+        if (isDailyCompleted) return 'DONE';
+        if (compliancePercentage >= 100) return 'PERFECT';
         if (compliancePercentage >= 95) return 'ACCEPTABLE';
         if (compliancePercentage >= 90) return 'ADEQUATE';
 
@@ -32,5 +33,5 @@ export const useSystemMood = (compliancePercentage: number, startingCompliance: 
 
         // Below 1/3 Start
         return 'HOSTILE';
-    }, [compliancePercentage, startingCompliance]);
+    }, [compliancePercentage, startingCompliance, isDailyCompleted]);
 };

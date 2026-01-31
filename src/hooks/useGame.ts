@@ -31,7 +31,7 @@ export function useGame(sessionDate: string) {
     currentScore
   } = useProjectedMetrics(coreState.list, coreState.initialList || [], coreState.optimalScore, coreState.worstScore);
 
-  const mood = useSystemMood(compliancePercentage, startingCompliance);
+  const mood = useSystemMood(compliancePercentage, startingCompliance, metaState.isLocked);
 
   // --- Orchestration Logic ---
 
@@ -103,10 +103,27 @@ export function useGame(sessionDate: string) {
 
       } else if (metaState.dailyResult) {
         // --- Completed but no state ---
+        // If LOCKED, we want to show the solved state, but if we don't have the moves, we can't reconstruct it perfectly.
+        // Best effort: Re-generate level and show as results.
+
+        let currentStateList = generateLevel(9, seed);
+
+        // If locked and we have stored moves in loadedState (even if we entered this branch?), 
+        // actually if dailyResult exists, loadedState usually exists too if specific key. 
+        // But if we only have result, we might not have moves. 
+        // However, if we are here, we likely have dailyResult. 
+        // Check if we can replay moves from somewhere? 
+        // Persistence service keeps them together usually. 
+
+        // Let's assume if it's locked, we want to show the *Graded* list if possible.
+        // If we have loadedState.moves, we use the first branch.
+        // This branch is for "Result exists but no full state".
+
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
+
         coreActions.initLevel(
           1,
-          generateLevel(9, seed),
+          currentStateList,
           generateTools(seed),
           seed,
           generateFlavorMap(seed)
@@ -121,8 +138,15 @@ export function useGame(sessionDate: string) {
       startLevel(1, metaState.gameMode);
     }
 
+    // Force locked state update if needed
+    if (metaState.gameMode === 'DAILY' && metaState.isLocked) {
+      // Ensure mood will reflect DONE by ensuring 'isDailyCompleted' logic is passed or using isLocked directly.
+      // We updated useSystemMood to take `isLocked` (actually we mapped it to `dailyCompleted` before, 
+      // but now we should pass `isLocked` as the third arg or ensure `dailyCompleted` matches logic).
+    }
+
     metaActions.setIsGameLoaded(true);
-  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, coreDispatch, coreActions, metaActions, sessionDate]);
+  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, metaState.isLocked, coreDispatch, coreActions, metaActions, sessionDate]);
 
 
   const startLevel = useCallback((lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
