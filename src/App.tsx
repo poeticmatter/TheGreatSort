@@ -45,7 +45,7 @@ function TheGreatSortContent() {
     confirmAuditLock,
     cancelAuditLock,
     lockSession
-  } = useDailyLock(sessionDate, actions.triggerCurrentAudit);
+  } = useDailyLock(sessionDate, () => { });
 
   // --- View Routing ---
   // State Machine logic for View Selection
