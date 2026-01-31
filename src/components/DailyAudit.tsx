@@ -71,21 +71,21 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
               <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
               <div className="text-3xl font-bold text-amber-500">{optimalScore}</div>
             </div>
-            <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${adherence >= 100 ? 'border-green-900/50'
-              : adherence >= 90 ? 'border-amber-900/50'
+            <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${adherence >= 100 ? 'border-amber-400/50'
+              : adherence >= 90 ? 'border-amber-700/50'
                 : 'border-red-900/50'
               }`}>
               <div className="text-xs uppercase text-stone-500 mb-1">Adherence Rating</div>
-              <div className={`text-3xl font-black ${adherence >= 100 ? 'text-green-500'
-                : adherence >= 90 ? 'text-amber-500'
+              <div className={`text-3xl font-black ${adherence >= 100 ? 'text-amber-400'
+                : adherence >= 90 ? 'text-amber-600'
                   : 'text-red-500'
                 }`}>
                 {adherence}%
               </div>
               {/* Stamp */}
               <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
-                   ${adherence >= 100 ? 'border-green-600 text-green-600'
-                  : adherence >= 90 ? 'border-amber-600 text-amber-600'
+                   ${adherence >= 100 ? 'border-amber-400 text-amber-400'
+                  : adherence >= 90 ? 'border-amber-700 text-amber-700'
                     : 'border-red-600 text-red-600'
                 }`}>
                 {
@@ -106,11 +106,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           )}
 
           {passed ? (
-            <div className="bg-green-900/20 border border-green-900/30 p-6 rounded flex items-center gap-4 w-full">
-              <CheckCircle className="w-10 h-10 text-green-500 shrink-0" />
+            <div className="bg-amber-900/10 border border-amber-500/30 p-6 rounded flex items-center gap-4 w-full">
+              <CheckCircle className="w-10 h-10 text-amber-500 shrink-0" />
               <div>
-                <h3 className="text-green-500 font-bold uppercase tracking-wide">Audit Passed</h3>
-                <p className="text-green-200/50 text-sm">No infractions detected. Productivity within acceptable parameters.</p>
+                <h3 className="text-amber-500 font-bold uppercase tracking-wide">Audit Passed</h3>
+                <p className="text-amber-200/50 text-sm">No infractions detected. Productivity within acceptable parameters.</p>
               </div>
             </div>
           ) : (
