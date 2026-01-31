@@ -30,7 +30,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
 
 
     const saveDaily = useCallback(() => {
-        saveDailyScore(sessionDate, coreState.levelScore);
+        // saveDailyScore(sessionDate, coreState.levelScore); // Handled by useGamePersistence
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
         setResistancePending(true);
         trackGameComplete(gameMode, coreState.levelScore, coreState.optimalScore);

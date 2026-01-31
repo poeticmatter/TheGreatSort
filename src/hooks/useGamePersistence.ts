@@ -30,7 +30,9 @@ export const useGamePersistence = (
   const [persistenceLoaded, setPersistenceLoaded] = useState(false);
 
   const [isLocked, setIsLocked] = useState(false);
-  const hasRecordedResult = useRef(false);
+
+  // NEW: Guard ref
+  const historyRecordedRef = useRef(false);
 
   // Load Daily Data
   const loadDaily = () => {
@@ -50,26 +52,26 @@ export const useGamePersistence = (
 
       // Prevent double-counting history if reloading on Results screen
       if (state?.snapshot?.phase === GamePhase.RESULTS) {
-        hasRecordedResult.current = true;
+        historyRecordedRef.current = true;
       } else {
-        hasRecordedResult.current = false;
+        historyRecordedRef.current = false;
       }
     } else {
       setIsLocked(false);
-      hasRecordedResult.current = false;
+      historyRecordedRef.current = false;
     }
     setPersistenceLoaded(true);
-  }, [gameMode, sessionDate]); // Add sessionDate dependency if needed (usually stable)
+  }, [gameMode, sessionDate]);
+
+  // Reset Logic: Reset guard when sessionDate or currentSeed changes
+  useEffect(() => {
+    historyRecordedRef.current = false;
+  }, [sessionDate, currentState.currentSeed]);
+
 
   // Cleanup old keys (Cleanup Policy)
   useEffect(() => {
-    // We can iterate generic keys if possible, or rely on service.
-    // For now simple cleanup of old raw keys if we were doing that, 
-    // but the service handles specific keys. 
-    // We can implement a cleanup routine in the service later.
-
     // Rudimentary cleanup of old daily keys from previous format if they exist
-    // This is optional but good for hygiene
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('daily_state_') && key !== `daily_state_${sessionDate}`) {
         localStorage.removeItem(key);
@@ -87,7 +89,8 @@ export const useGamePersistence = (
 
     // 1. Save Result if finished (Idempotent Guard)
     if (currentState.phase === GamePhase.RESULTS) {
-      if (!hasRecordedResult.current) {
+      if (!historyRecordedRef.current) {
+
         // A. Update History (High Score & Attempts)
         PersistenceService.updateDailyHistory(today, currentState.levelScore);
 
@@ -99,19 +102,32 @@ export const useGamePersistence = (
         };
         PersistenceService.saveDailyResult(today, newResult);
 
-        // C. Update Local State (so UI/Audit sees it immediately)
-        setDailyResult(newResult);
+        // NEW: Critical UI Sync - Fetch updated history (High Score) to show in Audit
+        const historyEntry = PersistenceService.getDailyHistoryEntry(today);
+        if (historyEntry) {
+          // Map history entry to DailyResult format for UI display
+          // We use history 'highScore' as the 'score' for the audit view
+          setDailyResult({
+            score: historyEntry.highScore,
+            date: today,
+            // preserve optimal if needed or fetched
+          });
+        } else {
+          // Fallback if fetch fails (shouldn't happen)
+          setDailyResult(newResult);
+        }
 
-        // D. Lock Guard
-        hasRecordedResult.current = true;
-      }
-    } else {
-      // Reset guard if we leave the results screen (e.g. replay/reset level)
-      // preventing duplicate recording for the *same* completion, but allowing *new* completions.
-      if (hasRecordedResult.current) {
-        hasRecordedResult.current = false;
+        // C. Lock Guard
+        historyRecordedRef.current = true;
       }
     }
+    // Note: We do NOT reset the guard here in 'else' block because the separate 
+    // reset effect handles seed/date changes. Explicitly resetting on phase change 
+    // might be risky if we bounce between results and inspecting. 
+    // But existing code had logic for that. 
+    // User Requirement: "Reset this ref must be reset to false whenever the sessionDate changes or the currentState.currentSeed changes".
+    // This implies we don't reset it just because we left RESULTS phase (e.g. to inspect).
+    // So excluding the 'else' block is correct based on new requirements.
 
     // 2. Save State (Snapshots)
     // If inspecting, we save as PLANNING so we can resume smoothly
@@ -137,7 +153,7 @@ export const useGamePersistence = (
     currentState.toolsAvailable,
     currentState.list,
     currentState.currentSeed,
-    sessionDate // Added sessionDate to dependency array to be safe
+    sessionDate
   ]);
 
   return {
@@ -147,4 +163,3 @@ export const useGamePersistence = (
     persistenceLoaded
   };
 };
-

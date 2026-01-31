@@ -77,7 +77,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
             if (mood === 'DONE') {
                 actions.changeMode('PRACTICE');
             } else if (compliancePercentage >= 100) {
-                onSubmitToAudit();
+                actions.startInspection();
             } else if (['PERFECT', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
                 onRequestAudit();
             } else if (mood === 'NORMAL') {
