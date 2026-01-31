@@ -11,13 +11,13 @@ import { PersistenceService } from '../services/persistence';
 import { getDailyEntry } from './useGamePersistence';
 import { PuzzleRepository } from '../services/puzzleRepository';
 
-export function useGame() {
+export function useGame(sessionDate: string) {
 
   // 1. Core Game (Board, Reducer, Loop)
   const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame();
 
   // 2. Meta Game (Persistence, Mode, Resistance)
-  const { metaState, metaActions } = useMetaGame(coreState, coreDispatch);
+  const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
 
   // 3. Solver Service
   const solverState = useSolverService(coreState.currentSeed, metaState.gameMode, coreState.list, coreState.toolsAvailable, coreState.optimalScore, coreState.worstScore);
@@ -60,10 +60,8 @@ export function useGame() {
   useEffect(() => {
     if (metaState.isGameLoaded) return;
 
-    const today = getTodayDateString();
-
     if (metaState.gameMode === 'DAILY') {
-      const seed = stringToSeed(today);
+      const seed = stringToSeed(sessionDate);
 
       if (metaState.loadedState) {
         // --- Resume from Save ---
@@ -124,7 +122,7 @@ export function useGame() {
     }
 
     metaActions.setIsGameLoaded(true);
-  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, coreDispatch, coreActions, metaActions]);
+  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, coreDispatch, coreActions, metaActions, sessionDate]);
 
 
   const startLevel = useCallback((lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
@@ -136,9 +134,10 @@ export function useGame() {
     let scores: { optimalScore: number | null, worstScore: number | null } = { optimalScore: null, worstScore: null };
 
     if (activeMode === 'DAILY') {
-      const today = new Date(); // Uses local time, but puzzle repo normalizes. 
-      // User requirement: "Fetch the puzzle data from PuzzleRepository"
-      const puzzle = PuzzleRepository.getDailyPuzzle(today);
+      // Use Session Date for consistency logic
+      const [y, m, d] = sessionDate.split('-').map(Number);
+      const puzzleDate = new Date(y, m - 1, d);
+      const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
 
       // Hydrate
       list = PuzzleRepository.hydrateSequence(puzzle.sequence);
@@ -177,7 +176,7 @@ export function useGame() {
     if (seed !== undefined) {
       metaActions.trackGameStart(activeMode, seed);
     }
-  }, [metaState.gameMode, coreActions, metaActions]);
+  }, [metaState.gameMode, coreActions, metaActions, sessionDate]);
 
 
   // Zero-Yield Safety Net (Triggering Resistance)
@@ -214,9 +213,8 @@ export function useGame() {
     coreActions.stopLoop();
 
     if (newMode === 'DAILY') {
-      const today = getTodayDateString();
-      const savedState = PersistenceService.loadDailyState(today);
-      const savedResult = PersistenceService.getDailyResult(today);
+      const savedState = PersistenceService.loadDailyState(sessionDate);
+      const savedResult = PersistenceService.getDailyResult(sessionDate);
 
       if (savedState || savedResult) {
         metaActions.setGameMode('DAILY');
@@ -234,7 +232,9 @@ export function useGame() {
     // Better to pass explicit mode
     startLevel(1, newMode);
 
-  }, [metaActions, coreActions, coreDispatch, startLevel]);
+    startLevel(1, newMode);
+
+  }, [metaActions, coreActions, coreDispatch, startLevel, sessionDate]);
 
 
   // Core Completion Bridge
@@ -246,11 +246,10 @@ export function useGame() {
 
   // --- Actions ---
   const shareResult = async () => {
-    const today = getTodayDateString();
     if (metaState.gameMode === 'DAILY') {
-      const entry = getDailyEntry(today);
+      const entry = getDailyEntry(sessionDate);
       const attempts = entry ? entry.attempts : 1;
-      const text = `The Great Sort Daily ${today}\nScore: ${coreState.levelScore}\nAttempts: ${attempts}`;
+      const text = `The Great Sort Daily ${sessionDate}\nScore: ${coreState.levelScore}\nAttempts: ${attempts}`;
       try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
       return;
     }

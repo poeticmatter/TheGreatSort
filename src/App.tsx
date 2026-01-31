@@ -20,7 +20,10 @@ export default function TheGreatSort() {
 }
 
 function TheGreatSortContent() {
-  const { state, actions } = useGame();
+  // Capture session date once on mount
+  const [sessionDate] = useState(() => getTodayDateString());
+
+  const { state, actions } = useGame(sessionDate);
   const { trackPageView } = useAnalytics();
 
   // --- Layout Management ---
@@ -35,14 +38,13 @@ function TheGreatSortContent() {
   }, [trackPageView]);
 
   // --- Daily Lock & Warnings ---
-  const today = getTodayDateString();
   const {
     isLocked,
     isWarningOpen,
     requestAudit,
     confirmAuditLock,
     cancelAuditLock
-  } = useDailyLock(today, actions.triggerCurrentAudit);
+  } = useDailyLock(sessionDate, actions.triggerCurrentAudit);
 
   // --- View Routing ---
   // State Machine logic for View Selection

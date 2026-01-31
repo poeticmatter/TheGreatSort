@@ -16,19 +16,21 @@ export interface DailyPuzzleData {
     }[];
 }
 
-const EPOCH_START = new Date('2026-01-01T00:00:00Z');
+// Use local time construction: new Date(year, monthIndex, day)
+// January is 0. 2026-01-01 Local Time.
+const EPOCH_START = new Date(2026, 0, 1);
 
 export const PuzzleRepository = {
     getDailyPuzzle(date: Date): DailyPuzzleData {
-        // Normalize dates to midnight UTC to ensure consistent day calculation
+        // Normalize dates to midnight LOCAL time and use rounding to handle DST shifts
         const start = new Date(EPOCH_START);
-        start.setUTCHours(0, 0, 0, 0);
+        start.setHours(0, 0, 0, 0);
 
         const current = new Date(date);
-        current.setUTCHours(0, 0, 0, 0);
+        current.setHours(0, 0, 0, 0);
 
         const diffTime = current.getTime() - start.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
         // Handle days before epoch or negative diffs safely (though unlikely in prod)
         let index = diffDays;

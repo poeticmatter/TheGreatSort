@@ -22,16 +22,16 @@ export interface PersistenceState {
 export const useGamePersistence = (
   gameMode: GameMode,
   currentState: PersistenceState,
-  isGameLoaded: boolean
+  isGameLoaded: boolean,
+  sessionDate: string
 ) => {
   const [loadedState, setLoadedState] = useState<SaveStateSchema | null>(null);
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
 
   // Load Daily Data
   const loadDaily = () => {
-    const today = getTodayDateString();
-    const state = PersistenceService.loadDailyState(today);
-    const result = PersistenceService.getDailyResult(today);
+    const state = PersistenceService.loadDailyState(sessionDate);
+    const result = PersistenceService.getDailyResult(sessionDate);
     return { state, result };
   };
 
@@ -42,7 +42,7 @@ export const useGamePersistence = (
       setLoadedState(state);
       setDailyResult(result);
     }
-  }, [gameMode]);
+  }, [gameMode, sessionDate]); // Add sessionDate dependency if needed (usually stable)
 
   // Cleanup old keys (Cleanup Policy)
   useEffect(() => {
@@ -50,22 +50,23 @@ export const useGamePersistence = (
     // For now simple cleanup of old raw keys if we were doing that, 
     // but the service handles specific keys. 
     // We can implement a cleanup routine in the service later.
-    const today = getTodayDateString();
+
     // Rudimentary cleanup of old daily keys from previous format if they exist
     // This is optional but good for hygiene
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {
+      if (key.startsWith('daily_state_') && key !== `daily_state_${sessionDate}`) {
         localStorage.removeItem(key);
       }
     });
-  }, []);
+  }, [sessionDate]);
 
   // Save Effect
   useEffect(() => {
     if (!isGameLoaded) return;
     if (gameMode !== 'DAILY') return;
 
-    const today = getTodayDateString();
+    // Use sessionDate from prop, not fresh date
+    const today = sessionDate;
 
     // 1. Save Result if finished
     if (currentState.phase === GamePhase.RESULTS) {

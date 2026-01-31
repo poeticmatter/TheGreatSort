@@ -30,8 +30,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     // Short timeout to allow UI to mount before "heavy" work (though it's light now)
     const timer = setTimeout(() => {
       try {
-        // Parse date string (YYYY-MM-DD or similar)
-        const dateObj = new Date(date);
+        // Parse date string (YYYY-MM-DD or similar) as Local Time
+        const [y, m, d] = date.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+
         const puzzle = PuzzleRepository.getDailyPuzzle(dateObj);
 
         // Hydrate Initial List
