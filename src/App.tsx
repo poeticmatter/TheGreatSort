@@ -9,7 +9,6 @@ import { GameProvider } from './context/GameContext';
 import AuditWarningModal from './components/AuditWarningModal';
 import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
-import { AuditView } from './components/views/AuditView';
 
 export default function TheGreatSort() {
   return (
@@ -59,16 +58,7 @@ function TheGreatSortContent() {
       );
     }
 
-    if (state.auditState) {
-      return (
-        <AuditView
-          auditState={state.auditState}
-          onClose={actions.closeAudit}
-          onDetectResistance={actions.triggerResistance}
-          onBackgroundClick={actions.handleBackgroundClick}
-        />
-      );
-    }
+    // Audit State is now handled within GameView's orchestration
 
     return (
       <GameView
