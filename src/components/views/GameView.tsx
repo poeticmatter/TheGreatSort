@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Play, Repeat } from 'lucide-react';
+import { getSubmitButtonConfig } from '../../config/submitButtonConfig';
 import { GamePhase } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Header from '../Header';
@@ -18,9 +20,11 @@ interface GameViewProps {
     onRequestAudit: () => void;
     onLayoutChange: (layout: LayoutType) => void;
     layout: LayoutType;
+    onForfeit: () => void;
+    onSubmitToAudit: () => void;
 }
 
-export function GameView({ state, actions, isLocked, onRequestAudit, layout }: GameViewProps) {
+export function GameView({ state, actions, isLocked, onRequestAudit, layout, onForfeit, onSubmitToAudit }: GameViewProps) {
 
     // --- Visual Feedback ---
     const [isShaking, setIsShaking] = useState(false);
@@ -103,6 +107,43 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout }: G
         </div>
     );
 
+    const buttonConfig = useMemo(() => {
+        if (state.phase === GamePhase.RESULTS) {
+            if (state.gameMode === 'DAILY') {
+                if (isLocked) {
+                    return { label: 'Training', variant: 'info' as const, Icon: Play, onClick: () => actions.changeMode('PRACTICE') };
+                } else {
+                    return { label: 'Retry Daily', variant: 'warning' as const, Icon: Repeat, onClick: actions.retryDaily };
+                }
+            } else {
+                return { label: 'Next Level', variant: 'warning' as const, Icon: Play, onClick: actions.nextLevel };
+            }
+        }
+
+        // Planning Phase
+        const config = getSubmitButtonConfig(state.mood);
+        const onClick = () => {
+            const { mood, compliancePercentage } = state;
+            if (compliancePercentage >= 100) {
+                onSubmitToAudit();
+            } else if (['DONE', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
+                onRequestAudit();
+            } else if (mood === 'NORMAL') {
+                actions.startInspection();
+            } else if (mood === 'CONCERNED') {
+                actions.retryDaily();
+            } else if (mood === 'SUSPICIOUS') {
+                actions.changeMode('PRACTICE');
+            } else if (mood === 'HOSTILE') {
+                onForfeit();
+            } else {
+                actions.startInspection();
+            }
+        };
+
+        return { ...config, onClick };
+    }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit, onSubmitToAudit]);
+
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
             <Header
@@ -172,20 +213,12 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout }: G
                             />
                             <div className="w-8 h-0.5 bg-stone-700 rounded-full opacity-50" />
                             <SubmitButton
-                                phase={state.phase}
-                                gameMode={state.gameMode}
-                                listLength={state.list.length}
-                                onActionClick={
-                                    state.phase === GamePhase.RESULTS
-                                        ? (state.gameMode === 'DAILY'
-                                            ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily)
-                                            : actions.nextLevel)
-                                        : actions.startInspection
-                                }
+                                label={buttonConfig.label}
+                                variant={buttonConfig.variant}
+                                Icon={buttonConfig.Icon}
+                                onClick={buttonConfig.onClick}
                                 disabled={isGameDisabled}
-                                isLocked={isLocked}
                                 compact={true}
-                                compliancePercentage={state.compliancePercentage}
                             />
                         </div>
                     </div>
@@ -247,16 +280,9 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout }: G
                         onToolClick={actions.handleToolClick}
                         onUndo={actions.handleUndo}
                         canUndo={state.movesHistory.length > 0}
-                        onActionClick={
-                            state.phase === GamePhase.RESULTS
-                                ? (state.gameMode === 'DAILY'
-                                    ? (isLocked ? () => actions.changeMode('PRACTICE') : actions.retryDaily)
-                                    : actions.nextLevel)
-                                : actions.startInspection
-                        }
                         disabled={isGameDisabled}
-                        isLocked={isLocked}
                         layout={layout}
+                        submitConfig={buttonConfig}
                     />
                 </>
             )}

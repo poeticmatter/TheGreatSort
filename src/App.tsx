@@ -43,7 +43,8 @@ function TheGreatSortContent() {
     isWarningOpen,
     requestAudit,
     confirmAuditLock,
-    cancelAuditLock
+    cancelAuditLock,
+    lockSession
   } = useDailyLock(sessionDate, actions.triggerCurrentAudit);
 
   // --- View Routing ---
@@ -75,6 +76,8 @@ function TheGreatSortContent() {
         actions={actions}
         isLocked={isLocked}
         onRequestAudit={requestAudit}
+        onForfeit={lockSession}
+        onSubmitToAudit={confirmAuditLock}
         layout={layout}
         onLayoutChange={setLayout}
       />

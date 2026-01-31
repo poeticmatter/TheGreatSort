@@ -15,28 +15,34 @@ export function useDailyLock(dateKey: string, onLockConfirmed: () => void) {
     // If already locked, we just proceed (user is viewing audit again)
     // If not locked, we warn them
     if (isLocked) {
-        onLockConfirmed();
+      onLockConfirmed();
     } else {
-        setIsWarningOpen(true);
+      setIsWarningOpen(true);
     }
   };
 
   const confirmAuditLock = () => {
-      setIsLocked(true);
-      localStorage.setItem(`${LOCK_PREFIX}${dateKey}`, 'true');
-      setIsWarningOpen(false);
-      onLockConfirmed();
+    setIsLocked(true);
+    localStorage.setItem(`${LOCK_PREFIX}${dateKey}`, 'true');
+    setIsWarningOpen(false);
+    onLockConfirmed();
   };
 
   const cancelAuditLock = () => {
-      setIsWarningOpen(false);
+    setIsWarningOpen(false);
   };
 
-  return { 
-      isLocked, 
-      isWarningOpen, 
-      requestAudit, 
-      confirmAuditLock,
-      cancelAuditLock 
+  const lockSession = () => {
+    setIsLocked(true);
+    localStorage.setItem(`${LOCK_PREFIX}${dateKey}`, 'true');
+  };
+
+  return {
+    isLocked,
+    isWarningOpen,
+    requestAudit,
+    confirmAuditLock,
+    cancelAuditLock,
+    lockSession
   };
 }
