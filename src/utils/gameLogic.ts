@@ -82,7 +82,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
     // 3. Update Result State
     if (survived) {
       pointsToAdd = currentVal;
-      list[i] = { ...currentItem, status: 'safe', linkScore: pointsToAdd };
+      list[i] = { ...currentItem, status: 'safe' };
     } else {
       list[i] = { ...currentItem, status: 'eliminated' };
     }
@@ -376,8 +376,7 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
     return {
       id: idSuffix,
       val: val,
-      status: 'pending',
-      linkScore: null
+      status: 'pending'
     };
   });
 };

@@ -30,9 +30,9 @@ console.log("Starting Smoke Test...");
 // So Optimal should be Swap(1) -> 60.
 
 const list: CardItem[] = [
-    { id: '1', val: 30, status: 'pending', linkScore: null },
-    { id: '2', val: 10, status: 'pending', linkScore: null },
-    { id: '3', val: 20, status: 'pending', linkScore: null }
+    { id: '1', val: 30, status: 'pending' },
+    { id: '2', val: 10, status: 'pending' },
+    { id: '3', val: 20, status: 'pending' }
 ];
 
 const tools: ToolType[] = ['swap'];

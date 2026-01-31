@@ -12,7 +12,7 @@ describe('gameReducer', () => {
   });
 
   it('should handle START_LEVEL', () => {
-    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending', linkScore: null }];
+    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending' }];
     const mockTools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
 
     const action: GameAction = {
@@ -30,7 +30,7 @@ describe('gameReducer', () => {
     it('should select a tool', () => {
       const tools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
       const state = { ...initialState, phase: GamePhase.PLANNING, toolsAvailable: tools };
-      
+
       const newState = gameReducer(state, { type: 'INTERACT_TOOL', payload: { toolInstanceId: 't1' } });
       expect(newState.selectedToolInstanceId).toBe('t1');
     });
@@ -38,7 +38,7 @@ describe('gameReducer', () => {
     it('should deselect if same tool clicked', () => {
       const tools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
       const state = { ...initialState, phase: GamePhase.PLANNING, toolsAvailable: tools, selectedToolInstanceId: 't1' };
-      
+
       const newState = gameReducer(state, { type: 'INTERACT_TOOL', payload: { toolInstanceId: 't1' } });
       expect(newState.selectedToolInstanceId).toBeNull();
     });
@@ -47,9 +47,9 @@ describe('gameReducer', () => {
   describe('INTERACT_TILE', () => {
     // Setup
     const list: CardItem[] = [
-      { id: 'a', val: 10, status: 'pending', linkScore: null },
-      { id: 'b', val: 20, status: 'pending', linkScore: null },
-      { id: 'c', val: 30, status: 'pending', linkScore: null }
+      { id: 'a', val: 10, status: 'pending' },
+      { id: 'b', val: 20, status: 'pending' },
+      { id: 'c', val: 30, status: 'pending' }
     ];
     const tools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
     const baseState = { ...initialState, list, toolsAvailable: tools, phase: GamePhase.PLANNING };
@@ -75,10 +75,10 @@ describe('gameReducer', () => {
       // Check Swap Happened
       expect(newState.list[0].val).toBe(20);
       expect(newState.list[1].val).toBe(10);
-      
+
       // Check Tool Used
       expect(newState.toolsAvailable[0].used).toBe(true);
-      
+
       // Check Reset
       expect(newState.selection).toBeNull();
       expect(newState.selectedToolInstanceId).toBeNull();
@@ -90,7 +90,7 @@ describe('gameReducer', () => {
 
       // Check List Unchanged
       expect(newState.list[0].val).toBe(10);
-      
+
       // Check Shake
       expect(newState.shakeTools).toBeGreaterThan(0);
       expect(newState.toolsAvailable[0].used).toBe(false);

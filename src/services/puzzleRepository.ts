@@ -49,7 +49,6 @@ export const PuzzleRepository = {
             id: `daily-${index}`,
             val: val,
             status: 'pending',
-            linkScore: null,
             hasShield: false // Default to false as simple numbers don't imply shields
         }));
     },
