@@ -123,10 +123,15 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                     <React.Fragment key={idx}>
                       {/* Board State */}
                       <div className="w-full flex flex-col items-center">
-
                         <InventoryGrid
-                          sequence={step.list}
-                          highlightIndices={highlightIndices}
+                          cards={step.list.map((item, idx) => ({
+                            ...item,
+                            key: item.id,
+                            isSelected: highlightIndices.includes(idx),
+                            isCandidate: false,
+                            isDisabled: false,
+                            mirrorLabel: null
+                          }))}
                           layout="HORIZONTAL_STRIP"
                         />
                       </div>
