@@ -12,7 +12,7 @@ export class DemoteTool implements ToolStrategy {
         const newList = copy(list);
         if (index >= 0 && index < newList.length) {
             const [moved] = newList.splice(index, 1);
-            newList.unshift(moved);
+            newList.push(moved);
         }
         return newList;
     }
@@ -23,8 +23,8 @@ export class DemoteTool implements ToolStrategy {
 
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
-        for (let i = 1; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Demote item at index ${i}` });
+        for (let i = 0; i < list.length - 1; i++) {
+            moves.push({ tool: this.type, index: i, description: `Demote item at index ${i}` });
         }
         return moves;
     }
@@ -38,7 +38,7 @@ export class PromoteTool implements ToolStrategy {
         const newList = copy(list);
         if (index >= 0 && index < newList.length) {
             const [moved] = newList.splice(index, 1);
-            newList.push(moved);
+            newList.unshift(moved);
         }
         return newList;
     }
@@ -49,12 +49,13 @@ export class PromoteTool implements ToolStrategy {
 
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
-        for (let i = 0; i < list.length - 1; i++) {
-             moves.push({ tool: this.type, index: i, description: `Promote item at index ${i}` });
+        for (let i = 1; i < list.length; i++) {
+            moves.push({ tool: this.type, index: i, description: `Promote item at index ${i}` });
         }
         return moves;
     }
 }
+
 
 export class PurgeTool implements ToolStrategy {
     type: ToolType = 'purge';
@@ -75,7 +76,7 @@ export class PurgeTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Purge item at index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Purge item at index ${i}` });
         }
         return moves;
     }
@@ -88,12 +89,12 @@ export class SwapTool implements ToolStrategy {
     apply(list: ISortable[], index: number, selection?: number): ISortable[] {
         const newList = copy(list);
         if (selection !== undefined && selection !== null) {
-             if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
+            if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
                 [newList[selection], newList[index]] = [newList[index], newList[selection]];
-             }
+            }
         } else {
             if (index < newList.length - 1 && index >= 0) {
-                [newList[index], newList[index+1]] = [newList[index+1], newList[index]];
+                [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
             }
         }
         return newList;
@@ -107,7 +108,7 @@ export class SwapTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length - 1; i++) {
-            moves.push({ tool: this.type, index: i, description: `Swap items at index ${i} and ${i+1}` });
+            moves.push({ tool: this.type, index: i, description: `Swap items at index ${i} and ${i + 1}` });
         }
         return moves;
     }
@@ -120,9 +121,9 @@ export class LongSwapTool implements ToolStrategy {
     apply(list: ISortable[], index: number, selection?: number): ISortable[] {
         const newList = copy(list);
         if (selection !== undefined && selection !== null) {
-             if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
+            if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
                 [newList[selection], newList[index]] = [newList[index], newList[selection]];
-             }
+            }
         }
         return newList;
     }
@@ -135,9 +136,9 @@ export class LongSwapTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length - 2; i++) {
-          for (let j = i + 2; j < list.length; j++) {
-             moves.push({ tool: this.type, index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` });
-          }
+            for (let j = i + 2; j < list.length; j++) {
+                moves.push({ tool: this.type, index: i, targetIndex: j, description: `Long Swap ${i} and ${j}` });
+            }
         }
         return moves;
     }
@@ -155,7 +156,7 @@ export class MergeTool implements ToolStrategy {
         }
 
         if (firstIdx >= 0 && firstIdx < newList.length - 1) {
-            const sum = newList[firstIdx].val + newList[firstIdx+1].val;
+            const sum = newList[firstIdx].val + newList[firstIdx + 1].val;
             newList[firstIdx] = { ...newList[firstIdx], val: sum };
             newList.splice(firstIdx + 1, 1);
         }
@@ -170,7 +171,7 @@ export class MergeTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length - 1; i++) {
-             moves.push({ tool: this.type, index: i, description: `Merge items at index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Merge items at index ${i}` });
         }
         return moves;
     }
@@ -206,7 +207,7 @@ export class SinkTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length - 1; i++) {
-             moves.push({ tool: this.type, index: i, description: `Sink items at index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Sink items at index ${i}` });
         }
         return moves;
     }
@@ -231,7 +232,7 @@ export class HalveTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Halve item at index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Halve item at index ${i}` });
         }
         return moves;
     }
@@ -248,7 +249,7 @@ export class ShieldTool implements ToolStrategy {
             // Apply shield to the target item BEFORE removing the neighbor
             // This ensures the item we want to keep gets the shield
             newList[index] = { ...newList[index], hasShield: true };
-            
+
             // Remove the left neighbor (index - 1)
             newList.splice(index - 1, 1);
         }
@@ -263,7 +264,7 @@ export class ShieldTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 1; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Shield item at index ${i} (Sacrifice ${i-1})` });
+            moves.push({ tool: this.type, index: i, description: `Shield item at index ${i} (Sacrifice ${i - 1})` });
         }
         return moves;
     }
@@ -288,7 +289,7 @@ export class ShrinkTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length; i++) {
-             moves.push({ tool: this.type, index: i, description: `Shrink item at index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Shrink item at index ${i}` });
         }
         return moves;
     }
@@ -301,7 +302,7 @@ export class HopTool implements ToolStrategy {
     apply(list: ISortable[], index: number): ISortable[] {
         const newList = copy(list);
         if (index > 0 && index < newList.length - 1) {
-             [newList[index - 1], newList[index + 1]] = [newList[index + 1], newList[index - 1]];
+            [newList[index - 1], newList[index + 1]] = [newList[index + 1], newList[index - 1]];
         }
         return newList;
     }
@@ -313,7 +314,7 @@ export class HopTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 1; i < list.length - 1; i++) {
-             moves.push({ tool: this.type, index: i, description: `Hop around index ${i}` });
+            moves.push({ tool: this.type, index: i, description: `Hop around index ${i}` });
         }
         return moves;
     }
@@ -343,11 +344,11 @@ export class MirrorTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length; i++) {
-              const mirrorIdx = list.length - 1 - i;
-              if (i === mirrorIdx) continue;
-              if (i > mirrorIdx) continue; // Optimization from original solver
+            const mirrorIdx = list.length - 1 - i;
+            if (i === mirrorIdx) continue;
+            if (i > mirrorIdx) continue; // Optimization from original solver
 
-              moves.push({ tool: this.type, index: i, description: `Mirror swp ${i} and ${mirrorIdx}` });
+            moves.push({ tool: this.type, index: i, description: `Mirror swp ${i} and ${mirrorIdx}` });
         }
         return moves;
     }
@@ -414,11 +415,11 @@ export class CycleTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 1; i < list.length - 1; i++) {
-             // For each valid middle index i
-             // Generate Right Cycle (target i+1)
-             moves.push({ tool: this.type, index: i+1, targetIndex: i, description: `Cycle Right at ${i}` });
-             // Generate Left Cycle (target i-1)
-             moves.push({ tool: this.type, index: i-1, targetIndex: i, description: `Cycle Left at ${i}` });
+            // For each valid middle index i
+            // Generate Right Cycle (target i+1)
+            moves.push({ tool: this.type, index: i + 1, targetIndex: i, description: `Cycle Right at ${i}` });
+            // Generate Left Cycle (target i-1)
+            moves.push({ tool: this.type, index: i - 1, targetIndex: i, description: `Cycle Left at ${i}` });
         }
         return moves;
     }
@@ -431,11 +432,11 @@ export class EqualizeTool implements ToolStrategy {
     apply(list: ISortable[], index: number, selection?: number): ISortable[] {
         const newList = copy(list);
         if (selection !== undefined && selection !== null) {
-             if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
+            if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
                 const avg = Math.floor((newList[index].val + newList[selection].val) / 2);
                 newList[index] = { ...newList[index], val: avg };
                 newList[selection] = { ...newList[selection], val: avg };
-             }
+            }
         }
         return newList;
     }
@@ -448,9 +449,9 @@ export class EqualizeTool implements ToolStrategy {
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
         for (let i = 0; i < list.length - 2; i++) {
-          for (let j = i + 2; j < list.length; j++) {
-             moves.push({ tool: this.type, index: i, targetIndex: j, description: `Equalize ${i} and ${j}` });
-          }
+            for (let j = i + 2; j < list.length; j++) {
+                moves.push({ tool: this.type, index: i, targetIndex: j, description: `Equalize ${i} and ${j}` });
+            }
         }
         return moves;
     }
