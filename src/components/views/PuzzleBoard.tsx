@@ -112,7 +112,7 @@ export function PuzzleBoard({
                         onViewAudit={onRequestAudit}
                         isLocked={isLocked}
                     />
-                    <FlavorText mood={state.mood} text={flavorText} />
+                    {state.gameMode !== 'PRACTICE' && <FlavorText mood={state.mood} text={flavorText} />}
                 </div>
 
                 <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
@@ -165,7 +165,7 @@ export function PuzzleBoard({
                     onViewAudit={onRequestAudit}
                     isLocked={isLocked}
                 />
-                <FlavorText mood={state.mood} text={flavorText} />
+                {state.gameMode !== 'PRACTICE' && <FlavorText mood={state.mood} text={flavorText} />}
             </div>
 
             {gridContent}

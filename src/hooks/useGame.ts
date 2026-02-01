@@ -114,10 +114,11 @@ export function useGame(sessionDate: string) {
     const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
     const joined = localStorage.getItem('joinedResistance') === 'true';
 
-    if (scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
+    // Guard: Only trigger resistance in DAILY mode
+    if (metaState.gameMode === 'DAILY' && scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
       metaActions.triggerResistance();
     }
-  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions]);
+  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions, metaState.gameMode]);
 
 
   // --- Actions ---
@@ -284,7 +285,8 @@ export function useGame(sessionDate: string) {
       mood,
       sessionDate,
       dailyResult,
-      isLocked,
+      isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked,
+      resistanceActive: metaState.gameMode === 'PRACTICE' ? false : metaState.resistanceActive,
       persistenceLoaded: dailyStatus === 'READY',
       startingCompliance,
       isZeroYield,
