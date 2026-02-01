@@ -217,7 +217,8 @@ export function useGame(sessionDate: string) {
     isLocked
   };
 
-  const interaction = useGameInteractions(compositeState, {
+  // Memoize actions passed to the interaction hook to prevent it from re-running unnecessarily
+  const gameActions = useMemo(() => ({
     ...coreActions,
     ...metaActions,
     changeMode,
@@ -227,7 +228,51 @@ export function useGame(sessionDate: string) {
     saveDaily: handleSaveDaily,
     startInspection: coreActions.startInspection,
     triggerCurrentAudit: metaActions.triggerCurrentAudit
-  });
+  }), [
+    coreActions,
+    metaActions,
+    changeMode,
+    nextLevel,
+    retryDaily,
+    retryPractice,
+    handleSaveDaily
+  ]);
+
+  const interaction = useGameInteractions(compositeState, gameActions);
+
+  // Memoize the returned actions object
+  const finalActions = useMemo(() => ({
+    changeMode,
+    handleUndo: coreActions.handleUndo,
+    handleToolClick: coreActions.handleToolClick,
+    handleCardClick: coreActions.handleCardClick,
+    handleBackgroundClick: coreActions.handleBackgroundClick,
+    startInspection: coreActions.startInspection,
+    nextLevel,
+    retryPractice,
+    retryDaily,
+    resetGame: () => {
+      if (metaState.gameMode === 'DAILY') retryDaily();
+      else retryPractice();
+    },
+    shareResult,
+    closeAudit: metaActions.closeAudit,
+    triggerCurrentAudit: metaActions.triggerCurrentAudit,
+    triggerResistance: metaActions.triggerResistance,
+    closeResistance: closeResistanceAndReset,
+    saveDaily: handleSaveDaily
+  }), [
+    changeMode,
+    coreActions,
+    nextLevel,
+    retryPractice,
+    retryDaily,
+    metaState.gameMode,
+    shareResult,
+    metaActions,
+    closeResistanceAndReset,
+    handleSaveDaily
+  ]);
 
   return {
     // Pure Data for Rendering (The "Model")
@@ -251,26 +296,6 @@ export function useGame(sessionDate: string) {
     // UI Logic (The "ViewModel")
     interaction,
     // Event Handlers (The "Controller")
-    actions: {
-      changeMode,
-      handleUndo: coreActions.handleUndo,
-      handleToolClick: coreActions.handleToolClick,
-      handleCardClick: coreActions.handleCardClick,
-      handleBackgroundClick: coreActions.handleBackgroundClick,
-      startInspection: coreActions.startInspection,
-      nextLevel,
-      retryPractice,
-      retryDaily,
-      resetGame: () => {
-        if (metaState.gameMode === 'DAILY') retryDaily();
-        else retryPractice();
-      },
-      shareResult,
-      closeAudit: metaActions.closeAudit,
-      triggerCurrentAudit: metaActions.triggerCurrentAudit,
-      triggerResistance: metaActions.triggerResistance,
-      closeResistance: closeResistanceAndReset,
-      saveDaily: handleSaveDaily
-    }
+    actions: finalActions
   };
 }

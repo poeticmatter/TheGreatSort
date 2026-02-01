@@ -159,9 +159,9 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
         };
     }, [phase, gameMode, isLocked, movesHistory.length, compliancePercentage, optimalScore, levelScore, actions]);
 
-    return {
+    return useMemo(() => ({
         primaryAction,
         secondaryAction,
         feedback
-    };
+    }), [primaryAction, secondaryAction, feedback]);
 }
