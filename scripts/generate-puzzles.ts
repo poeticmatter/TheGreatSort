@@ -10,7 +10,7 @@ import {
 import { TOOL_REGISTRY } from '../src/tools/index';
 import { ToolType, ISortable } from '../types';
 
-const OUTPUT_FILE_PATH = path.join(process.cwd(), 'puzzles/daily_puzzles.json');
+const OUTPUT_FILE_PATH = path.join(process.cwd(), 'src/data/daily_puzzles.json');
 const LEVEL_LENGTH = 9;
 const MIN_SOLUTION_DEPTH = 4;
 
