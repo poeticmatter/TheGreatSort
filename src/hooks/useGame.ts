@@ -246,7 +246,7 @@ export function useGame(sessionDate: string) {
       yieldRatio,
       currentScore,
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
-      selectedToolId: coreState.selectedToolInstanceId
+      selectedTool: coreState.selectedToolInstanceId
     },
     // UI Logic (The "ViewModel")
     interaction,
