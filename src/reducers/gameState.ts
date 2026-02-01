@@ -43,8 +43,9 @@ export type GameAction =
       initialList?: CardItem[];
     }
   }
-  | { type: 'INTERACT_TILE'; payload: { index: number } }
-  | { type: 'INTERACT_TOOL'; payload: { toolInstanceId: string } }
+  | { type: 'SELECT_TOOL'; payload: { toolInstanceId: string | null } }
+  | { type: 'SELECT_TILE'; payload: { index: number } }
+  | { type: 'APPLY_MOVE'; payload: { list: CardItem[]; move: Move } }
   | { type: 'CANCEL_SELECTION' }
   | {
     type: 'INSPECTION_STEP';

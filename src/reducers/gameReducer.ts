@@ -1,7 +1,6 @@
 import { GameState, GameAction } from './gameState';
 import { GamePhase, ToolInstance, Move, ToolType } from '../../types';
 import { applyMove } from '../utils/gameLogic';
-import { TOOL_REGISTRY } from '../tools';
 
 export const initialState: GameState = {
   level: 1,
@@ -21,42 +20,6 @@ export const initialState: GameState = {
   shakeTools: 0,
   dailyCompleted: false,
   currentSeed: undefined,
-};
-
-// Helper to execute a valid move
-const executeMove = (
-  state: GameState,
-  toolInstanceId: string,
-  toolType: ToolType,
-  targetIndex: number,
-  selectionIndex?: number | null
-): GameState => {
-  const newList = applyMove(state.list, toolType, targetIndex, selectionIndex);
-
-  const newTools = state.toolsAvailable.map(t =>
-    t.instanceId === toolInstanceId ? { ...t, used: true } : t
-  );
-
-  const description = selectionIndex !== undefined && selectionIndex !== null
-    ? `${toolType} ${selectionIndex} and ${targetIndex}`
-    : `${toolType} at ${targetIndex}`;
-
-  const newMove: Move = {
-    tool: toolType,
-    toolInstanceId: toolInstanceId,
-    index: targetIndex,
-    targetIndex: selectionIndex ?? undefined,
-    description
-  };
-
-  return {
-    ...state,
-    list: newList,
-    toolsAvailable: newTools,
-    movesHistory: [...state.movesHistory, newMove],
-    selection: null,
-    selectedToolInstanceId: null,
-  };
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -88,92 +51,41 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
 
-    case 'INTERACT_TOOL': {
+    case 'SELECT_TOOL': {
       if (state.phase !== GamePhase.PLANNING) return state;
       const { toolInstanceId } = action.payload;
-
-      const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
-      if (!toolInstance || toolInstance.used) return state;
-
-      // 1. If same tool selected -> Deselect
-      if (state.selectedToolInstanceId === toolInstanceId) {
-        return {
-          ...state,
-          selectedToolInstanceId: null,
-          selection: null,
-        };
-      }
-
-      // 2. Switching to new tool
-      const strategy = TOOL_REGISTRY[toolInstance.type];
-      if (!strategy) return state;
-
-      // 3. Immediate Execution Check
-      // If a card is already selected, and we click a ONE-STEP tool (requiresSelection=false),
-      // does the user imply "Use this tool on the currently selected card"?
-      // The prompt says: "If a card was selected and the new tool is an 'Immediate Action' ... execute"
-      if (state.selection !== null && !strategy.requiresSelection) {
-        if (strategy.isValid(state.list, state.selection)) {
-          return executeMove(state, toolInstanceId, toolInstance.type, state.selection);
-        } else {
-          // Invalid move, shake but select tool? Or just shake?
-          // Fallback: Just select the tool.
-          return {
-            ...state,
-            selectedToolInstanceId: toolInstanceId
-          };
-        }
-      }
-
-      // 4. Default: Select the tool
       return {
         ...state,
         selectedToolInstanceId: toolInstanceId,
-        // Keep existing card selection if any, as 2-step tools might use it
+        // Optional: clear selection? Keeping valid state is safer.
       };
     }
 
-    case 'INTERACT_TILE': {
+    case 'SELECT_TILE': {
       if (state.phase !== GamePhase.PLANNING) return state;
-      const { index } = action.payload;
+      return {
+        ...state,
+        selection: action.payload.index
+      };
+    }
 
-      // Strict Tool-First Requirement
-      if (!state.selectedToolInstanceId) {
-        return state;
-      }
+    case 'APPLY_MOVE': {
+      if (state.phase !== GamePhase.PLANNING) return state;
+      const { list, move } = action.payload;
 
+      // Mark tool as used
+      const newTools = state.toolsAvailable.map(t =>
+        t.instanceId === move.toolInstanceId ? { ...t, used: true } : t
+      );
 
-      // Case B: Tool Selected -> Attempt Move
-      const toolInstance = state.toolsAvailable.find(t => t.instanceId === state.selectedToolInstanceId);
-      if (!toolInstance || toolInstance.used) return { ...state, selectedToolInstanceId: null };
-
-      const strategy = TOOL_REGISTRY[toolInstance.type];
-
-      // B.1 One-Step Tool (Clicking card executes it)
-      if (!strategy.requiresSelection) {
-        if (strategy.isValid(state.list, index)) {
-          return executeMove(state, toolInstance.instanceId, toolInstance.type, index);
-        } else {
-          return { ...state, shakeTools: state.shakeTools + 1 };
-        }
-      }
-
-      // B.2 Two-Step Tool (Requires Selection)
-      // If nothing selected yet, select this as the "first" card
-      if (state.selection === null) {
-        return { ...state, selection: index };
-      }
-
-      // If we have a selection, this click is the "target" (second click)
-      // Note: state.selection is NOT guaranteed to be the 'index' arg unless user clicked same card
-      if (strategy.isValid(state.list, index, state.selection)) {
-        return executeMove(state, toolInstance.instanceId, toolInstance.type, index, state.selection);
-      } else {
-        // Invalid (e.g. non-adjacent for swap, or same card)
-        // If clicked same card, deselect? Or jsut shake?
-        // Prompt says: "If false, shakeTools."
-        return { ...state, shakeTools: state.shakeTools + 1 };
-      }
+      return {
+        ...state,
+        list,
+        toolsAvailable: newTools,
+        movesHistory: [...state.movesHistory, move],
+        selection: null,
+        selectedToolInstanceId: null,
+      };
     }
 
     case 'CANCEL_SELECTION': {

@@ -8,8 +8,10 @@ import { PuzzleBoard } from './PuzzleBoard';
 import { AuditBoard } from './AuditBoard';
 import { UserInterfaceState } from '../../hooks/useGameInteractions';
 
+import { GameViewModel } from '../../types/GameViewModel';
+
 interface GameViewProps {
-    data: any; // Ideally typed, but 'any' matches previous pattern for now
+    data: GameViewModel;
     interaction: UserInterfaceState;
     actions: any;
     layout: LayoutType;
