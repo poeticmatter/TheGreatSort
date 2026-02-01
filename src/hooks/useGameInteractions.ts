@@ -131,14 +131,15 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
         // Previously it was always rendered but maybe disabled.
 
         const isDailyRetry = gameMode === 'DAILY' && phase === GamePhase.RESULTS && !isLocked;
+        const isPracticeRetry = gameMode === 'PRACTICE' && phase === GamePhase.RESULTS;
 
-        if (isDailyRetry) {
+        if (isDailyRetry || isPracticeRetry) {
             const isPerfect = compliancePercentage >= 100 || (optimalScore !== null && optimalScore === levelScore);
             return {
                 label: 'RETRY',
                 variant: isPerfect ? 'muted' : 'default',
                 Icon: Repeat,
-                onClick: actions.retryDaily,
+                onClick: gameMode === 'DAILY' ? actions.retryDaily : actions.retryPractice,
                 disabled: false
             };
         }

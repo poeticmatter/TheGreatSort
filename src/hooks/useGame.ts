@@ -215,7 +215,7 @@ export function useGame(sessionDate: string) {
     optimalScore: coreState.optimalScore,
     levelScore: coreState.levelScore,
     movesHistory: coreState.movesHistory,
-    isLocked
+    isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked
   };
 
   // Memoize actions passed to the interaction hook to prevent it from re-running unnecessarily
