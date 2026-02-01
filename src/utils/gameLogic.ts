@@ -24,6 +24,54 @@ export interface InspectionYield {
   detectedMode: 'ASC' | 'DESC' | null;
 }
 
+// Pure Logic Helper for Mode Determination & Survival
+export const judgeStep = (
+  currentVal: number,
+  currentHasShield: boolean,
+  lastSurvivorVal: number,
+  currentMode: 'ASC' | 'DESC' | null
+): { survived: boolean; newMode: 'ASC' | 'DESC' | null; scoreToAdd: number } => {
+  let survived = false;
+  let newMode = currentMode;
+  let scoreToAdd = 0;
+
+  // 1. Shield Logic (Always Survives)
+  if (currentHasShield) {
+    survived = true;
+    // Edge Case: Shielded item can still set the mode if currently pending
+    // "If currentVal != lastSurvivorVal (the physical value establishes the gradient, even if the item was forced to survive)."
+    if (newMode === null) {
+      if (currentVal > lastSurvivorVal) newMode = 'ASC';
+      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
+      // If equal, mode remains null
+    }
+  }
+  // 2. Standard Logic
+  else {
+    if (newMode === null) {
+      // Pending Mode: Equality is OK, Difference sets mode
+      // "If currentVal == lastSurvivorVal: Item survives... newMode remains pending"
+      // "If currentVal != lastSurvivorVal: Item survives... newMode set"
+      survived = true;
+      if (currentVal > lastSurvivorVal) newMode = 'ASC';
+      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
+    } else {
+      // Determined Mode
+      if (newMode === 'ASC') {
+        if (currentVal >= lastSurvivorVal) survived = true;
+      } else {
+        if (currentVal <= lastSurvivorVal) survived = true;
+      }
+    }
+  }
+
+  if (survived) {
+    scoreToAdd = currentVal;
+  }
+
+  return { survived, newMode, scoreToAdd };
+};
+
 export function* createInspectionStream(initialList: CardItem[]): Generator<InspectionYield> {
   const list = initialList.map(item => ({ ...item }));
   let lastSurvivorVal: number | null = null;
@@ -51,29 +99,15 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
       survived = true;
       lastSurvivorVal = currentVal;
       lastSurvivorHasShield = currentHasShield;
-    } else if (i === 1) {
-      survived = true;
-      const prevVal = lastSurvivorVal!;
-      if (currentVal >= prevVal) sortDirection = 'ASC';
-      else sortDirection = 'DESC';
-      lastSurvivorVal = currentVal;
-      lastSurvivorHasShield = currentHasShield; // Update to current
     } else {
-      // Logic for new Shield mechanic: "Select item to PROTECT"
-      // Check Current Item Shield (Self-Protection)
-      if (currentHasShield) {
-        survived = true;
-      } else {
-        const threshold = lastSurvivorVal!;
-        const mode = sortDirection || 'ASC';
-        if (mode === 'ASC') {
-          if (currentVal >= threshold) survived = true;
-        } else {
-          if (currentVal <= threshold) survived = true;
-        }
-      }
+      // Use judgeStep to determine outcome
+      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal!, sortDirection);
+      survived = result.survived;
 
+      // Update State if Survived
       if (survived) {
+        sortDirection = result.newMode;
+        pointsToAdd = result.scoreToAdd;
         lastSurvivorVal = currentVal;
         lastSurvivorHasShield = currentHasShield;
       }
@@ -81,7 +115,6 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
 
     // 3. Update Result State
     if (survived) {
-      pointsToAdd = currentVal;
       list[i] = { ...currentItem, status: 'safe' };
     } else {
       list[i] = { ...currentItem, status: 'eliminated' };
@@ -136,30 +169,16 @@ export const calculateBatchScore = (numbers: ISortable[]): number => {
       survived = true;
       lastSurvivor = currentVal;
       lastSurvivorHasShield = currentHasShield;
-    } else if (i === 1) {
-      survived = true;
-      // Determine mode based on first two items
-      if (currentVal >= lastSurvivor) mode = 'ASC';
-      else mode = 'DESC';
     } else {
-      // Check if protected by SELF shield
-      if (currentHasShield) {
-        survived = true;
-      } else {
-        // Normal logic
-        const effectiveMode = mode || 'ASC';
-        if (effectiveMode === 'ASC') {
-          if (currentVal >= lastSurvivor) survived = true;
-        } else {
-          if (currentVal <= lastSurvivor) survived = true;
-        }
-      }
-    }
+      const result = judgeStep(currentVal, currentHasShield, lastSurvivor, mode);
+      survived = result.survived;
 
-    if (survived) {
-      score += currentVal; // Scoring: Value of the survivor
-      lastSurvivor = currentVal;
-      lastSurvivorHasShield = currentHasShield;
+      if (survived) {
+        mode = result.newMode;
+        score += result.scoreToAdd;
+        lastSurvivor = currentVal;
+        lastSurvivorHasShield = currentHasShield;
+      }
     }
   }
   return score;
