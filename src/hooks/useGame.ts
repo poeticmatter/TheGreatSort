@@ -205,6 +205,7 @@ export function useGame(sessionDate: string) {
   // ... (keep previous code until return)
 
   // 7. Interaction Layer
+  // Composite state for the Interaction Hook (Logic only)
   const compositeState = {
     ...coreState,
     ...metaState,
@@ -216,7 +217,7 @@ export function useGame(sessionDate: string) {
     isLocked
   };
 
-  const ui = useGameInteractions(compositeState, {
+  const interaction = useGameInteractions(compositeState, {
     ...coreActions,
     ...metaActions,
     changeMode,
@@ -229,25 +230,27 @@ export function useGame(sessionDate: string) {
   });
 
   return {
-    core: {
+    // Pure Data for Rendering (The "Model")
+    data: {
       ...coreState,
-      selectedTool: coreState.selectedToolInstanceId // Alias if needed by View
-    },
-    meta: {
       ...metaState,
+      // Derived Metrics
       compliancePercentage,
       mood,
       sessionDate,
       dailyResult,
       isLocked,
       persistenceLoaded: dailyStatus === 'READY',
-      // Metrics often needed
       startingCompliance,
       isZeroYield,
       yieldRatio,
-      currentScore
+      currentScore,
+      // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
+      selectedToolId: coreState.selectedToolInstanceId
     },
-    ui,
+    // UI Logic (The "ViewModel")
+    interaction,
+    // Event Handlers (The "Controller")
     actions: {
       changeMode,
       handleUndo: coreActions.handleUndo,

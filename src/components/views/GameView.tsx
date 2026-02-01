@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { GamePhase } from '../../../types';
 import Header from '../Header';
 import Footer from '../Footer';
 import ToolBelt from '../ToolBelt';
@@ -7,17 +6,18 @@ import SubmitButton from '../SubmitButton';
 import { LayoutType } from '../InventoryGrid';
 import { PuzzleBoard } from './PuzzleBoard';
 import { AuditBoard } from './AuditBoard';
+import { UserInterfaceState } from '../../hooks/useGameInteractions';
 
 interface GameViewProps {
-    core: any;
-    meta: any;
-    ui: any;
+    data: any; // Ideally typed, but 'any' matches previous pattern for now
+    interaction: UserInterfaceState;
     actions: any;
     layout: LayoutType;
     onLayoutChange: (layout: LayoutType) => void;
 }
 
-export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
+export function GameView({ data, interaction, actions, layout }: GameViewProps) {
+    const { primaryAction, secondaryAction, feedback } = interaction;
 
     // --- Visual Feedback ---
     const [isShaking, setIsShaking] = useState(false);
@@ -27,29 +27,22 @@ export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
     }, []);
 
     useEffect(() => {
-        if (core.shakeTools > 0) {
+        if (data.shakeTools > 0) {
             triggerShake();
         }
-    }, [core.shakeTools, triggerShake]);
-
-    const isLocked = meta.isLocked;
-    const isBoardDisabled = meta.gameMode === 'DAILY' && isLocked;
-    const controlsDisabled = isBoardDisabled || core.phase === GamePhase.INSPECTING;
-
-    // Detect if we should show AuditBoard logic
-    const showAuditBoard = (meta.gameMode === 'DAILY' && isLocked) || !!meta.auditState;
+    }, [data.shakeTools, triggerShake]);
 
     // --- ToolBelt Construction ---
     const renderToolBelt = (orientation: 'vertical' | 'horizontal') => (
         <ToolBelt
-            toolsAvailable={core.toolsAvailable}
-            selectedTool={core.selectedToolInstanceId}
+            toolsAvailable={data.toolsAvailable}
+            selectedTool={data.selectedToolInstanceId}
             shouldShake={isShaking}
-            phase={core.phase}
+            phase={data.phase}
             onToolClick={actions.handleToolClick}
             orientation={orientation}
-            secondaryAction={ui.secondaryAction}
-            isDisabled={controlsDisabled}
+            secondaryAction={secondaryAction || undefined}
+            isDisabled={feedback.isBoardDisabled}
         />
     );
 
@@ -58,65 +51,61 @@ export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
             {renderToolBelt('vertical')}
             <div className="w-8 h-0.5 bg-stone-700 rounded-full opacity-50" />
             <SubmitButton
-                label={ui.primaryAction.label}
-                variant={ui.primaryAction.variant}
-                Icon={ui.primaryAction.Icon}
-                onClick={ui.primaryAction.onClick}
-                disabled={ui.primaryAction.disabled}
+                label={primaryAction.label}
+                variant={primaryAction.variant}
+                Icon={primaryAction.Icon}
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled}
                 compact={true}
             />
         </>
-    ), [renderToolBelt, ui.primaryAction]);
-
-    // Construct a composite state required by PuzzleBoard
-    // PuzzleBoard uses state.list, state.phase, etc.
-    const compatibilityState = { ...core, ...meta };
+    ), [renderToolBelt, primaryAction]);
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative shell">
             <Header
-                level={core.level}
-                levelScore={core.levelScore}
-                totalScore={core.totalScore}
-                totalOptimalScore={core.totalOptimalScore}
-                gameMode={meta.gameMode}
-                phase={core.phase}
-                optimalScore={core.optimalScore}
-                detectedMode={core.detectedMode}
+                level={data.level}
+                levelScore={data.levelScore}
+                totalScore={data.totalScore}
+                totalOptimalScore={data.totalOptimalScore}
+                gameMode={data.gameMode}
+                phase={data.phase}
+                optimalScore={data.optimalScore}
+                detectedMode={data.detectedMode}
                 onChangeMode={actions.changeMode}
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
             />
 
             <div className="flex-1 flex flex-col min-h-0 content-area relative">
-                {showAuditBoard ? (
+                {feedback.showAuditBoard ? (
                     <AuditBoard
-                        sessionDate={meta.sessionDate}
-                        levelScore={core.levelScore}
-                        dailyResult={meta.dailyResult}
+                        sessionDate={data.sessionDate}
+                        levelScore={data.levelScore}
+                        dailyResult={data.dailyResult}
                         onClose={actions.closeAudit}
-                        onDetectResistance={ui.primaryAction.onClick}
-                        flavorText={core.flavorMap?.['DONE']}
+                        onDetectResistance={primaryAction.onClick}
+                        flavorText={data.flavorMap?.['DONE']}
                     />
                 ) : (
                     <PuzzleBoard
-                        state={compatibilityState}
+                        state={data}
                         actions={actions}
                         layout={layout}
                         sidebarContent={sidebarContent}
                         onBackgroundClick={actions.handleBackgroundClick}
                         triggerShake={triggerShake}
-                        isLocked={isLocked}
-                        onRequestAudit={ui.primaryAction.onClick}
+                        isLocked={data.isLocked}
+                        onRequestAudit={primaryAction.onClick}
                     />
                 )}
             </div>
 
             {/* Footer handles tools in horizontal layout (only if not audit mode) */}
-            {!showAuditBoard && layout === 'HORIZONTAL_STRIP' && (
+            {!feedback.showAuditBoard && layout === 'HORIZONTAL_STRIP' && (
                 <Footer
                     layout={layout}
-                    submitConfig={ui.primaryAction}
+                    submitConfig={primaryAction}
                     toolBelt={renderToolBelt('horizontal')}
                 />
             )}

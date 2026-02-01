@@ -12,7 +12,7 @@ interface ToolBeltProps {
   phase: GamePhase;
   onToolClick: (toolInstanceId: string) => void;
   // secondaryAction replaces onUndo/canUndo
-  secondaryAction: {
+  secondaryAction?: {
     label?: string;
     onClick: () => void;
     disabled: boolean;
@@ -58,20 +58,15 @@ const ToolBelt: React.FC<ToolBeltProps & { orientation?: 'horizontal' | 'vertica
         );
       })}
 
-      <UndoButton
-        onClick={secondaryAction.onClick}
-        disabled={secondaryAction.disabled || (isDisabled && phase === GamePhase.PLANNING)} // Only locally disable if global disable AND planning (logic preservation)
-        // Actually, logic was: disabled = !canUndo || isDisabled.
-        // We defer to whatever `secondaryAction.disabled` says, but also respect `isDisabled` prop if needed.
-        // But `isDisabled` prop in ToolBelt usually implies the whole belt is disabled.
-        // Let's assume strict mapping:
-        // override local disabled if global `isDisabled` is true?
-        // Actually the `div` wrapper has `pointer-events-none` if `isDisabled` is true.
-        // So we can just pass secondaryAction.disabled.
-        label={secondaryAction.label}
-        Icon={secondaryAction.Icon}
-        variant={secondaryAction.variant}
-      />
+      {secondaryAction && (
+        <UndoButton
+          onClick={secondaryAction.onClick}
+          disabled={secondaryAction.disabled || (isDisabled && phase === GamePhase.PLANNING)}
+          label={secondaryAction.label}
+          Icon={secondaryAction.Icon}
+          variant={secondaryAction.variant || 'default'} // safety cast regarding variant type mismatch
+        />
+      )}
     </div>
   );
 };
