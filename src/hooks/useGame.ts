@@ -4,25 +4,63 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
-import { stringToSeed, generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { getTodayDateString } from '../utils/dateUtils';
-import { GamePhase, GameMode, ToolInstance } from '../../types';
-import { PersistenceService } from '../services/persistence';
-import { getDailyEntry } from './useGamePersistence';
-import { PuzzleRepository } from '../services/puzzleRepository';
+import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
+import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
+import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
+import { GamePhase, GameMode } from '../../types';
+import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
 
 export function useGame(sessionDate: string) {
 
   // 1. Core Game (Board, Reducer, Loop)
   const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame();
 
-  // 2. Meta Game (Persistence, Mode, Resistance)
+  // 2. Meta Game (Mode, Audit, Resistance)
+  // We passed coreState but useMetaGame no longer persists, so it's safe.
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
 
-  // 3. Solver Service
-  const solverState = useSolverService(coreState.currentSeed, metaState.gameMode, coreState.list, coreState.toolsAvailable, coreState.optimalScore, coreState.worstScore);
+  // 3. Daily Logic (Persistence, Locking, Config)
+  // This hook manages loading the daily save and creating a config
+  const {
+    status: dailyStatus,
+    initialConfig: dailyConfig,
+    dailyResult,
+    isLocked,
+    saveDailyResult
+  } = useDailyChallenge(
+    sessionDate,
+    coreState,
+    metaState.gameMode,
+    metaState.isGameLoaded
+  );
 
-  // 4. Derived Metrics & Mood
+  // 4. Solver Service
+  // Note: Optimal/Worst scores are now set during hydration, so we might not need to sync them back from solver?
+  // However, for PRACTICE mode, hydration sets them to null/calc-pending.
+  // So we still need useSolverService to potentially calculate them.
+  const solverState = useSolverService(
+    coreState.currentSeed,
+    metaState.gameMode,
+    coreState.list,
+    coreState.toolsAvailable,
+    coreState.optimalScore,
+    coreState.worstScore
+  );
+
+  // 5. Sync Scores for Practice Mode (or if missing)
+  useEffect(() => {
+    if (metaState.gameMode === 'PRACTICE') {
+      if (solverState.optimalScore !== null && coreState.optimalScore === null) {
+        coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
+      }
+      if (solverState.worstScore !== null && coreState.worstScore === null) {
+        coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
+      }
+    }
+  }, [solverState.optimalScore, solverState.worstScore, coreState.optimalScore, coreState.worstScore, coreDispatch, metaState.gameMode]);
+
+
+  // 6. Derived Metrics & Mood
   const {
     compliancePercentage,
     startingCompliance,
@@ -31,198 +69,46 @@ export function useGame(sessionDate: string) {
     currentScore
   } = useProjectedMetrics(coreState.list, coreState.initialList || [], coreState.optimalScore, coreState.worstScore);
 
-  const mood = useSystemMood(compliancePercentage, startingCompliance, metaState.isLocked);
+  const mood = useSystemMood(compliancePercentage, startingCompliance, isLocked);
 
-  // --- Orchestration Logic ---
 
-  // Connect Solver to Core
+  // --- Initialization & Orchestration ---
+
+  // Handle Initial Load
   useEffect(() => {
-    // Sync Optimal Score
-    if (solverState.optimalScore !== null && (coreState.optimalScore === null || coreState.optimalScore !== solverState.optimalScore)) {
-      coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
-    }
-
-    // Sync Worst Score
-    if (solverState.worstScore !== null && (coreState.worstScore === null || coreState.worstScore !== solverState.worstScore)) {
-      coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
-    }
-  }, [solverState.optimalScore, solverState.worstScore, coreState.optimalScore, coreState.worstScore, coreDispatch]);
-
-  // Handle Game Completion (Bridging Core loop -> Meta save)
-  // useCoreGame takes an onGameComplete prop? No, I defined `useCoreGame` to take props but I didn't pass them above.
-  // I should probably pass the callback or use an effect here.
-  // useCoreGame dispatches SET_PHASE RESULTS. We can watch for that.
-
-  const prevPhaseRef = useMemo(() => coreState.phase, [coreState.phase]); // Actually ref is better for comparison
-  // But simpler: just use effect on phase change.
-
-  // Hydration & Initialization (The complex part from original useGame)
-  useEffect(() => {
-
     if (metaState.isGameLoaded) return;
-    if (!metaState.persistenceLoaded) return;
 
+    // Daily Mode Initialization
     if (metaState.gameMode === 'DAILY') {
-      let seed = stringToSeed(sessionDate);
-
-      if (metaState.loadedState) {
-        seed = metaState.loadedState.puzzleId;
-        // --- Resume from Save ---
-        // --- Resume from Save ---
-        // Parse date to get the correct puzzle
-        const [y, m, d] = sessionDate.split('-').map(Number);
-        const puzzleDate = new Date(y, m - 1, d);
-        const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
-
-        let currentList = PuzzleRepository.hydrateSequence(puzzle.sequence);
-        let currentTools = PuzzleRepository.hydrateTools(puzzle.tools);
-        let currentFlavorMap = generateFlavorMap(seed);
-
-        // Replay moves
-        if (metaState.loadedState.moves) {
-          metaState.loadedState.moves.forEach((move: any) => {
-            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
-            const toolIndex = currentTools.findIndex((t: ToolInstance) => t.type === move.tool && !t.used);
-            if (toolIndex !== -1) currentTools[toolIndex].used = true;
-          });
-        }
-
-        // Restore Phase
-        let phase = GamePhase.PLANNING;
-        if (metaState.loadedState.snapshot?.phase) {
-          phase = metaState.loadedState.snapshot.phase;
-        }
-
-        // Core Init
-        // We must pass the *original* start list as the 7th argument for UNDO to work correctly.
-        // It's not efficiently cached, but we can reconstruct it.
-        const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
-        coreActions.initLevel(1, currentList, currentTools, seed, currentFlavorMap, metaState.loadedState.moves, startList);
-
-        if (phase) {
-          coreDispatch({ type: 'SET_PHASE', payload: { phase } });
-        }
-
-        // Handle Results State restoration
-        if (phase === GamePhase.RESULTS) {
-          coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-          const { score, gradedList } = gradeLevel(currentList);
-          coreDispatch({ type: 'SET_LIST', payload: { list: gradedList } });
-          coreDispatch({ type: 'SET_LEVEL_SCORE', payload: { score: score } });
-        } else {
-          coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-        }
-
-        // Set Scores immediately for Daily
-        if (puzzle.targets) {
-          coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: puzzle.targets.max } });
-          coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: puzzle.targets.min } });
-        }
-
-      } else if (metaState.dailyResult) {
-        // --- Completed but no state ---
-        // If LOCKED, we want to show the solved state, but if we don't have the moves, we can't reconstruct it perfectly.
-        // Best effort: Re-generate level and show as results.
-
-        // Parse date to get the correct puzzle
-        const [y, m, d] = sessionDate.split('-').map(Number);
-        const puzzleDate = new Date(y, m - 1, d);
-        const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
-
-        let currentStateList = PuzzleRepository.hydrateSequence(puzzle.sequence);
-
-        coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-
-        coreActions.initLevel(
-          1,
-          currentStateList,
-          PuzzleRepository.hydrateTools(puzzle.tools),
-          seed,
-          generateFlavorMap(seed)
-        );
-        coreDispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
-        coreDispatch({ type: 'SET_LEVEL_SCORE', payload: { score: metaState.dailyResult.score } });
-
-        if (puzzle.targets) {
-          coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: puzzle.targets.max } });
-          coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: puzzle.targets.min } });
-        }
-      } else {
-        // --- New Game ---
-        startLevel(1, 'DAILY');
+      if (dailyStatus === 'READY' && dailyConfig) {
+        coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
+        metaActions.setIsGameLoaded(true);
+        // Ensure scores are set if provided
+        if (dailyConfig.optimalScore) coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: dailyConfig.optimalScore } });
+        if (dailyConfig.worstScore) coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: dailyConfig.worstScore } });
+        if (dailyConfig.dailyCompleted) coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
       }
-    } else {
-      startLevel(1, metaState.gameMode);
+    }
+    // Practice Mode Initialization
+    else if (metaState.gameMode === 'PRACTICE') {
+      // Start fresh practice
+      const result = GameHydrationService.hydratePractice();
+      coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: result.initialState } });
+      metaActions.setIsGameLoaded(true);
+      metaActions.trackGameStart('PRACTICE', result.initialState.currentSeed);
     }
 
-    // Force locked state update if needed
-    if (metaState.gameMode === 'DAILY' && metaState.isLocked) {
-      // Ensure mood will reflect DONE by ensuring 'isDailyCompleted' logic is passed or using isLocked directly.
-      // We updated useSystemMood to take `isLocked` (actually we mapped it to `dailyCompleted` before, 
-      // but now we should pass `isLocked` as the third arg or ensure `dailyCompleted` matches logic).
-    }
-
-    metaActions.setIsGameLoaded(true);
-  }, [metaState.isGameLoaded, metaState.gameMode, metaState.loadedState, metaState.dailyResult, metaState.isLocked, coreDispatch, coreActions, metaActions, sessionDate]);
-
-
-  const startLevel = useCallback((lvl: number, modeOverride?: GameMode, seedOverride?: number) => {
-    const activeMode = modeOverride || metaState.gameMode;
-    let list: any[] = [];
-    let tools: ToolInstance[] = [];
-    let seed: number | undefined = undefined;
-    let flavorMap: any = {};
-    let scores: { optimalScore: number | null, worstScore: number | null } = { optimalScore: null, worstScore: null };
-
-    if (activeMode === 'DAILY') {
-      // Use Session Date for consistency logic
-      const [y, m, d] = sessionDate.split('-').map(Number);
-      const puzzleDate = new Date(y, m - 1, d);
-      const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
-
-      // Hydrate
-      list = PuzzleRepository.hydrateSequence(puzzle.sequence);
-      tools = PuzzleRepository.hydrateTools(puzzle.tools);
-
-      // Inject Targets
-      scores = {
-        optimalScore: puzzle.targets.max, // JSON max is usually optimal (highest yield)
-        worstScore: puzzle.targets.min
-      };
-
-      seed = puzzle.id; // Use puzzle ID as seed for tracking
-      // flavorMap = generateFlavorMap(seed); 
-      // Ensure we map to puzzleId if we use that terminology, effectively seed is puzzleId here.
-      flavorMap = generateFlavorMap(seed); // Still generate flavor from seed/id
-
-    } else if (activeMode === 'PRACTICE') {
-      const len = 9;
-      seed = seedOverride !== undefined ? seedOverride : Math.random() * 1000000;
-      tools = generateTools(seed);
-      list = generateLevel(len, seed);
-      flavorMap = generateFlavorMap(seed);
-    }
-
-    // Pass scores to initLevel? 
-    // Types might need update or we pass them in coreActions.initLevel if it supports it, 
-    // OR we dispatch SET_OPTIMAL/WORST immediately after.
-    // coreActions.initLevel signature: (level, list, tools, seed, flavorMap, moves)
-    // It doesn't seem to take scores. We should dispatch them manually.
-
-    coreActions.initLevel(lvl, list, tools, seed, flavorMap, []);
-
-    if (activeMode === 'DAILY') {
-      if (scores.optimalScore !== null) coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: scores.optimalScore } });
-      if (scores.worstScore !== null) coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: scores.worstScore } });
-    }
-
-    if (seed !== undefined) {
-      metaActions.trackGameStart(activeMode, seed);
-    }
-  }, [metaState.gameMode, coreActions, metaActions, sessionDate]);
+  }, [
+    metaState.isGameLoaded,
+    metaState.gameMode,
+    dailyStatus,
+    dailyConfig,
+    coreDispatch,
+    metaActions
+  ]);
 
 
-  // Zero-Yield Safety Net (Triggering Resistance)
+  // Zero-Yield Safety Net
   useEffect(() => {
     const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
     const joined = localStorage.getItem('joinedResistance') === 'true';
@@ -233,63 +119,76 @@ export function useGame(sessionDate: string) {
   }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions]);
 
 
-  const closeResistanceAndReset = useCallback(() => {
-    metaActions.closeResistance();
+  // --- Actions ---
 
-    // Safety Net Reset Logic
-    if (coreState.currentSeed !== undefined) {
-      // In PRACTICE, give a new seed to avoid "cursed" levels where start == worst.
-      // In DAILY, we must persist the seed.
-      const isDaily = metaState.gameMode === 'DAILY';
-      const seed = isDaily ? coreState.currentSeed : Math.random() * 1000000;
-
-      const list = generateLevel(9, seed);
-      const tools = generateTools(seed);
-      coreActions.initLevel(coreState.level, list, tools, seed, generateFlavorMap(seed), []);
-      coreDispatch({ type: 'RESET_STATS' });
-    }
-  }, [metaActions, coreState.currentSeed, coreState.level, coreActions, coreDispatch, metaState.gameMode]);
-
+  const handleSaveDaily = useCallback(() => {
+    // Composite action: Save Persist + Meta Update
+    saveDailyResult(coreState.levelScore);
+    coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
+    metaActions.setResistancePending(true);
+    metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
+  }, [saveDailyResult, coreState.levelScore, coreState.optimalScore, coreDispatch, metaActions]);
 
   const changeMode = useCallback((newMode: GameMode) => {
     metaActions.closeAudit();
     coreActions.stopLoop();
-
-    if (newMode === 'DAILY') {
-      const savedState = PersistenceService.loadDailyState(sessionDate);
-      const savedResult = PersistenceService.getDailyResult(sessionDate);
-
-      if (savedState || savedResult) {
-        metaActions.setGameMode('DAILY');
-        metaActions.setIsGameLoaded(false); // Trigger re-hydration
-        return;
-      }
-    }
-
     metaActions.setGameMode(newMode);
-    coreDispatch({ type: 'RESET_STATS' });
+    // Setting loaded to false triggers the Initialization Effect above
+    metaActions.setIsGameLoaded(false);
+    coreDispatch({ type: 'RESET_STATS' }); // Cleaner reset
+  }, [metaActions, coreActions, coreDispatch]);
+
+  const retryDaily = useCallback(() => {
+    // Re-initialize Daily to fresh state (Restart)
+    // To do this, we can bypass the "Load from Save" by explicitly requesting a fresh Daily hydration for the current date?
+    // OR we can rely on `dailyConfig` if `useDailyChallenge` exposes a "reset" function?
+    // `useDailyChallenge` loads from persistence.
+    // If we want to restart, we should essentially "Initialize Game" with a fresh Daily config.
+
+    const [y, m, d] = sessionDate.split('-').map(Number);
+    const puzzleDate = new Date(y, m - 1, d);
+    const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
+    const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
+
+    coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
+    // Reset meta flags?
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
 
-    // Need to defer startLevel? No, simpler to just rely on effect or call it directly?
-    // startLevel uses 'metaState.gameMode' which might be stale in this closure if not careful.
-    // Better to pass explicit mode
-    startLevel(1, newMode);
+    // IMPORTANT: We must also clear the "daily persistence" moves so it doesn't reload them next time?
+    // `useDailyChallenge` saves snapshot on change. If we reset state, it will save the new (empty) state.
+    // So this is safe. Move history is in state.
 
-    startLevel(1, newMode);
+  }, [sessionDate, coreDispatch]);
 
-  }, [metaActions, coreActions, coreDispatch, startLevel, sessionDate]);
+  const retryPractice = useCallback(() => {
+    if (metaState.gameMode === 'PRACTICE' && coreState.currentSeed !== undefined) {
+      // Replay same seed
+      const { initialState } = GameHydrationService.hydratePractice(coreState.currentSeed);
+      coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
+    } else {
+      changeMode('PRACTICE');
+    }
+  }, [metaState.gameMode, coreState.currentSeed, coreDispatch, changeMode]);
 
+  const nextLevel = useCallback(() => {
+    // New Practice Seed
+    const { initialState } = GameHydrationService.hydratePractice();
+    coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
+    metaActions.trackGameStart('PRACTICE', initialState.currentSeed);
+  }, [coreDispatch, metaActions]);
 
-  // Core Completion Bridge
-  // REMOVED: Auto-save logic. Result saving is now deferred to "View Audit" button (Manual Trigger).
-  // useEffect(() => {
-  //   if (coreState.phase === GamePhase.RESULTS && metaState.gameMode === 'DAILY' && !coreState.dailyCompleted) {
-  //     metaActions.saveDaily();
-  //   }
-  // }, [coreState.phase, metaState.gameMode, coreState.dailyCompleted, metaActions]);
+  const closeResistanceAndReset = useCallback(() => {
+    metaActions.closeResistance();
+    if (metaState.gameMode === 'DAILY') {
+      retryDaily();
+    } else {
+      nextLevel(); // Or retry same? Usually next.
+    }
+  }, [metaActions, metaState.gameMode, retryDaily, nextLevel]);
 
-  // --- Actions ---
   const shareResult = async () => {
+    // ... Keep existing logic or refactor ...
+    // existing logic used getDailyEntry.
     if (metaState.gameMode === 'DAILY') {
       const entry = getDailyEntry(sessionDate);
       const attempts = entry ? entry.attempts : 1;
@@ -305,11 +204,16 @@ export function useGame(sessionDate: string) {
   return {
     state: {
       ...coreState,
-      ...metaState, // Merges gameMode, auditState, resistanceActive/Pending
+      ...metaState,
       selectedTool: coreState.selectedToolInstanceId,
       compliancePercentage,
       mood,
       sessionDate,
+      // Provide these for the UI
+      dailyResult,
+      isLocked,
+      // loadedState? No longer needed by UI presumably, or just use coreState.
+      persistenceLoaded: dailyStatus === 'READY',
     },
     actions: {
       changeMode,
@@ -318,24 +222,20 @@ export function useGame(sessionDate: string) {
       handleCardClick: coreActions.handleCardClick,
       handleBackgroundClick: coreActions.handleBackgroundClick,
       startInspection: coreActions.startInspection,
-      nextLevel: () => startLevel(1, 'PRACTICE'),
-      retryPractice: () => {
-        if (metaState.gameMode === 'PRACTICE' && coreState.currentSeed !== undefined) {
-          startLevel(1, 'PRACTICE', coreState.currentSeed);
-        }
-      },
-      retryDaily: () => startLevel(1, 'DAILY'),
+      nextLevel,
+      retryPractice,
+      retryDaily,
       resetGame: () => {
-        if (metaState.gameMode === 'DAILY') return;
-        coreDispatch({ type: 'RESET_STATS' });
-        startLevel(1);
+        // "Reset" usually means restart level
+        if (metaState.gameMode === 'DAILY') retryDaily();
+        else retryPractice();
       },
       shareResult,
       closeAudit: metaActions.closeAudit,
       triggerCurrentAudit: metaActions.triggerCurrentAudit,
       triggerResistance: metaActions.triggerResistance,
       closeResistance: closeResistanceAndReset,
-      saveDaily: metaActions.saveDaily
+      saveDaily: handleSaveDaily
     }
   };
 }

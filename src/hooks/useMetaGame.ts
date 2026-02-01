@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GameMode, GamePhase } from '../../types'
-import { useGamePersistence, saveDailyScore, getDailyEntry } from './useGamePersistence';
 import { useAnalytics } from './useAnalytics';
-import { getTodayDateString } from '../utils/dateUtils';
 import { calculateRelativeEfficiency } from '../utils/gameLogic';
 
-export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) { // Type coreState properly if possible
+export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {
     const [gameMode, setGameMode] = useState<GameMode>('DAILY');
     const [isGameLoaded, setIsGameLoaded] = useState(false);
     const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
@@ -14,29 +12,6 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
 
     const { trackGameStart, trackGameComplete, trackDailyAuditViewed } = useAnalytics();
 
-    // --- Persistence ---
-    const persistenceState = useMemo(() => ({
-        movesHistory: coreState.movesHistory,
-        phase: coreState.phase,
-        toolsAvailable: coreState.toolsAvailable,
-        levelScore: coreState.levelScore,
-        optimalScore: coreState.optimalScore,
-        worstScore: coreState.worstScore || null,
-        list: coreState.list,
-        currentSeed: coreState.currentSeed
-    }), [coreState]);
-
-    const { loadedState, dailyResult, isLocked, persistenceLoaded, persistResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
-
-
-    const saveDaily = useCallback(() => {
-        persistResult();
-        coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-        setResistancePending(true);
-        trackGameComplete(gameMode, coreState.levelScore, coreState.optimalScore);
-    }, [coreState.levelScore, coreState.optimalScore, gameMode, coreDispatch, trackGameComplete, sessionDate, persistResult]);
-
-
     const triggerResistance = useCallback(() => {
         setResistanceActive(true);
         setAuditState(null);
@@ -44,10 +19,6 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
 
     const closeResistance = useCallback(() => {
         setResistanceActive(false);
-        // Dispatch logic handled by orchestrator or here?
-        // useGame had logic to Reset Level here if it was a safety net trigger.
-        // We might simply expose 'closeResistance' and let the Orchestrator decide what to do (e.g. restart level).
-        // But for encapsulation, maybe we Return a signal or just handle the state bit.
     }, []);
 
     const triggerCurrentAudit = useCallback(() => {
@@ -94,20 +65,17 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             auditState,
             resistanceActive,
             resistancePending,
-            loadedState,
-            dailyResult,
-            isLocked,
-            persistenceLoaded
         },
         metaActions: {
             setGameMode,
             setIsGameLoaded,
+            setResistancePending, // Needed by useGame saveDaily wrapper
             triggerResistance,
             closeResistance,
             triggerCurrentAudit,
             closeAudit,
-            saveDaily,
-            trackGameStart
+            trackGameStart,
+            trackGameComplete // Needed by useGame
         }
     };
 }

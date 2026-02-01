@@ -24,6 +24,12 @@ export interface GameState {
 
 export type GameAction =
   | {
+    type: 'INITIALIZE_GAME';
+    payload: {
+      state: Partial<GameState>;
+    }
+  }
+  | {
     type: 'START_LEVEL';
     payload: {
       level: number;

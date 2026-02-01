@@ -61,6 +61,13 @@ const executeMove = (
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
+    case 'INITIALIZE_GAME': {
+      return {
+        ...initialState,
+        ...action.payload.state,
+      };
+    }
+
     case 'START_LEVEL': {
       return {
         ...state,
