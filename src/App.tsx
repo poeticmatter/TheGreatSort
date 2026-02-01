@@ -8,6 +8,7 @@ import { GameProvider } from './context/GameContext';
 
 import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
+import ResistanceLetter from './assets/ResistanceLetter.png';
 
 export default function TheGreatSort() {
   return (
@@ -34,6 +35,24 @@ function TheGreatSortContent() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [trackPageView]);
+
+  // --- Asset Preloading (Deferred) ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const img = new Image();
+      img.src = ResistanceLetter;
+      img.decode()
+        .then(() => {
+          // Preload success - fire and forget
+        })
+        .catch((e) => {
+          // Preload failed - silent fail
+          // console.warn('Failed to preload Resistance Letter:', e);
+        });
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- Daily Lock & Warnings ---
   // Note: useGame/useDailyChallenge now handles locking and audit request logic internally via 'interaction' state.
