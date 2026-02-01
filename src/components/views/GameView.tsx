@@ -34,7 +34,7 @@ export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
 
     const isLocked = meta.isLocked;
     const isBoardDisabled = meta.gameMode === 'DAILY' && isLocked;
-    const controlsDisabled = isBoardDisabled || meta.phase === GamePhase.INSPECTING;
+    const controlsDisabled = isBoardDisabled || core.phase === GamePhase.INSPECTING;
 
     // Detect if we should show AuditBoard logic
     const showAuditBoard = (meta.gameMode === 'DAILY' && isLocked) || !!meta.auditState;
@@ -45,7 +45,7 @@ export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
             toolsAvailable={core.toolsAvailable}
             selectedTool={core.selectedToolInstanceId}
             shouldShake={isShaking}
-            phase={meta.phase}
+            phase={core.phase}
             onToolClick={actions.handleToolClick}
             orientation={orientation}
             secondaryAction={ui.secondaryAction}
@@ -80,7 +80,7 @@ export function GameView({ core, meta, ui, actions, layout }: GameViewProps) {
                 totalScore={core.totalScore}
                 totalOptimalScore={core.totalOptimalScore}
                 gameMode={meta.gameMode}
-                phase={meta.phase}
+                phase={core.phase}
                 optimalScore={core.optimalScore}
                 detectedMode={core.detectedMode}
                 onChangeMode={actions.changeMode}
