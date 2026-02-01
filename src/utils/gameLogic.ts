@@ -82,7 +82,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
     // 3. Update Result State
     if (survived) {
       pointsToAdd = currentVal;
-      list[i] = { ...currentItem, status: 'safe', linkScore: pointsToAdd };
+      list[i] = { ...currentItem, status: 'safe' };
     } else {
       list[i] = { ...currentItem, status: 'eliminated' };
     }
@@ -376,8 +376,7 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
     return {
       id: idSuffix,
       val: val,
-      status: 'pending',
-      linkScore: null
+      status: 'pending'
     };
   });
 };
@@ -385,11 +384,13 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
 
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
-  const keys: FlavorKey[] = ["DONE", "ACCEPTABLE", "ADEQUATE", "NORMAL", "CONCERNED", "HOSTILE", "SUSPICIOUS"];
+  const keys: FlavorKey[] = ["SOLVED", "DONE", "ADEQUATE", "INITIAL", "SUSPICIOUS", "SABOTAGE"];
   const map = {} as Record<FlavorKey, string>;
 
   keys.forEach(key => {
     const options = FLAVOR_DATABASE[key];
+    if (!options) return; // Safety check in case of mismatch
+
     // Weighted random selection based on seed
     const totalWeight = options.reduce((sum, item) => sum + item.weight, 0);
     let r = random() * totalWeight;

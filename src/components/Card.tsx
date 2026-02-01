@@ -178,14 +178,7 @@ const Card: React.FC<CardProps> = React.memo(({
         </div>
       )}
 
-      {/* Link Score Badge */}
-      {item.linkScore !== null && item.linkScore !== undefined && item.linkScore > 0 && (
-        <div className="absolute -right-1.5 -top-1.5 sm:-right-3 sm:-top-3 z-20 animate-in fade-in zoom-in duration-300">
-          <div className="bg-amber-500 text-red-950 text-[10px] sm:text-sm font-bold px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full shadow-lg border sm:border-2 border-red-900 min-w-[1.2rem] sm:min-w-[1.8rem] text-center font-mono">
-            +{item.linkScore}
-          </div>
-        </div>
-      )}
+
       {/* Mirror Label Badge */}
       {mirrorLabel && (
         <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
@@ -212,7 +205,7 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
     prev.item.val === next.item.val &&
     prev.item.status === next.item.status &&
     prev.item.hasShield === next.item.hasShield &&
-    prev.item.linkScore === next.item.linkScore &&
+
     prev.item.id === next.item.id
   );
 };

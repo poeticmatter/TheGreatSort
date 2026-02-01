@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, Move, CardItem } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { SaveStateSchema, DailyResult } from '../services/persistence/types';
@@ -22,65 +22,108 @@ export interface PersistenceState {
 export const useGamePersistence = (
   gameMode: GameMode,
   currentState: PersistenceState,
-  isGameLoaded: boolean
+  isGameLoaded: boolean,
+  sessionDate: string
 ) => {
   const [loadedState, setLoadedState] = useState<SaveStateSchema | null>(null);
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
+  const [persistenceLoaded, setPersistenceLoaded] = useState(false);
+
+  const [isLocked, setIsLocked] = useState(false);
+
+  // NEW: Guard ref
+  const historyRecordedRef = useRef(false);
 
   // Load Daily Data
   const loadDaily = () => {
-    const today = getTodayDateString();
-    const state = PersistenceService.loadDailyState(today);
-    const result = PersistenceService.getDailyResult(today);
-    return { state, result };
+    const state = PersistenceService.loadDailyState(sessionDate);
+    const result = PersistenceService.getDailyResult(sessionDate);
+    const locked = localStorage.getItem(`tgs_daily_lock_${sessionDate}`) === 'true';
+    return { state, result, locked };
   };
 
   // Initial Load & Mode Change
   useEffect(() => {
     if (gameMode === 'DAILY') {
-      const { state, result } = loadDaily();
+      const { state, result, locked } = loadDaily();
       setLoadedState(state);
       setDailyResult(result);
+      setIsLocked(locked);
+
+      // Prevent double-counting history if reloading on Results screen
+      if (state?.snapshot?.phase === GamePhase.RESULTS) {
+        historyRecordedRef.current = true;
+      } else {
+        historyRecordedRef.current = false;
+      }
+    } else {
+      setIsLocked(false);
+      historyRecordedRef.current = false;
     }
-  }, [gameMode]);
+    setPersistenceLoaded(true);
+  }, [gameMode, sessionDate]);
+
+  // Reset Logic: Reset guard when sessionDate or currentSeed changes
+  useEffect(() => {
+    historyRecordedRef.current = false;
+  }, [sessionDate, currentState.currentSeed]);
+
 
   // Cleanup old keys (Cleanup Policy)
   useEffect(() => {
-    // We can iterate generic keys if possible, or rely on service.
-    // For now simple cleanup of old raw keys if we were doing that, 
-    // but the service handles specific keys. 
-    // We can implement a cleanup routine in the service later.
-    const today = getTodayDateString();
     // Rudimentary cleanup of old daily keys from previous format if they exist
-    // This is optional but good for hygiene
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('daily_state_') && key !== `daily_state_${today}`) {
+      if (key.startsWith('daily_state_') && key !== `daily_state_${sessionDate}`) {
         localStorage.removeItem(key);
       }
     });
-  }, []);
+  }, [sessionDate]);
 
-  // Save Effect
+  // Manual Persistence Trigger
+  const persistResult = () => {
+    if (gameMode !== 'DAILY') return;
+    const today = sessionDate;
+
+    // A. Update History (High Score & Attempts)
+    PersistenceService.updateDailyHistory(today, currentState.levelScore);
+
+    // B. Save Last Result
+    const newResult = {
+      score: currentState.levelScore,
+      date: today
+    };
+    PersistenceService.saveDailyResult(today, newResult);
+
+    // C. Update Local State (High Score Sync)
+    const historyEntry = PersistenceService.getDailyHistoryEntry(today);
+    if (historyEntry) {
+      setDailyResult({
+        score: historyEntry.highScore,
+        date: today,
+      });
+    } else {
+      setDailyResult(newResult);
+    }
+
+    // D. Lock and Mark Recorded
+    setIsLocked(true);
+    historyRecordedRef.current = true;
+  };
+
+  // Save Effect (Snapshots Only)
   useEffect(() => {
     if (!isGameLoaded) return;
     if (gameMode !== 'DAILY') return;
 
-    const today = getTodayDateString();
+    // Use sessionDate from prop, not fresh date
+    const today = sessionDate;
 
-    // 1. Save Result if finished
-    if (currentState.phase === GamePhase.RESULTS) {
-      PersistenceService.saveDailyResult(today, {
-        score: currentState.levelScore,
-        // optimal: currentState.optimalScore // Optional: decide if we save this
-      });
-    }
-
-    // 2. Save State (Snapshots)
+    // Save State (Snapshots)
     // If inspecting, we save as PLANNING so we can resume smoothly
     const phaseToSave = currentState.phase === GamePhase.INSPECTING ? GamePhase.PLANNING : currentState.phase;
 
     PersistenceService.saveDailyState(today, {
-      seed: currentState.currentSeed || 0, // Should always exist for Daily
+      puzzleId: currentState.currentSeed || 0, // Should always exist for Daily
       moves: currentState.movesHistory,
       snapshot: {
         list: currentState.list,
@@ -98,12 +141,15 @@ export const useGamePersistence = (
     currentState.movesHistory,
     currentState.toolsAvailable,
     currentState.list,
-    currentState.currentSeed
+    currentState.currentSeed,
+    sessionDate
   ]);
 
   return {
     loadedState,
-    dailyResult
+    dailyResult,
+    isLocked,
+    persistenceLoaded,
+    persistResult
   };
 };
-

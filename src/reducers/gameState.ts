@@ -34,6 +34,7 @@ export type GameAction =
       worstScore?: number;
       movesHistory?: Move[];
       flavorMap?: Record<FlavorKey, string>;
+      initialList?: CardItem[];
     }
   }
   | { type: 'INTERACT_TILE'; payload: { index: number } }

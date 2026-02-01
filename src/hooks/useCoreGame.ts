@@ -38,7 +38,7 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         dispatch({ type: 'CANCEL_SELECTION' });
     }, [dispatch]);
 
-    const initLevel = useCallback((level: number, list: CardItem[], tools: ToolInstance[], seed?: number, flavorMap?: Record<string, string>, movesHistory: any[] = []) => {
+    const initLevel = useCallback((level: number, list: CardItem[], tools: ToolInstance[], seed?: number, flavorMap?: Record<string, string>, movesHistory: any[] = [], initialList?: CardItem[]) => {
         dispatch({
             type: 'START_LEVEL',
             payload: {
@@ -47,7 +47,8 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                 tools,
                 seed,
                 flavorMap,
-                movesHistory
+                movesHistory,
+                initialList
             }
         });
     }, [dispatch]);

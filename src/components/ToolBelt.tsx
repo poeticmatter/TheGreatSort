@@ -3,6 +3,7 @@ import { GamePhase, ToolInstance } from '../../types';
 import { TOOLS } from '../constants';
 import ActionButton from './ActionButton';
 import UndoButton from './UndoButton';
+import { LucideIcon } from 'lucide-react';
 
 interface ToolBeltProps {
   toolsAvailable: ToolInstance[];
@@ -10,8 +11,14 @@ interface ToolBeltProps {
   shouldShake: boolean;
   phase: GamePhase;
   onToolClick: (toolInstanceId: string) => void;
-  onUndo: () => void;
-  canUndo: boolean;
+  // secondaryAction replaces onUndo/canUndo
+  secondaryAction: {
+    label?: string;
+    onClick: () => void;
+    disabled: boolean;
+    Icon?: LucideIcon;
+    variant?: 'default' | 'warning' | 'muted';
+  };
   isDisabled?: boolean;
 }
 
@@ -21,8 +28,7 @@ const ToolBelt: React.FC<ToolBeltProps & { orientation?: 'horizontal' | 'vertica
   shouldShake,
   phase,
   onToolClick,
-  onUndo,
-  canUndo,
+  secondaryAction,
   isDisabled,
   orientation = 'horizontal',
 }) => {
@@ -52,7 +58,20 @@ const ToolBelt: React.FC<ToolBeltProps & { orientation?: 'horizontal' | 'vertica
         );
       })}
 
-      <UndoButton onClick={onUndo} disabled={!canUndo || isDisabled} />
+      <UndoButton
+        onClick={secondaryAction.onClick}
+        disabled={secondaryAction.disabled || (isDisabled && phase === GamePhase.PLANNING)} // Only locally disable if global disable AND planning (logic preservation)
+        // Actually, logic was: disabled = !canUndo || isDisabled.
+        // We defer to whatever `secondaryAction.disabled` says, but also respect `isDisabled` prop if needed.
+        // But `isDisabled` prop in ToolBelt usually implies the whole belt is disabled.
+        // Let's assume strict mapping:
+        // override local disabled if global `isDisabled` is true?
+        // Actually the `div` wrapper has `pointer-events-none` if `isDisabled` is true.
+        // So we can just pass secondaryAction.disabled.
+        label={secondaryAction.label}
+        Icon={secondaryAction.Icon}
+        variant={secondaryAction.variant}
+      />
     </div>
   );
 };

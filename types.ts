@@ -9,7 +9,6 @@ export interface ISortable {
 export interface CardItem extends ISortable {
   id: string;
   status: CardStatus;
-  linkScore: number | null;
 }
 
 export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize';

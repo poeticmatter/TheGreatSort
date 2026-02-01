@@ -6,10 +6,8 @@ import { getTodayDateString } from './utils/dateUtils';
 import { LayoutType } from './components/InventoryGrid';
 import { GameProvider } from './context/GameContext';
 
-import AuditWarningModal from './components/AuditWarningModal';
 import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
-import { AuditView } from './components/views/AuditView';
 
 export default function TheGreatSort() {
   return (
@@ -20,7 +18,10 @@ export default function TheGreatSort() {
 }
 
 function TheGreatSortContent() {
-  const { state, actions } = useGame();
+  // Capture session date once on mount
+  const [sessionDate] = useState(() => getTodayDateString());
+
+  const { state, actions } = useGame(sessionDate);
   const { trackPageView } = useAnalytics();
 
   // --- Layout Management ---
@@ -35,14 +36,11 @@ function TheGreatSortContent() {
   }, [trackPageView]);
 
   // --- Daily Lock & Warnings ---
-  const today = getTodayDateString();
   const {
     isLocked,
-    isWarningOpen,
     requestAudit,
-    confirmAuditLock,
-    cancelAuditLock
-  } = useDailyLock(today, actions.triggerCurrentAudit);
+    lockSession
+  } = useDailyLock(sessionDate, () => { });
 
   // --- View Routing ---
   // State Machine logic for View Selection
@@ -56,16 +54,7 @@ function TheGreatSortContent() {
       );
     }
 
-    if (state.auditState) {
-      return (
-        <AuditView
-          auditState={state.auditState}
-          onClose={actions.closeAudit}
-          onDetectResistance={actions.triggerResistance}
-          onBackgroundClick={actions.handleBackgroundClick}
-        />
-      );
-    }
+    // Audit State is now handled within GameView's orchestration
 
     return (
       <GameView
@@ -73,6 +62,7 @@ function TheGreatSortContent() {
         actions={actions}
         isLocked={isLocked}
         onRequestAudit={requestAudit}
+        onForfeit={lockSession}
         layout={layout}
         onLayoutChange={setLayout}
       />
@@ -81,11 +71,6 @@ function TheGreatSortContent() {
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col">
-      <AuditWarningModal
-        isOpen={isWarningOpen}
-        onConfirm={confirmAuditLock}
-        onCancel={cancelAuditLock}
-      />
       {getView()}
     </div>
   );

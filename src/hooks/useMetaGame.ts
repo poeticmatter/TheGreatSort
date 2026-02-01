@@ -5,7 +5,7 @@ import { useAnalytics } from './useAnalytics';
 import { getTodayDateString } from '../utils/dateUtils';
 import { calculateRelativeEfficiency } from '../utils/gameLogic';
 
-export function useMetaGame(coreState: any, coreDispatch: any) { // Type coreState properly if possible
+export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) { // Type coreState properly if possible
     const [gameMode, setGameMode] = useState<GameMode>('DAILY');
     const [isGameLoaded, setIsGameLoaded] = useState(false);
     const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
@@ -26,14 +26,15 @@ export function useMetaGame(coreState: any, coreDispatch: any) { // Type coreSta
         currentSeed: coreState.currentSeed
     }), [coreState]);
 
-    const { loadedState, dailyResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded);
+    const { loadedState, dailyResult, isLocked, persistenceLoaded, persistResult } = useGamePersistence(gameMode, persistenceState, isGameLoaded, sessionDate);
+
 
     const saveDaily = useCallback(() => {
-        saveDailyScore(getTodayDateString(), coreState.levelScore);
+        persistResult();
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
         setResistancePending(true);
         trackGameComplete(gameMode, coreState.levelScore, coreState.optimalScore);
-    }, [coreState.levelScore, coreState.optimalScore, gameMode, coreDispatch, trackGameComplete]);
+    }, [coreState.levelScore, coreState.optimalScore, gameMode, coreDispatch, trackGameComplete, sessionDate, persistResult]);
 
 
     const triggerResistance = useCallback(() => {
@@ -50,10 +51,9 @@ export function useMetaGame(coreState: any, coreDispatch: any) { // Type coreSta
     }, []);
 
     const triggerCurrentAudit = useCallback(() => {
-        const today = getTodayDateString();
-        setAuditState({ date: today, userScore: coreState.levelScore });
-        trackDailyAuditViewed(today, 'passed');
-    }, [coreState.levelScore, trackDailyAuditViewed]);
+        setAuditState({ date: sessionDate, userScore: coreState.levelScore });
+        trackDailyAuditViewed(sessionDate, 'passed');
+    }, [coreState.levelScore, trackDailyAuditViewed, sessionDate]);
 
     const closeAudit = useCallback(() => {
         setAuditState(null);
@@ -95,7 +95,9 @@ export function useMetaGame(coreState: any, coreDispatch: any) { // Type coreSta
             resistanceActive,
             resistancePending,
             loadedState,
-            dailyResult
+            dailyResult,
+            isLocked,
+            persistenceLoaded
         },
         metaActions: {
             setGameMode,
