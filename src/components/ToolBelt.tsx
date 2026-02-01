@@ -45,15 +45,31 @@ const ToolBelt: React.FC<ToolBeltProps & { orientation?: 'horizontal' | 'vertica
         const isActive = selectedTool === toolInstance.instanceId;
         const isUsed = toolInstance.used;
 
+        const isDirectional = ['PROMOTE', 'DEMOTE', 'SWAP', 'MIRROR'].includes(toolInstance.type.toUpperCase());
+        const shouldRotate = orientation === 'vertical' && isDirectional;
+
+        // Dynamic Description for Vertical Layout
+        let effectiveTool = toolDef;
+        if (orientation === 'vertical') {
+          const newDesc = toolDef.desc
+            .replace('(Left)', '(Top)')
+            .replace('(Right)', '(Bottom)');
+
+          if (newDesc !== toolDef.desc) {
+            effectiveTool = { ...toolDef, desc: newDesc };
+          }
+        }
+
         return (
           <ActionButton
             key={toolInstance.instanceId}
-            tool={toolDef}
+            tool={effectiveTool}
             instanceId={toolInstance.instanceId}
             isActive={isActive}
             isUsed={isUsed}
             isDisabled={isUsed || phase !== GamePhase.PLANNING || isDisabled}
             onClick={onToolClick}
+            iconClassName={shouldRotate ? 'rotate-90' : undefined}
           />
         );
       })}

@@ -8,6 +8,7 @@ interface ActionButtonProps {
   isUsed: boolean;
   isDisabled: boolean;
   onClick: (id: string) => void;
+  iconClassName?: string;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
@@ -16,7 +17,8 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   isActive,
   isUsed,
   isDisabled,
-  onClick
+  onClick,
+  iconClassName
 }) => {
   const ToolIcon = tool.icon;
 
@@ -38,10 +40,10 @@ const ActionButton: React.FC<ActionButtonProps> = ({
         }
       `}
     >
-      <ToolIcon size={24} strokeWidth={2.5} />
-      
+      <ToolIcon size={24} strokeWidth={2.5} className={iconClassName} />
+
       <span className="text-[10px] uppercase font-bold mt-1 tracking-tighter font-[Inter]">
-          {tool.name}
+        {tool.name}
       </span>
 
       {/* Used Stamp */}

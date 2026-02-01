@@ -177,7 +177,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                               <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
                                 {(() => {
                                   const ToolIcon = TOOLS[step.move.tool.toUpperCase()]?.icon;
-                                  return ToolIcon ? <ToolIcon size={16} className="text-amber-500" /> : null;
+                                  const isDirectional = ['PROMOTE', 'DEMOTE', 'SWAP', 'MIRROR'].includes(step.move.tool.toUpperCase());
+                                  return ToolIcon ? <ToolIcon size={16} className={`text-amber-500 ${isMobile && isDirectional ? 'rotate-90' : ''}`} /> : null;
                                 })()}
                                 <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
                                 <span className="text-stone-500">
