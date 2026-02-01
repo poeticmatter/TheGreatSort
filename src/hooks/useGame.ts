@@ -9,6 +9,7 @@ import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
 import { GamePhase, GameMode } from '../../types';
 import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
+import { useGameInteractions } from './useGameInteractions';
 
 export function useGame(sessionDate: string) {
 
@@ -201,20 +202,52 @@ export function useGame(sessionDate: string) {
     try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
   };
 
+  // ... (keep previous code until return)
+
+  // 7. Interaction Layer
+  const compositeState = {
+    ...coreState,
+    ...metaState,
+    mood,
+    compliancePercentage,
+    optimalScore: coreState.optimalScore,
+    levelScore: coreState.levelScore,
+    movesHistory: coreState.movesHistory,
+    isLocked
+  };
+
+  const ui = useGameInteractions(compositeState, {
+    ...coreActions,
+    ...metaActions,
+    changeMode,
+    nextLevel,
+    retryDaily,
+    retryPractice,
+    saveDaily: handleSaveDaily,
+    startInspection: coreActions.startInspection,
+    triggerCurrentAudit: metaActions.triggerCurrentAudit
+  });
+
   return {
-    state: {
+    core: {
       ...coreState,
+      selectedTool: coreState.selectedToolInstanceId // Alias if needed by View
+    },
+    meta: {
       ...metaState,
-      selectedTool: coreState.selectedToolInstanceId,
       compliancePercentage,
       mood,
       sessionDate,
-      // Provide these for the UI
       dailyResult,
       isLocked,
-      // loadedState? No longer needed by UI presumably, or just use coreState.
       persistenceLoaded: dailyStatus === 'READY',
+      // Metrics often needed
+      startingCompliance,
+      isZeroYield,
+      yieldRatio,
+      currentScore
     },
+    ui,
     actions: {
       changeMode,
       handleUndo: coreActions.handleUndo,
@@ -226,7 +259,6 @@ export function useGame(sessionDate: string) {
       retryPractice,
       retryDaily,
       resetGame: () => {
-        // "Reset" usually means restart level
         if (metaState.gameMode === 'DAILY') retryDaily();
         else retryPractice();
       },

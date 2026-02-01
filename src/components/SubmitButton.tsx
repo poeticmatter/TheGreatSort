@@ -25,6 +25,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     silver: "bg-slate-400 hover:bg-slate-300 border-slate-200 text-slate-900 shadow-[0_4px_0_rgb(71,85,105)] border-2",
     bronze: "bg-orange-700 hover:bg-orange-600 border-orange-300 text-orange-50 shadow-[0_4px_0_rgb(124,45,18)] border-2",
     neutral: "bg-stone-700 hover:bg-stone-600 text-stone-200 border-stone-500 shadow-[0_4px_0_rgb(41,37,36)] border",
+    default: "bg-stone-700 hover:bg-stone-600 text-stone-200 border-stone-500 shadow-[0_4px_0_rgb(41,37,36)] border",
+    muted: "bg-stone-800/50 hover:bg-stone-800 text-stone-400 border-stone-700/50 shadow-none border",
     warning: "bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-600 shadow-[0_4px_0_rgb(120,53,15)] border",
     info: "bg-sky-800 hover:bg-sky-700 text-sky-100 border-sky-500 shadow-[0_4px_0_rgb(12,74,110)] border",
     destructive: "bg-red-950 hover:bg-red-900 text-red-500 border-red-800 shadow-[0_0_15px_rgba(220,38,38,0.4)] border-2"

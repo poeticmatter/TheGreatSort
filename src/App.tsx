@@ -21,7 +21,7 @@ function TheGreatSortContent() {
   // Capture session date once on mount
   const [sessionDate] = useState(() => getTodayDateString());
 
-  const { state, actions } = useGame(sessionDate);
+  const { core, meta, ui, actions } = useGame(sessionDate);
   const { trackPageView } = useAnalytics();
 
   // --- Layout Management ---
@@ -36,16 +36,13 @@ function TheGreatSortContent() {
   }, [trackPageView]);
 
   // --- Daily Lock & Warnings ---
-  const {
-    isLocked,
-    requestAudit,
-    lockSession
-  } = useDailyLock(sessionDate, () => { });
+  // Note: useGame/useDailyChallenge now handles locking and audit request logic internally via 'ui' state.
+  // We can rely on meta.isLocked if needed.
 
   // --- View Routing ---
   // State Machine logic for View Selection
   const getView = () => {
-    if (state.resistanceActive) {
+    if (meta.resistanceActive) {
       return (
         <ResistanceView
           onClose={actions.closeResistance}
@@ -58,11 +55,10 @@ function TheGreatSortContent() {
 
     return (
       <GameView
-        state={state}
+        core={core}
+        meta={meta}
+        ui={ui}
         actions={actions}
-        isLocked={isLocked}
-        onRequestAudit={requestAudit}
-        onForfeit={lockSession}
         layout={layout}
         onLayoutChange={setLayout}
       />
