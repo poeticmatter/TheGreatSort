@@ -19,6 +19,22 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const { userScore, optimalScore, worstScore } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
 
+  // Responsive Logic
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Listen for resize
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Calculate Adherence
   const passed = solution ? userScore >= optimalScore : false;
   const adherence = solution
@@ -150,13 +166,13 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                 isDisabled: false,
                                 mirrorLabel: null
                               }))}
-                              layout="HORIZONTAL_STRIP"
+                              layout={isMobile ? "VERTICAL_LIST" : "HORIZONTAL_STRIP"}
                             />
                           </div>
 
                           {/* Arrow / Action */}
                           {step.move && (
-                            <div className="flex flex-col items-center my-2 z-10">
+                            <div className={`flex flex-col items-center z-10 ${isMobile ? "my-8 gap-1" : "my-2"}`}>
                               <div className="h-6 w-px bg-stone-600"></div>
                               <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
                                 {(() => {
