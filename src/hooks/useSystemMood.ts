@@ -3,35 +3,36 @@ import { FlavorKey } from '../config/flavorText';
 
 export type SystemMood = Exclude<FlavorKey, 'IDLE'>;
 
-// 100% - Done
-// 95% and above - Acceptable
-// 90% and above - Adequate
-// Initial State (Normal) > CONCERNED > CRITICAL (Halfway to 0)
+// Hierarchical Yield System
+// 1. DONE (Day Completed)
+// 2. SOLVED (100% Compliance)
+// 3. ADEQUATE (> Starting Compliance)
+// 4. INITIAL (= Starting Compliance)
+// 5. SUSPICIOUS (> 0% but < Starting Compliance)
+// 6. SABOTAGE (0% or less)
 
 export const useSystemMood = (compliancePercentage: number, startingCompliance: number, isDailyCompleted: boolean): SystemMood => {
     return useMemo(() => {
         if (isDailyCompleted) return 'DONE';
-        if (compliancePercentage >= 100) return 'PERFECT';
-        if (compliancePercentage >= 95) return 'ACCEPTABLE';
-        if (compliancePercentage >= 90) return 'ADEQUATE';
 
-        if (compliancePercentage >= startingCompliance) return 'NORMAL';
+        // Tier 1: Perfection
+        if (compliancePercentage >= 100) return 'SOLVED';
 
-        // Range from 0 to StartingCompliance
-        // "Below starting is Concern"
-        // "Third of way to 0% is Suspicious" -> 2/3rds of Start remains
-        // "Two thirds of way to 0% is Hostile" -> 1/3rd of Start remains
+        const epsilon = 0.01;
 
-        const oneThird = startingCompliance / 3;
-        const twoThirds = oneThird * 2;
+        // Tier 3: Neutral/Initial State
+        // Check this before Adequate to handle the exact equality case correctly
+        if (Math.abs(compliancePercentage - startingCompliance) < epsilon) {
+            return 'INITIAL';
+        }
 
-        // Between Start and 2/3 Start
-        if (compliancePercentage > twoThirds) return 'CONCERNED';
+        // Tier 2: Improvement
+        if (compliancePercentage > startingCompliance) return 'ADEQUATE';
 
-        // Between 2/3 Start and 1/3 Start
-        if (compliancePercentage > oneThird) return 'SUSPICIOUS';
+        // Tier 4: Suspicion
+        if (compliancePercentage > 0) return 'SUSPICIOUS';
 
-        // Below 1/3 Start
-        return 'HOSTILE';
+        // Tier 5: Failure
+        return 'SABOTAGE';
     }, [compliancePercentage, startingCompliance, isDailyCompleted]);
 };

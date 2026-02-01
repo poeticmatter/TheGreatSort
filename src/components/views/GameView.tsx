@@ -63,26 +63,7 @@ export function GameView({ state, actions, isLocked, onRequestAudit, layout, onF
 
         // Planning Phase
         const config = getSubmitButtonConfig(state.mood);
-        const onClick = () => {
-            const { mood, compliancePercentage } = state;
-            if (mood === 'DONE') {
-                actions.changeMode('PRACTICE');
-            } else if (compliancePercentage >= 100) {
-                actions.startInspection();
-            } else if (['PERFECT', 'ACCEPTABLE', 'ADEQUATE'].includes(mood)) {
-                actions.startInspection();
-            } else if (mood === 'NORMAL') {
-                actions.startInspection();
-            } else if (mood === 'CONCERNED') {
-                actions.retryDaily();
-            } else if (mood === 'SUSPICIOUS') {
-                actions.changeMode('PRACTICE');
-            } else if (mood === 'HOSTILE') {
-                onForfeit();
-            } else {
-                actions.startInspection();
-            }
-        };
+        const onClick = actions.startInspection;
 
         return { ...config, onClick };
     }, [state.phase, state.gameMode, state.mood, state.compliancePercentage, isLocked, actions, onRequestAudit, onForfeit]);

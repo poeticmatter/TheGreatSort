@@ -1,4 +1,4 @@
-export type FlavorKey = 'PERFECT' | 'DONE' | 'ACCEPTABLE' | 'ADEQUATE' | 'NORMAL' | 'CONCERNED' | 'HOSTILE' | 'SUSPICIOUS';
+export type FlavorKey = 'SOLVED' | 'DONE' | 'ADEQUATE' | 'INITIAL' | 'SUSPICIOUS' | 'SABOTAGE';
 
 export interface FlavorEntry {
     text: string;
@@ -6,7 +6,7 @@ export interface FlavorEntry {
 }
 
 export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
-    PERFECT: [
+    SOLVED: [
         { text: "Efficiency Absolute.", weight: 10 },
         { text: "Compliance: 100%.", weight: 10 },
         { text: "The System is perfect.", weight: 10 },
@@ -21,7 +21,7 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
     DONE: [
         { text: "Daily quota complete, comrade. Your duties lie with your family now, come back tomorrow for more work.", weight: 10 }
     ],
-    ACCEPTABLE: [
+    ADEQUATE: [
         { text: "Acceptable deviation.", weight: 10 },
         { text: "Within limits.", weight: 10 },
         { text: "Compliance verified.", weight: 10 },
@@ -32,8 +32,6 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "Good work, citizen.", weight: 1 },
         { text: "Tolerance maintained.", weight: 1 },
         { text: "Sufficient.", weight: 1 },
-    ],
-    ADEQUATE: [
         { text: "Adequate output.", weight: 10 },
         { text: "Barely sufficient.", weight: 10 },
         { text: "Standards met.", weight: 10 },
@@ -45,7 +43,7 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "Sustain pace.", weight: 1 },
         { text: "Bureaucracy is satisfied.", weight: 1 },
     ],
-    NORMAL: [
+    INITIAL: [
         { text: "Systems nominal.", weight: 10 },
         { text: "Awaiting input.", weight: 10 },
         { text: "Routine operations.", weight: 10 },
@@ -57,19 +55,13 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "Focus on the sort.", weight: 1 },
         { text: "Time flows.", weight: 1 },
     ],
-    CONCERNED: [
+    SUSPICIOUS: [
         { text: "Efficiency drop.", weight: 10 },
         { text: "Warning.", weight: 10 },
         { text: "Check your sorting.", weight: 10 },
         { text: "Drift detected.", weight: 10 },
         { text: "Focus.", weight: 10 },
         { text: "The Manager is watching.", weight: 1 },
-        { text: "Don't fail us.", weight: 1 },
-        { text: "Performance review imminent.", weight: 1 },
-        { text: "Careful.", weight: 1 },
-        { text: "Falling behind.", weight: 1 },
-    ],
-    SUSPICIOUS: [
         { text: "Irregularities found.", weight: 10 },
         { text: "Sorting error?", weight: 10 },
         { text: "Suspicious activity.", weight: 10 },
@@ -80,8 +72,10 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "Sabotage suspected.", weight: 1 },
         { text: "Inconsistent.", weight: 1 },
         { text: "We see you.", weight: 1 },
+        { text: "Careful.", weight: 1 },
+        { text: "Falling behind.", weight: 1 },
     ],
-    HOSTILE: [
+    SABOTAGE: [
         { text: "SABOTAGE!", weight: 10 },
         { text: "ERROR! ERROR!", weight: 10 },
         { text: "TERMINATION.", weight: 10 },
@@ -96,12 +90,12 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
 };
 
 export const FLAVOR_COLORS: Record<FlavorKey, string> = {
-    PERFECT: "text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] font-bold",
+    SOLVED: "text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] font-bold",
     DONE: "text-stone-500 italic",
-    ACCEPTABLE: "text-amber-400 font-semibold",
-    ADEQUATE: "text-amber-500/90",
-    NORMAL: "text-stone-500",
-    CONCERNED: "text-red-400/90",
-    SUSPICIOUS: "text-red-500 font-semibold",
-    HOSTILE: "text-red-600 font-bold animate-pulse"
+    ADEQUATE: "text-stone-300 font-semibold",
+    INITIAL: "text-stone-500",
+    SUSPICIOUS: "text-red-400/90",
+    SABOTAGE: "text-red-600 font-bold animate-pulse"
 };
+
+
