@@ -1,4 +1,4 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, HiddenRole, UserTag } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, HiddenRole, UserTag, ResistanceStatus } from '../../types';
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
@@ -429,4 +429,52 @@ export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   });
 
   return map;
+};
+
+// --- End-Game Verification Logic ---
+
+export const calculateTrueYield = (items: CardItem[], targetLength: number): number => {
+  if (!items || items.length === 0) return 0;
+
+  // Sum trueValue of all items in the "Keep" range (index < targetLength)
+  let trueYield = 0;
+  for (let i = 0; i < Math.min(items.length, targetLength); i++) {
+    if (items[i].status !== 'eliminated') {
+      trueYield += items[i].trueValue;
+    }
+  }
+  return trueYield;
+};
+
+
+export const verifyResistanceMission = (items: CardItem[], currentStatus: ResistanceStatus, targetLength: number): ResistanceStatus => {
+  // 1. If already MIA, game over.
+  if (currentStatus === ResistanceStatus.MIA) {
+    return ResistanceStatus.MIA;
+  }
+
+  // 2. Iterate through items
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    // Keep Zone: Indices 0 to targetLength-1, provided they are NOT eliminated.
+    // Reject Zone: Indices >= targetLength OR any Eliminated item.
+    const isKept = i < targetLength && item.status !== 'eliminated';
+
+    if (isKept) {
+      // KEEP ZONE Logic
+      // If we Keep a STATE agent -> COMPROMISED
+      if (item.hiddenRole === HiddenRole.STATE) {
+        return ResistanceStatus.COMPROMISED;
+      }
+    } else {
+      // REJECT ZONE Logic
+      // If we Reject (or Eliminate) a RESISTANCE agent -> MIA
+      if (item.hiddenRole === HiddenRole.RESISTANCE) {
+        return ResistanceStatus.MIA;
+      }
+    }
+  }
+
+  // 3. If no failures detected
+  return ResistanceStatus.SUCCESS;
 };

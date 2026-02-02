@@ -12,6 +12,8 @@ export interface GameViewModel extends GameState {
     // Derived
     mood: SystemMood;
     compliancePercentage: number;
+    resistanceActive: boolean;
+    trueYield?: number;
 
     // Aliases & Extras
     selectedTool: string | null;

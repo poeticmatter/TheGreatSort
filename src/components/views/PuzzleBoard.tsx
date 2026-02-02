@@ -121,6 +121,8 @@ export function PuzzleBoard({
                             <ComplianceMeter
                                 compliancePercentage={state.compliancePercentage}
                                 layout={layout}
+                                resistanceMode={state.resistanceActive}
+                                trueYield={state.trueYield}
                             />
                         </div>
                     </div>
@@ -173,6 +175,8 @@ export function PuzzleBoard({
             <ComplianceMeter
                 compliancePercentage={state.compliancePercentage}
                 layout={layout}
+                resistanceMode={state.resistanceActive}
+                trueYield={state.trueYield}
             />
 
             {/* Help / Rules Overlay */}

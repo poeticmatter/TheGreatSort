@@ -4,6 +4,7 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
+import { calculateTrueYield } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
@@ -293,7 +294,9 @@ export function useGame(sessionDate: string) {
       yieldRatio,
       currentScore,
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
-      selectedTool: coreState.selectedToolInstanceId
+      selectedTool: coreState.selectedToolInstanceId,
+      // Calculate TrueYield on the fly for UI (Resistance Mode)
+      trueYield: metaState.resistanceActive ? calculateTrueYield(coreState.list, coreState.list.length) : 0
     },
     // UI Logic (The "ViewModel")
     interaction,
