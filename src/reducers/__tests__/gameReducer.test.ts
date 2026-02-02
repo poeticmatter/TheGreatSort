@@ -154,4 +154,34 @@ describe('gameReducer', () => {
       expect(newState.resistanceStatus).toBe(ResistanceStatus.ACTIVE);
     });
   });
+
+
+  describe('Tagging System', () => {
+    it('should toggle tag: NONE -> SUSPICIOUS -> STATE -> RESISTANCE -> NONE', () => {
+      const item: CardItem = { id: 't1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 10, userTag: UserTag.NONE };
+      let state = { ...initialState, list: [item] };
+
+      // 1. NONE -> SUSPICIOUS
+      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
+      expect(state.list[0].userTag).toBe(UserTag.SUSPICIOUS);
+
+      // 2. SUSPICIOUS -> STATE
+      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
+      expect(state.list[0].userTag).toBe(UserTag.STATE);
+
+      // 3. STATE -> RESISTANCE
+      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
+      expect(state.list[0].userTag).toBe(UserTag.RESISTANCE);
+
+      // 4. RESISTANCE -> NONE
+      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
+      expect(state.list[0].userTag).toBe(UserTag.NONE);
+    });
+
+    it('should ignore invalid index', () => {
+      const state = { ...initialState, list: [] };
+      const newState = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
+      expect(newState).toEqual(state);
+    });
+  });
 });

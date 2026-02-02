@@ -67,4 +67,6 @@ export type GameAction =
   | { type: 'SET_LIST'; payload: { list: CardItem[] } }
   | { type: 'SET_DETECTED_MODE'; payload: { mode: 'ASC' | 'DESC' | null } }
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
-  | { type: 'UNDO_MOVE' };
+  | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
+  | { type: 'UNDO_MOVE' }
+  | { type: 'TOGGLE_TAG'; payload: { index: number } };

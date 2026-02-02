@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { CardItem } from '../../types';
-import { Play } from 'lucide-react';
+import { CardItem, UserTag } from '../../types';
+import { Play, HelpCircle, Siren, Shield } from 'lucide-react';
 
 interface CardProps {
   item: CardItem;
@@ -178,6 +178,24 @@ const Card: React.FC<CardProps> = React.memo(({
         </div>
       )}
 
+      {/* Deduction Tags */}
+      {item.userTag === UserTag.SUSPICIOUS && (
+        <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-amber-500 animate-in fade-in zoom-in duration-200">
+          <HelpCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+        </div>
+      )}
+      {item.userTag === UserTag.STATE && (
+        <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-red-500 animate-in fade-in zoom-in duration-200">
+          <Siren className="w-3 h-3 sm:w-4 sm:h-4" />
+        </div>
+      )}
+      {item.userTag === UserTag.RESISTANCE && (
+        <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-blue-500 animate-in fade-in zoom-in duration-200">
+          <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+        </div>
+      )}
+
+
 
       {/* Mirror Label Badge */}
       {mirrorLabel && (
@@ -205,6 +223,7 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
     prev.item.val === next.item.val &&
     prev.item.status === next.item.status &&
     prev.item.hasShield === next.item.hasShield &&
+    prev.item.userTag === next.item.userTag &&
 
     prev.item.id === next.item.id
   );

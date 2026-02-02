@@ -71,11 +71,19 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
 
         // Must have tool selected
         const toolInstanceId = state.selectedToolInstanceId;
-        if (!toolInstanceId) return;
+
+        // If no tool selected, toggle Deduction Tag
+        if (!toolInstanceId) {
+            dispatch({ type: 'TOGGLE_TAG', payload: { index } });
+            return;
+        }
 
         const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
         if (!toolInstance || toolInstance.used) {
             dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+            // Since we just deselected, maybe we should also toggle tag?
+            // "Clicking card cancels tool if tool bad" -> User intention was tool use.
+            // Let's stop here.
             return;
         }
 
