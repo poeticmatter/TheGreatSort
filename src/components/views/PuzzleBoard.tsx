@@ -73,7 +73,9 @@ export function PuzzleBoard({
 
     const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
-    // Resistance Mode & Yield Calculation
+    // [ARCHITECTURAL FIX]
+    // The UI must respond to the Core Status (Persistent), not the Meta Active flag (Transient Letter).
+    // If resistanceStatus is ACTIVE (or MIA/YIELD), we show the Resistance Meter.
     const isResistanceActive = state.resistanceStatus !== ResistanceStatus.INACTIVE;
     const effectiveVisibleYield = state.visibleYield ?? 0;
     const effectiveTrueYield = state.trueYield ?? 0;

@@ -119,8 +119,10 @@ export function useGame(sessionDate: string) {
 
     // Guard: Only trigger resistance in DAILY mode
     if (metaState.gameMode === 'DAILY' && scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
-      metaActions.triggerResistance();
-      coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
+      if (localStorage.getItem('joinedResistance') !== 'true') {
+        metaActions.triggerResistance();
+        coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
+      }
     }
   }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions, metaState.gameMode, coreDispatch]);
 
@@ -168,28 +170,22 @@ export function useGame(sessionDate: string) {
   }, [metaActions, coreActions, coreDispatch]);
 
   const retryDaily = useCallback(() => {
-    // Re-initialize Daily to fresh state (Restart)
-    // To do this, we can bypass the "Load from Save" by explicitly requesting a fresh Daily hydration for the current date?
-    // OR we can rely on `dailyConfig` if `useDailyChallenge` exposes a "reset" function?
-    // `useDailyChallenge` loads from persistence.
-    // If we want to restart, we should essentially "Initialize Game" with a fresh Daily config.
-
     const [y, m, d] = sessionDate.split('-').map(Number);
     const puzzleDate = new Date(y, m - 1, d);
     const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
+
+    // 1. Get fresh standard state
     const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
 
-    if (localStorage.getItem('joinedResistance') === 'true') {
+    // 2. [CRITICAL] Inject Resistance Status if player has joined
+    const hasJoined = localStorage.getItem('joinedResistance') === 'true';
+    if (hasJoined) {
       initialState.resistanceStatus = ResistanceStatus.ACTIVE;
     }
 
+    // 3. Dispatch initialization
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
-    // Reset meta flags?
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-
-    // IMPORTANT: We must also clear the "daily persistence" moves so it doesn't reload them next time?
-    // `useDailyChallenge` saves snapshot on change. If we reset state, it will save the new (empty) state.
-    // So this is safe. Move history is in state.
 
   }, [sessionDate, coreDispatch]);
 
@@ -211,11 +207,17 @@ export function useGame(sessionDate: string) {
   }, [coreDispatch, metaActions]);
 
   const closeResistanceAndReset = useCallback(() => {
+    // 1. Commit the player to the resistance
+    localStorage.setItem('joinedResistance', 'true');
+
+    // 2. Close the UI overlay
     metaActions.closeResistance();
+
+    // 3. Restart the level with the new status
     if (metaState.gameMode === 'DAILY') {
       retryDaily();
     } else {
-      nextLevel(); // Or retry same? Usually next.
+      nextLevel();
     }
   }, [metaActions, metaState.gameMode, retryDaily, nextLevel]);
 
