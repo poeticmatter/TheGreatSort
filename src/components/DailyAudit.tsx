@@ -17,7 +17,7 @@ interface DailyAuditProps {
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText }) => {
   const { loading, solution, timeline, initialList, stats } = useDailyAudit(date, userHighScore);
-  const { userScore, optimalScore, worstScore, resistanceStatus } = stats;
+  const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
 
   // Responsive Logic
@@ -76,23 +76,19 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     const solutionList = solution?.list;
 
     if (!solutionList) return ResistanceStatus.ACTIVE; // Fallback
-    // We assume currentStatus is ACTIVE unless we know otherwise. 
-    // Limitation: Friendly Fire mid-game isn't captured here unless persisted.
-    // Prompt: "Integrate Verification... Call verifyResistanceMission using final sorted items."
-    return verifyResistanceMission(solutionList, ResistanceStatus.ACTIVE, solutionList.length);
+    // For the puzzle solution, we assume it meets all criteria (Success).
+    // Passing 0, 0 ensures trueYield >= max (0) -> SUCCESS.
+    return verifyResistanceMission(solutionList, ResistanceStatus.ACTIVE, solutionList.length, 0, 0);
   }, [solution]);
 
-  // @ts-ignore - stats type definition missing resistanceStatus currently
-  const isResistanceActive = stats.resistanceStatus !== undefined; // If we saved it? Or we can't know?
-  // Wait, `DailyAudit` is usually strictly for the "Official" sorting.
-  // The Prompt says: "If SUCCESS: Render Resistance Badge... If MIA...".
-  // This implies Resistance Logic IS active.
-  // Let's assume we ALWAYS run this check if we detect Hidden Roles?
-  // Or check if user has Resistance Tag (localStorage)?
-  // Let's check localStorage here for display toggling.
+  const resistanceStatus = rawResistanceStatus as ResistanceStatus | undefined;
+
+  // Reuse logic for Badge? No, Badge uses resistanceOutcome (Solution).
+  // We want to render the USER'S Status.
+
+  const isResistanceActive = rawResistanceStatus !== undefined;
+
   const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
-
-
 
   if (loading || !solution) {
     return (
@@ -104,6 +100,25 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       </div>
     );
   }
+
+  // Helper for Status Config
+  const getStatusConfig = (status: ResistanceStatus) => {
+    switch (status) {
+      case ResistanceStatus.SUCCESS:
+        return { color: 'blue', text: 'RESISTANCE MISSION ACCOMPLISHED', icon: CheckCircle };
+      case ResistanceStatus.CAREFUL:
+        return { color: 'amber', text: 'CAREFUL, FRIEND', icon: AlertTriangle };
+      case ResistanceStatus.EXPOSED:
+        return { color: 'red', text: 'YOU ARE EXPOSED!', icon: AlertTriangle };
+      case ResistanceStatus.MIA:
+        return { color: 'red', text: 'RESISTANCE AGENT MIA', icon: AlertTriangle };
+      case ResistanceStatus.COMPROMISED:
+        return { color: 'red', text: 'STATE AGENT ESCAPED', icon: AlertTriangle };
+      default:
+        // Fallback for ACTIVE or INACTIVE if they leak through
+        return { color: 'stone', text: 'STATUS UNKNOWN', icon: FileText };
+    }
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -164,20 +179,29 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
           {/* Resistance Mission Status */}
           {resistanceStatus && resistanceStatus !== ResistanceStatus.INACTIVE && (
-            <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
-                    ${resistanceStatus === ResistanceStatus.SUCCESS ? 'border-blue-500/50 bg-blue-900/20' : 'border-red-500/50 bg-red-900/20'}
-                 `}>
-              {/* Icon */}
-              {resistanceStatus === ResistanceStatus.SUCCESS ? <CheckCircle className="text-blue-400 w-8 h-8" /> : <AlertTriangle className="text-red-400 w-8 h-8" />}
+            (() => {
+              const config = getStatusConfig(resistanceStatus);
+              const StatusIcon = config.icon;
 
-              <div className="flex flex-col items-center">
-                <div className={`text-xl font-black uppercase tracking-widest ${resistanceStatus === ResistanceStatus.SUCCESS ? 'text-blue-400' : 'text-red-400'}`}>
-                  {resistanceStatus === ResistanceStatus.SUCCESS ? 'RESISTANCE MISSION ACCOMPLISHED' :
-                    resistanceStatus === ResistanceStatus.MIA ? 'RESISTANCE AGENT MIA' :
-                      'STATE AGENT ESCAPED'}
+              // Map simple color names to Tailwind classes
+              const borderColor = config.color === 'blue' ? 'border-blue-500/50' : config.color === 'amber' ? 'border-amber-500/50' : config.color === 'game' ? 'border-stone-500/50' : 'border-red-500/50';
+              const bgColor = config.color === 'blue' ? 'bg-blue-900/20' : config.color === 'amber' ? 'bg-amber-900/20' : 'bg-red-900/20';
+              const textColor = config.color === 'blue' ? 'text-blue-400' : config.color === 'amber' ? 'text-amber-400' : 'text-red-400';
+
+              return (
+                <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
+                    ${borderColor} ${bgColor}
+                 `}>
+                  <StatusIcon className={`${textColor} w-8 h-8`} />
+
+                  <div className="flex flex-col items-center">
+                    <div className={`text-xl font-black uppercase tracking-widest ${textColor}`}>
+                      {config.text}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()
           )}
 
         </div>

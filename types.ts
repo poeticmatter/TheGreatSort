@@ -26,6 +26,8 @@ export enum ResistanceStatus {
   MIA = 'mia',
   COMPROMISED = 'compromised',
   SUCCESS = 'success',
+  CAREFUL = 'careful',
+  EXPOSED = 'exposed',
 }
 
 export interface CardItem extends ISortable {

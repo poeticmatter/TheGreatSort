@@ -4,7 +4,7 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
-import { calculateYields } from '../utils/gameLogic';
+import { calculateYields, verifyResistanceMission } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
@@ -82,6 +82,9 @@ export function useGame(sessionDate: string) {
     // Daily Mode Initialization
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
+        if (localStorage.getItem('joinedResistance') === 'true') {
+          dailyConfig.resistanceStatus = ResistanceStatus.ACTIVE;
+        }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
         // Ensure scores are set if provided
@@ -125,12 +128,35 @@ export function useGame(sessionDate: string) {
   // --- Actions ---
 
   const handleSaveDaily = useCallback(() => {
+    // Determine Final Resistance Status
+    let finalStatus = coreState.resistanceStatus;
+
+    if (coreState.resistanceStatus !== ResistanceStatus.INACTIVE) {
+      // Fetch Targets to Validate Success/Failure
+      const [y, m, d] = sessionDate.split('-').map(Number);
+      const puzzleDate = new Date(y, m - 1, d);
+      const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
+
+      // Calculate Initial True Yield (for floor)
+      const initialTrueYield = calculateYields(coreState.initialList).trueYield;
+      const maxTrueYield = puzzle.resistanceData?.trueYieldTarget || 0;
+
+      // Verify
+      finalStatus = verifyResistanceMission(
+        coreState.list,
+        coreState.resistanceStatus,
+        coreState.list.length,
+        initialTrueYield,
+        maxTrueYield
+      );
+    }
+
     // Composite action: Save Persist + Meta Update
-    saveDailyResult(coreState.levelScore, coreState.resistanceStatus);
+    saveDailyResult(coreState.levelScore, finalStatus);
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
     metaActions.setResistancePending(true);
     metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
-  }, [saveDailyResult, coreState.levelScore, coreState.resistanceStatus, coreState.optimalScore, coreDispatch, metaActions]);
+  }, [saveDailyResult, coreState.levelScore, coreState.resistanceStatus, coreState.optimalScore, coreDispatch, metaActions, sessionDate, coreState.list, coreState.initialList]);
 
   const changeMode = useCallback((newMode: GameMode) => {
     metaActions.closeAudit();
@@ -152,6 +178,10 @@ export function useGame(sessionDate: string) {
     const puzzleDate = new Date(y, m - 1, d);
     const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
     const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
+
+    if (localStorage.getItem('joinedResistance') === 'true') {
+      initialState.resistanceStatus = ResistanceStatus.ACTIVE;
+    }
 
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
     // Reset meta flags?

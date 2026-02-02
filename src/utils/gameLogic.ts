@@ -347,13 +347,19 @@ export const calculateTrueYield = (items: CardItem[], targetLength: number): num
 };
 
 
-export const verifyResistanceMission = (items: CardItem[], currentStatus: ResistanceStatus, targetLength: number): ResistanceStatus => {
+export const verifyResistanceMission = (
+  items: CardItem[],
+  currentStatus: ResistanceStatus,
+  targetLength: number,
+  initialTrueYield: number,
+  maxTrueYield: number
+): ResistanceStatus => {
   // 1. If already MIA, game over.
   if (currentStatus === ResistanceStatus.MIA) {
     return ResistanceStatus.MIA;
   }
 
-  // 2. Iterate through items
+  // 2. Iterate through items to check Roles
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     // Keep Zone: Indices 0 to targetLength-1, provided they are NOT eliminated.
@@ -375,6 +381,15 @@ export const verifyResistanceMission = (items: CardItem[], currentStatus: Resist
     }
   }
 
-  // 3. If no failures detected
-  return ResistanceStatus.SUCCESS;
+  // 3. Logic based on True Yield (No Failures)
+  const { trueYield } = calculateYields(items);
+
+  if (trueYield >= maxTrueYield) {
+    return ResistanceStatus.SUCCESS;
+  } else if (trueYield > initialTrueYield) {
+    return ResistanceStatus.CAREFUL;
+  } else {
+    // If yield is at initial or below
+    return ResistanceStatus.EXPOSED;
+  }
 };

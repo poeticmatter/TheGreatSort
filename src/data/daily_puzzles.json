@@ -2,112 +2,108 @@
   {
     "id": 0,
     "sequence": [
-      2,
-      11,
       8,
-      10,
-      18,
-      17,
+      1,
       3,
-      6,
-      12
+      9,
+      14,
+      11,
+      17,
+      2,
+      5
     ],
     "tools": [
+      "merge",
+      "demote",
       "promote",
-      "swap",
-      "promote",
-      "cycle"
+      "swap"
     ],
     "targets": {
-      "min": 5,
-      "max": 73
+      "min": 3,
+      "max": 68
     },
     "solution": [
       {
-        "tool": "promote",
+        "tool": "demote",
+        "i": 4
+      },
+      {
+        "tool": "merge",
         "i": 7
+      },
+      {
+        "tool": "promote",
+        "i": 1
       },
       {
         "tool": "swap",
-        "i": 5
-      },
-      {
-        "tool": "promote",
-        "i": 7
-      },
-      {
-        "tool": "cycle",
-        "i": 3,
-        "t": 4
+        "i": 1
       }
     ],
     "resistanceData": {
       "agents": {
         "0": {
-          "role": "RESISTANCE",
-          "delta": -2
-        },
-        "6": {
           "role": "STATE",
-          "delta": 1
+          "delta": 2
+        },
+        "4": {
+          "role": "RESISTANCE",
+          "delta": -1
         }
       },
-      "trueYieldTarget": 70
+      "trueYieldTarget": 55
     }
   },
   {
     "id": 1,
     "sequence": [
-      2,
-      18,
-      8,
+      15,
+      11,
+      4,
       13,
-      3,
-      9,
-      17,
-      12,
-      4
+      5,
+      7,
+      18,
+      14,
+      3
     ],
     "tools": [
-      "hop",
-      "cycle",
-      "cycle",
-      "equalize"
+      "demote",
+      "purge",
+      "promote",
+      "promote"
     ],
     "targets": {
-      "min": 5,
-      "max": 82
+      "min": 7,
+      "max": 68
     },
     "solution": [
       {
-        "tool": "cycle",
-        "i": 1,
-        "t": 2
-      },
-      {
-        "tool": "equalize",
-        "i": 2,
-        "t": 4
-      },
-      {
-        "tool": "cycle",
-        "i": 3,
-        "t": 4
-      },
-      {
-        "tool": "hop",
+        "tool": "demote",
         "i": 6
+      },
+      {
+        "tool": "purge",
+        "i": 0
+      },
+      {
+        "tool": "promote",
+        "i": 4
+      },
+      {
+        "tool": "promote",
+        "i": 4
       }
     ],
     "resistanceData": {
       "agents": {
         "2": {
-          "role": "STATE",
-          "delta": 3
-        },
-        "8": {
           "role": "RESISTANCE",
-          "delta": -2
+          "delta": -3
+        },
+        "4": {
+          "role": "STATE",
+          "delta": 1
         }
       },
       "trueYieldTarget": 64
@@ -116,168 +112,166 @@
   {
     "id": 2,
     "sequence": [
-      9,
-      10,
-      5,
-      13,
-      7,
-      16,
-      11,
-      15,
-      14
-    ],
-    "tools": [
-      "merge",
-      "promote",
-      "promote",
-      "hop"
-    ],
-    "targets": {
-      "min": 12,
-      "max": 100
-    },
-    "solution": [
-      {
-        "tool": "merge",
-        "i": 5
-      },
-      {
-        "tool": "promote",
-        "i": 4
-      },
-      {
-        "tool": "promote",
-        "i": 3
-      },
-      {
-        "tool": "hop",
-        "i": 6
-      }
-    ],
-    "resistanceData": {
-      "agents": {
-        "6": {
-          "role": "RESISTANCE",
-          "delta": -2
-        },
-        "8": {
-          "role": "STATE",
-          "delta": 1
-        }
-      },
-      "trueYieldTarget": 72
-    }
-  },
-  {
-    "id": 3,
-    "sequence": [
-      13,
       8,
-      16,
-      14,
+      3,
+      12,
       11,
-      9,
-      2,
+      5,
+      16,
+      4,
       1,
       17
     ],
     "tools": [
-      "longswap",
-      "sink",
+      "mirror",
       "hop",
-      "hop"
+      "swap",
+      "sink"
     ],
     "targets": {
-      "min": 9,
-      "max": 86
+      "min": 4,
+      "max": 71
     },
     "solution": [
       {
-        "tool": "longswap",
-        "i": 2,
-        "t": 6
-      },
-      {
-        "tool": "hop",
-        "i": 1
-      },
-      {
-        "tool": "hop",
-        "i": 4
-      },
-      {
-        "tool": "sink",
+        "tool": "mirror",
         "i": 2
-      }
-    ],
-    "resistanceData": {
-      "agents": {
-        "7": {
-          "role": "RESISTANCE",
-          "delta": -2
-        },
-        "8": {
-          "role": "STATE",
-          "delta": 2
-        }
-      },
-      "trueYieldTarget": 72
-    }
-  },
-  {
-    "id": 4,
-    "sequence": [
-      13,
-      3,
-      9,
-      15,
-      17,
-      4,
-      7,
-      2,
-      16
-    ],
-    "tools": [
-      "longswap",
-      "sink",
-      "halve",
-      "hop"
-    ],
-    "targets": {
-      "min": 3,
-      "max": 73
-    },
-    "solution": [
-      {
-        "tool": "longswap",
-        "i": 0,
-        "t": 5
       },
       {
-        "tool": "sink",
+        "tool": "hop",
+        "i": 6
+      },
+      {
+        "tool": "swap",
         "i": 3
       },
       {
-        "tool": "halve",
+        "tool": "sink",
         "i": 0
-      },
-      {
-        "tool": "hop",
-        "i": 4
       }
     ],
     "resistanceData": {
       "agents": {
         "3": {
           "role": "STATE",
-          "delta": 3
+          "delta": 2
         },
         "7": {
           "role": "RESISTANCE",
-          "delta": -3
+          "delta": -1
         }
       },
-      "trueYieldTarget": 61
+      "trueYieldTarget": 62
+    }
+  },
+  {
+    "id": 3,
+    "sequence": [
+      18,
+      12,
+      6,
+      17,
+      16,
+      8,
+      14,
+      15,
+      7
+    ],
+    "tools": [
+      "swap",
+      "shield",
+      "sink",
+      "promote"
+    ],
+    "targets": {
+      "min": 13,
+      "max": 104
+    },
+    "solution": [
+      {
+        "tool": "swap",
+        "i": 5
+      },
+      {
+        "tool": "shield",
+        "i": 3
+      },
+      {
+        "tool": "promote",
+        "i": 6
+      },
+      {
+        "tool": "sink",
+        "i": 0
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "1": {
+          "role": "STATE",
+          "delta": 1
+        },
+        "2": {
+          "role": "RESISTANCE",
+          "delta": -1
+        }
+      },
+      "trueYieldTarget": 93
+    }
+  },
+  {
+    "id": 4,
+    "sequence": [
+      10,
+      18,
+      16,
+      12,
+      3,
+      14,
+      5,
+      13,
+      6
+    ],
+    "tools": [
+      "promote",
+      "demote",
+      "promote",
+      "shrink"
+    ],
+    "targets": {
+      "min": 5,
+      "max": 70
+    },
+    "solution": [
+      {
+        "tool": "promote",
+        "i": 7
+      },
+      {
+        "tool": "demote",
+        "i": 2
+      },
+      {
+        "tool": "promote",
+        "i": 3
+      },
+      {
+        "tool": "shrink",
+        "i": 3
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "0": {
+          "role": "RESISTANCE",
+          "delta": -2
+        },
+        "1": {
+          "role": "STATE",
+          "delta": 2
+        }
+      },
+      "trueYieldTarget": 58
     }
   }
 ]
