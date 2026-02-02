@@ -2,7 +2,7 @@ import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, ToolInstance, Move, GameMode, CardItem } from '../../types';
+import { GamePhase, ToolInstance, Move, GameMode, CardItem, HiddenRole, ResistanceStatus } from '../../types';
 
 export interface HydrationResult {
     initialState: Partial<GameState>;
@@ -20,13 +20,17 @@ export class GameHydrationService {
         // 1. Reconstruct Base State (The immutable starting point)
         const seed = puzzle.id;
         const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
+
+        // Apply Resistance Data
+        const { list: refinedStartList, resistanceStatus } = this.applyResistanceData(startList, puzzle);
+
         const startTools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
 
         // 2. Replay Moves to get Current State
         // We deep copy startList to avoid mutation during replay if we were reusing it, 
         // though here we just created it.
-        let currentList = startList.map(item => ({ ...item }));
+        let currentList = refinedStartList.map(item => ({ ...item }));
         let currentTools = startTools.map(t => ({ ...t }));
 
         // Safety check for moves
@@ -72,7 +76,7 @@ export class GameHydrationService {
         const state: Partial<GameState> = {
             level: 1, // Daily is always level 1 effectively
             list: currentList,
-            initialList: startList, // Crucial for Undo
+            initialList: refinedStartList, // Crucial for Undo
             toolsAvailable: currentTools,
             currentSeed: seed,
             flavorMap,
@@ -82,6 +86,7 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: phase === GamePhase.RESULTS,
+            resistanceStatus,
             // Default others
             totalScore: 0,
             totalOptimalScore: 0,
@@ -99,6 +104,10 @@ export class GameHydrationService {
     static hydrateDailyNew(puzzle: DailyPuzzleData): HydrationResult {
         const seed = puzzle.id;
         const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
+
+        // Apply Resistance Data
+        const { list: refinedList, resistanceStatus } = this.applyResistanceData(list, puzzle);
+
         const tools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
 
@@ -107,8 +116,8 @@ export class GameHydrationService {
 
         const state: Partial<GameState> = {
             level: 1,
-            list: list,
-            initialList: [...list], // Copy for initialList
+            list: refinedList,
+            initialList: [...refinedList], // Copy for initialList
             toolsAvailable: tools,
             currentSeed: seed,
             flavorMap,
@@ -118,6 +127,7 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: false,
+            resistanceStatus,
         };
 
         return { initialState: state, isValid: true };
@@ -148,8 +158,50 @@ export class GameHydrationService {
             optimalScore: null, // Practice calculates this async usually
             worstScore: null,
             dailyCompleted: false,
+            resistanceStatus: ResistanceStatus.INACTIVE,
         };
 
         return { initialState: state, isValid: true };
+    }
+
+    /**
+     * Applies Resistance Mode data to the item list if present in the puzzle.
+     */
+    private static applyResistanceData(list: CardItem[], puzzle: DailyPuzzleData): { list: CardItem[], resistanceStatus: ResistanceStatus } {
+        const resistanceData = puzzle.resistanceData;
+        console.log("Resistance Mode Initialized:", resistanceData ? "YES" : "NO");
+
+        if (!resistanceData) {
+            return {
+                list: list.map(item => ({ ...item, hiddenRole: HiddenRole.NONE, trueValue: item.val })),
+                resistanceStatus: ResistanceStatus.INACTIVE
+            };
+        }
+
+        const agents = resistanceData.agents;
+        const newList = list.map((item, index) => {
+             const roleRaw = agents[index];
+             let hiddenRole = HiddenRole.NONE;
+             let trueValue = item.val;
+
+             if (roleRaw === 'RESISTANCE') {
+                 hiddenRole = HiddenRole.RESISTANCE;
+                 trueValue = item.val - 2;
+             } else if (roleRaw === 'STATE') {
+                 hiddenRole = HiddenRole.STATE;
+                 trueValue = item.val + 3;
+             }
+
+             return {
+                 ...item,
+                 hiddenRole,
+                 trueValue
+             };
+        });
+
+        return {
+            list: newList,
+            resistanceStatus: ResistanceStatus.ACTIVE
+        };
     }
 }

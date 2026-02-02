@@ -20,7 +20,7 @@ export const initialState: GameState = {
   shakeTools: 0,
   dailyCompleted: false,
   currentSeed: undefined,
-  resistanceStatus: ResistanceStatus.ACTIVE,
+  resistanceStatus: ResistanceStatus.INACTIVE,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
