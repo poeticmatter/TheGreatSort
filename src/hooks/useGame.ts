@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useCoreGame } from './useCoreGame';
 import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
@@ -112,14 +112,19 @@ export function useGame(sessionDate: string) {
   ]);
 
 
+  // Guard to prevent re-triggering the letter in the same session before reload
+  const hasTriggeredResistance = useRef(false);
+
   // Zero-Yield Safety Net
   useEffect(() => {
     const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
     const joined = localStorage.getItem('joinedResistance') === 'true';
 
     // Guard: Only trigger resistance in DAILY mode
-    if (metaState.gameMode === 'DAILY' && scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
-      if (localStorage.getItem('joinedResistance') !== 'true') {
+    if (metaState.gameMode === 'DAILY' && scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined && coreState.movesHistory.length > 0) {
+      if (localStorage.getItem('joinedResistance') !== 'true' && !hasTriggeredResistance.current) {
+        hasTriggeredResistance.current = true;
+
         metaActions.triggerResistance();
         coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
       }
@@ -209,6 +214,8 @@ export function useGame(sessionDate: string) {
   const closeResistanceAndReset = useCallback(() => {
     // 1. Commit the player to the resistance
     localStorage.setItem('joinedResistance', 'true');
+    // Ensure we don't re-trigger immediately (though reload will reset this, localstorage protects it then)
+    hasTriggeredResistance.current = true;
 
     // 2. Close the UI overlay
     metaActions.closeResistance();

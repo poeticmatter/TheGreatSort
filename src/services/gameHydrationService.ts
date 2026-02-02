@@ -198,7 +198,7 @@ export class GameHydrationService {
 
         return {
             list: newList,
-            resistanceStatus: ResistanceStatus.ACTIVE
+            resistanceStatus: ResistanceStatus.INACTIVE
         };
     }
 }
