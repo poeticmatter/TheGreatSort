@@ -117,8 +117,9 @@ export function useGame(sessionDate: string) {
     // Guard: Only trigger resistance in DAILY mode
     if (metaState.gameMode === 'DAILY' && scoresCalculated && compliancePercentage === 0 && !metaState.resistanceActive && coreState.list.length > 0 && !joined) {
       metaActions.triggerResistance();
+      coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
     }
-  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions, metaState.gameMode]);
+  }, [compliancePercentage, coreState.optimalScore, coreState.worstScore, metaState.resistanceActive, coreState.list.length, metaActions, metaState.gameMode, coreDispatch]);
 
 
   // --- Actions ---

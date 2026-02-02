@@ -69,4 +69,5 @@ export type GameAction =
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
   | { type: 'UNDO_MOVE' }
-  | { type: 'TOGGLE_TAG'; payload: { index: number } };
+  | { type: 'TOGGLE_TAG'; payload: { index: number } }
+  | { type: 'ACTIVATE_RESISTANCE' };

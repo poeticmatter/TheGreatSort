@@ -74,7 +74,7 @@ export function PuzzleBoard({
     const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
     // Resistance Mode & Yield Calculation
-    const isResistanceActive = state.resistanceStatus !== ResistanceStatus.INACTIVE && state.resistanceActive;
+    const isResistanceActive = state.resistanceActive;
     const effectiveVisibleYield = state.visibleYield ?? 0;
     const effectiveTrueYield = state.trueYield ?? 0;
 

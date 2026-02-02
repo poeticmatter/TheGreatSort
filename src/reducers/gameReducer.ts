@@ -217,6 +217,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
 
+    case 'ACTIVATE_RESISTANCE': {
+      return {
+        ...state,
+        resistanceStatus: ResistanceStatus.ACTIVE
+      };
+    }
+
     case 'TOGGLE_TAG': {
       const { index } = action.payload;
       if (index < 0 || index >= state.list.length) return state;
