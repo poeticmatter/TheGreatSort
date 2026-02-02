@@ -144,13 +144,17 @@ async function main() {
                     });
 
                     // Constraint: At least 1 of each
-                    if (resistanceAgents.length > 0 && stateAgents.length > 0) {
+                    if (resistanceAgents.length >= 1 && stateAgents.length >= 1) {
                         // FOUND ONE!
+
+                        // Randomly Select Agents (1 of each)
+                        const selectedResistance = resistanceAgents[Math.floor(Math.random() * resistanceAgents.length)];
+                        const selectedState = stateAgents[Math.floor(Math.random() * stateAgents.length)];
 
                         // Assign Roles & True Values
                         const agentsMap: Record<number, 'RESISTANCE' | 'STATE'> = {};
-                        resistanceAgents.forEach(i => agentsMap[i] = 'RESISTANCE');
-                        stateAgents.forEach(i => agentsMap[i] = 'STATE');
+                        agentsMap[selectedResistance] = 'RESISTANCE';
+                        agentsMap[selectedState] = 'STATE';
 
                         // Calculate True Yield of the Resistance Path
                         // Need to construct CardItems with True Values
