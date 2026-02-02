@@ -144,7 +144,7 @@ async function main() {
                     });
 
                     // Constraint: At least 1 of each
-                    if (resistanceAgents.length > 0 && stateAgents.length > 0) {
+                    if (resistanceAgents.length === 1 && stateAgents.length === 1) {
                         // FOUND ONE!
 
                         // Assign Roles & True Values
