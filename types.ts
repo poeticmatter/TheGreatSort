@@ -6,9 +6,33 @@ export interface ISortable {
   hasShield?: boolean;
 }
 
+
+export enum HiddenRole {
+  NONE = 'none',
+  RESISTANCE = 'resistance',
+  STATE = 'state',
+}
+
+export enum UserTag {
+  NONE = 'none',
+  SUSPICIOUS = 'suspicious',
+  RESISTANCE = 'resistance',
+  STATE = 'state',
+}
+
+export enum ResistanceStatus {
+  ACTIVE = 'active',
+  MIA = 'mia',
+  COMPROMISED = 'compromised',
+  SUCCESS = 'success',
+}
+
 export interface CardItem extends ISortable {
   id: string;
   status: CardStatus;
+  hiddenRole: HiddenRole;
+  trueValue: number;
+  userTag: UserTag;
 }
 
 export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize';

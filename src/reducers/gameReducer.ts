@@ -1,5 +1,5 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType } from '../../types';
+import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 
 export const initialState: GameState = {
@@ -20,6 +20,7 @@ export const initialState: GameState = {
   shakeTools: 0,
   dailyCompleted: false,
   currentSeed: undefined,
+  resistanceStatus: ResistanceStatus.ACTIVE,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {

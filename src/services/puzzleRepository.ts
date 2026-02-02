@@ -1,5 +1,5 @@
 import dailyPuzzles from '../data/daily_puzzles.json';
-import { CardItem, ToolInstance, ToolType } from '../../types';
+import { CardItem, ToolInstance, ToolType, HiddenRole, UserTag } from '../../types';
 
 export interface DailyPuzzleData {
     id: number;
@@ -49,7 +49,10 @@ export const PuzzleRepository = {
             id: `daily-${index}`,
             val: val,
             status: 'pending',
-            hasShield: false // Default to false as simple numbers don't imply shields
+            hasShield: false, // Default to false as simple numbers don't imply shields
+            hiddenRole: HiddenRole.NONE,
+            trueValue: val,
+            userTag: UserTag.NONE
         }));
     },
 

@@ -1,4 +1,4 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, HiddenRole, UserTag } from '../../types';
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
@@ -395,7 +395,10 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
     return {
       id: idSuffix,
       val: val,
-      status: 'pending'
+      status: 'pending',
+      hiddenRole: HiddenRole.NONE,
+      trueValue: val,
+      userTag: UserTag.NONE
     };
   });
 };

@@ -1,4 +1,4 @@
-import { CardItem, GamePhase, ToolInstance, Move } from '../../types';
+import { CardItem, GamePhase, ToolInstance, Move, ResistanceStatus } from '../../types';
 import { FlavorKey } from '../config/flavorText';
 
 export interface GameState {
@@ -20,6 +20,7 @@ export interface GameState {
   dailyCompleted: boolean;
   currentSeed: number | undefined;
   flavorMap?: Record<FlavorKey, string>;
+  resistanceStatus: ResistanceStatus;
 }
 
 export type GameAction =
