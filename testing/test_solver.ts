@@ -1,5 +1,5 @@
 import { findOptimalSolution } from '../src/utils/gameLogic';
-import { CardItem, ToolType } from '../types';
+import { CardItem, ToolType, HiddenRole, UserTag } from '../types';
 
 console.log("Starting Smoke Test...");
 
@@ -30,9 +30,9 @@ console.log("Starting Smoke Test...");
 // So Optimal should be Swap(1) -> 60.
 
 const list: CardItem[] = [
-    { id: '1', val: 30, status: 'pending' },
-    { id: '2', val: 10, status: 'pending' },
-    { id: '3', val: 20, status: 'pending' }
+    { id: '1', val: 30, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 30, userTag: UserTag.NONE },
+    { id: '2', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 10, userTag: UserTag.NONE },
+    { id: '3', val: 20, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 20, userTag: UserTag.NONE }
 ];
 
 const tools: ToolType[] = ['swap'];

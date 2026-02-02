@@ -1,5 +1,5 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
+import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus, HiddenRole } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 
 export const initialState: GameState = {
@@ -79,6 +79,41 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         t.instanceId === move.toolInstanceId ? { ...t, used: true } : t
       );
 
+      // --- Friendly Fire Check ---
+      let newResistanceStatus = state.resistanceStatus;
+      if (newResistanceStatus === ResistanceStatus.ACTIVE) { // Only check if currently ACTIVE
+        const targetIndex = move.index;
+
+        if (move.tool === 'purge') {
+          // Purge affects single item at index
+          if (targetIndex >= 0 && targetIndex < state.list.length) {
+            const targetRole = state.list[targetIndex].hiddenRole;
+            if (targetRole === HiddenRole.RESISTANCE) {
+              newResistanceStatus = ResistanceStatus.MIA;
+            }
+          }
+        } else if (move.tool === 'merge') {
+          // Merge affects index and index+1
+          // We must be careful about bounds, but usually the tool/move generator ensures valid moves.
+          // Still good to check.
+          const idx1 = targetIndex;
+          const idx2 = targetIndex + 1;
+
+          let hitResistance = false;
+          if (idx1 >= 0 && idx1 < state.list.length) {
+            if (state.list[idx1].hiddenRole === HiddenRole.RESISTANCE) hitResistance = true;
+          }
+          if (idx2 >= 0 && idx2 < state.list.length) {
+            if (state.list[idx2].hiddenRole === HiddenRole.RESISTANCE) hitResistance = true;
+          }
+
+          if (hitResistance) {
+            newResistanceStatus = ResistanceStatus.MIA;
+          }
+        }
+      }
+      // ---------------------------
+
       return {
         ...state,
         list,
@@ -86,6 +121,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         movesHistory: [...state.movesHistory, move],
         selection: null,
         selectedToolInstanceId: null,
+        resistanceStatus: newResistanceStatus,
       };
     }
 
