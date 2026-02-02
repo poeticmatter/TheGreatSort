@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { GamePhase } from '../../../types';
+import { GamePhase, ResistanceStatus } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Tooltip from '../Tooltip';
 import { ComplianceMeter } from '../ComplianceMeter';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
+import { calculateTrueYield } from '../../utils/gameLogic';
 
 interface PuzzleBoardProps {
     state: any;
@@ -71,6 +72,12 @@ export function PuzzleBoard({
 
     const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
+    // Resistance Mode & Yield Calculation
+    const isResistanceActive = state.resistanceStatus === ResistanceStatus.ACTIVE;
+    const effectiveTrueYield = state.trueYield !== undefined
+        ? state.trueYield
+        : (isResistanceActive ? calculateTrueYield(state.list, state.list.length) : 0);
+
     // Grid Content
     const gridContent = (
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
@@ -121,8 +128,8 @@ export function PuzzleBoard({
                             <ComplianceMeter
                                 compliancePercentage={state.compliancePercentage}
                                 layout={layout}
-                                resistanceMode={state.resistanceActive}
-                                trueYield={state.trueYield}
+                                resistanceMode={isResistanceActive}
+                                trueYield={effectiveTrueYield}
                             />
                         </div>
                     </div>
@@ -175,8 +182,8 @@ export function PuzzleBoard({
             <ComplianceMeter
                 compliancePercentage={state.compliancePercentage}
                 layout={layout}
-                resistanceMode={state.resistanceActive}
-                trueYield={state.trueYield}
+                resistanceMode={isResistanceActive}
+                trueYield={effectiveTrueYield}
             />
 
             {/* Help / Rules Overlay */}
