@@ -17,7 +17,7 @@ interface DailyAuditProps {
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText }) => {
   const { loading, solution, timeline, initialList, stats } = useDailyAudit(date, userHighScore);
-  const { userScore, optimalScore, worstScore } = stats;
+  const { userScore, optimalScore, worstScore, resistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
 
   // Responsive Logic
@@ -146,7 +146,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 }`}>
                 {adherence}%
               </div>
-              {/* Stamp */}
+              {/* Adherence Stamp */}
               <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
                    ${adherence >= 100 ? 'border-amber-400 text-amber-400'
                   : adherence >= 90 ? 'border-amber-700 text-amber-700'
@@ -161,6 +161,24 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
               </div>
             </div>
           </div>
+
+          {/* Resistance Mission Status */}
+          {resistanceStatus && resistanceStatus !== ResistanceStatus.INACTIVE && (
+            <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
+                    ${resistanceStatus === ResistanceStatus.SUCCESS ? 'border-blue-500/50 bg-blue-900/20' : 'border-red-500/50 bg-red-900/20'}
+                 `}>
+              {/* Icon */}
+              {resistanceStatus === ResistanceStatus.SUCCESS ? <CheckCircle className="text-blue-400 w-8 h-8" /> : <AlertTriangle className="text-red-400 w-8 h-8" />}
+
+              <div className="flex flex-col items-center">
+                <div className={`text-xl font-black uppercase tracking-widest ${resistanceStatus === ResistanceStatus.SUCCESS ? 'text-blue-400' : 'text-red-400'}`}>
+                  {resistanceStatus === ResistanceStatus.SUCCESS ? 'RESISTANCE MISSION ACCOMPLISHED' :
+                    resistanceStatus === ResistanceStatus.MIA ? 'RESISTANCE AGENT MIA' :
+                      'STATE AGENT ESCAPED'}
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 

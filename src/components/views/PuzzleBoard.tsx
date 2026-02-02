@@ -3,10 +3,11 @@ import { GamePhase, ResistanceStatus } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Tooltip from '../Tooltip';
 import { ComplianceMeter } from '../ComplianceMeter';
+import { ResistanceYield } from '../ResistanceYield';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
-import { calculateTrueYield } from '../../utils/gameLogic';
+import { calculateYields } from '../../utils/gameLogic';
 
 interface PuzzleBoardProps {
     state: any;
@@ -73,10 +74,9 @@ export function PuzzleBoard({
     const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
     // Resistance Mode & Yield Calculation
-    const isResistanceActive = state.resistanceStatus === ResistanceStatus.ACTIVE;
-    const effectiveTrueYield = state.trueYield !== undefined
-        ? state.trueYield
-        : (isResistanceActive ? calculateTrueYield(state.list, state.list.length) : 0);
+    const isResistanceActive = state.resistanceStatus !== ResistanceStatus.INACTIVE && state.resistanceActive;
+    const effectiveVisibleYield = state.visibleYield ?? 0;
+    const effectiveTrueYield = state.trueYield ?? 0;
 
     // Grid Content
     const gridContent = (
@@ -125,12 +125,18 @@ export function PuzzleBoard({
                 <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
                     <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
                         <div className="pointer-events-auto h-full flex items-center">
-                            <ComplianceMeter
-                                compliancePercentage={state.compliancePercentage}
-                                layout={layout}
-                                resistanceMode={isResistanceActive}
-                                trueYield={effectiveTrueYield}
-                            />
+                            {isResistanceActive ? (
+                                <ResistanceYield
+                                    visibleYield={effectiveVisibleYield}
+                                    trueYield={effectiveTrueYield}
+                                    layout={layout}
+                                />
+                            ) : (
+                                <ComplianceMeter
+                                    compliancePercentage={state.compliancePercentage}
+                                    layout={layout}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -179,12 +185,18 @@ export function PuzzleBoard({
 
             {gridContent}
 
-            <ComplianceMeter
-                compliancePercentage={state.compliancePercentage}
-                layout={layout}
-                resistanceMode={isResistanceActive}
-                trueYield={effectiveTrueYield}
-            />
+            {isResistanceActive ? (
+                <ResistanceYield
+                    visibleYield={effectiveVisibleYield}
+                    trueYield={effectiveTrueYield}
+                    layout={layout}
+                />
+            ) : (
+                <ComplianceMeter
+                    compliancePercentage={state.compliancePercentage}
+                    layout={layout}
+                />
+            )}
 
             {/* Help / Rules Overlay */}
             <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">

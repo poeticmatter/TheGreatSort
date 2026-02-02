@@ -28,6 +28,7 @@ export interface DailyResult {
     score: number;
     optimal?: number;
     date: string;
+    resistanceStatus?: string; // Stored as a string to avoid strict enum dependency in persistence layer
 }
 
 export type DailyHistory = Record<string, {

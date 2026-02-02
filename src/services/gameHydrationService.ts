@@ -180,23 +180,20 @@ export class GameHydrationService {
 
         const agents = resistanceData.agents;
         const newList = list.map((item, index) => {
-             const roleRaw = agents[index];
-             let hiddenRole = HiddenRole.NONE;
-             let trueValue = item.val;
+            const agentData = agents[index];
+            let hiddenRole = HiddenRole.NONE;
+            let trueValue = item.val;
 
-             if (roleRaw === 'RESISTANCE') {
-                 hiddenRole = HiddenRole.RESISTANCE;
-                 trueValue = item.val - 2;
-             } else if (roleRaw === 'STATE') {
-                 hiddenRole = HiddenRole.STATE;
-                 trueValue = item.val + 3;
-             }
+            if (agentData) {
+                hiddenRole = agentData.role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE;
+                trueValue = item.val + agentData.delta; // Use delta from puzzle data
+            }
 
-             return {
-                 ...item,
-                 hiddenRole,
-                 trueValue
-             };
+            return {
+                ...item,
+                hiddenRole,
+                trueValue
+            };
         });
 
         return {

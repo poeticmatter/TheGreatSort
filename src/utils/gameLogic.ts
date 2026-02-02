@@ -54,6 +54,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
 
     if (i === 0) {
       survived = true;
+      pointsToAdd = currentVal; // Include first item's value
       lastSurvivorVal = currentVal;
       lastSurvivorHasShield = currentHasShield;
     } else {
@@ -64,7 +65,7 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
       // Update State if Survived
       if (survived) {
         sortDirection = result.newMode;
-        pointsToAdd = result.scoreToAdd;
+        pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
         lastSurvivorVal = currentVal;
         lastSurvivorHasShield = currentHasShield;
       }
@@ -315,19 +316,34 @@ export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   return map;
 };
 
-// --- End-Game Verification Logic ---
+/**
+ * Calculates both visible yield and true yield based on survivors.
+ * Yield = sum of visible values (val) of all survivors
+ * True Yield = sum of hidden values (trueValue) of all survivors
+ * This is different from game "score" which excludes the first item.
+ */
+export const calculateYields = (items: CardItem[]): { visibleYield: number; trueYield: number } => {
+  if (!items || items.length === 0) return { visibleYield: 0, trueYield: 0 };
 
-export const calculateTrueYield = (items: CardItem[], targetLength: number): number => {
-  if (!items || items.length === 0) return 0;
+  // Grade the list to determine survivors based on sorting rules
+  const { gradedList } = gradeLevel(items);
 
-  // Sum trueValue of all items in the "Keep" range (index < targetLength)
+  let visibleYield = 0;
   let trueYield = 0;
-  for (let i = 0; i < Math.min(items.length, targetLength); i++) {
-    if (items[i].status !== 'eliminated') {
-      trueYield += items[i].trueValue;
+
+  for (let i = 0; i < gradedList.length; i++) {
+    if (gradedList[i].status === 'safe') {
+      visibleYield += gradedList[i].val;
+      trueYield += gradedList[i].trueValue ?? gradedList[i].val;
     }
   }
-  return trueYield;
+
+  return { visibleYield, trueYield };
+};
+
+// Legacy wrapper for backward compatibility
+export const calculateTrueYield = (items: CardItem[], targetLength: number): number => {
+  return calculateYields(items).trueYield;
 };
 
 

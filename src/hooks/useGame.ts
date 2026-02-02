@@ -4,11 +4,11 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
-import { calculateTrueYield } from '../utils/gameLogic';
+import { calculateYields } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
-import { GamePhase, GameMode } from '../../types';
+import { GamePhase, GameMode, ResistanceStatus } from '../../types';
 import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
 import { useGameInteractions } from './useGameInteractions';
 
@@ -67,8 +67,7 @@ export function useGame(sessionDate: string) {
     compliancePercentage,
     startingCompliance,
     isZeroYield,
-    yieldRatio,
-    currentScore
+    yieldRatio
   } = useProjectedMetrics(coreState.list, coreState.initialList || [], coreState.optimalScore, coreState.worstScore);
 
   const mood = useSystemMood(compliancePercentage, startingCompliance, isLocked);
@@ -126,11 +125,11 @@ export function useGame(sessionDate: string) {
 
   const handleSaveDaily = useCallback(() => {
     // Composite action: Save Persist + Meta Update
-    saveDailyResult(coreState.levelScore);
+    saveDailyResult(coreState.levelScore, coreState.resistanceStatus);
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
     metaActions.setResistancePending(true);
     metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
-  }, [saveDailyResult, coreState.levelScore, coreState.optimalScore, coreDispatch, metaActions]);
+  }, [saveDailyResult, coreState.levelScore, coreState.resistanceStatus, coreState.optimalScore, coreDispatch, metaActions]);
 
   const changeMode = useCallback((newMode: GameMode) => {
     metaActions.closeAudit();
@@ -292,11 +291,13 @@ export function useGame(sessionDate: string) {
       startingCompliance,
       isZeroYield,
       yieldRatio,
-      currentScore,
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
       selectedTool: coreState.selectedToolInstanceId,
-      // Calculate TrueYield on the fly for UI (Resistance Mode)
-      trueYield: metaState.resistanceActive ? calculateTrueYield(coreState.list, coreState.list.length) : 0
+      // Calculate Yields on the fly for UI (Resistance Mode)
+      // visibleYield = sum of survivor vals, trueYield = sum of survivor trueValues
+      ...(coreState.resistanceStatus !== ResistanceStatus.INACTIVE
+        ? calculateYields(coreState.list)
+        : { visibleYield: 0, trueYield: 0 })
     },
     // UI Logic (The "ViewModel")
     interaction,

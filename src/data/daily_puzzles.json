@@ -2,51 +2,282 @@
   {
     "id": 0,
     "sequence": [
-      3,
-      7,
-      18,
-      9,
-      15,
-      5,
+      2,
+      11,
+      8,
       10,
-      4,
-      16
+      18,
+      17,
+      3,
+      6,
+      12
     ],
     "tools": [
-      "hop",
+      "promote",
       "swap",
-      "swap",
-      "longswap"
+      "promote",
+      "cycle"
     ],
     "targets": {
-      "min": 3,
-      "max": 79
+      "min": 5,
+      "max": 73
     },
     "solution": [
       {
-        "tool": "hop",
-        "i": 5
-      },
-      {
-        "tool": "swap",
-        "i": 1
-      },
-      {
-        "tool": "swap",
+        "tool": "promote",
         "i": 7
       },
       {
-        "tool": "longswap",
-        "i": 1,
-        "t": 8
+        "tool": "swap",
+        "i": 5
+      },
+      {
+        "tool": "promote",
+        "i": 7
+      },
+      {
+        "tool": "cycle",
+        "i": 3,
+        "t": 4
       }
     ],
     "resistanceData": {
       "agents": {
-        "0": "STATE",
-        "5": "RESISTANCE"
+        "0": {
+          "role": "RESISTANCE",
+          "delta": -2
+        },
+        "6": {
+          "role": "STATE",
+          "delta": 1
+        }
       },
-      "trueYieldTarget": 52
+      "trueYieldTarget": 70
+    }
+  },
+  {
+    "id": 1,
+    "sequence": [
+      2,
+      18,
+      8,
+      13,
+      3,
+      9,
+      17,
+      12,
+      4
+    ],
+    "tools": [
+      "hop",
+      "cycle",
+      "cycle",
+      "equalize"
+    ],
+    "targets": {
+      "min": 5,
+      "max": 82
+    },
+    "solution": [
+      {
+        "tool": "cycle",
+        "i": 1,
+        "t": 2
+      },
+      {
+        "tool": "equalize",
+        "i": 2,
+        "t": 4
+      },
+      {
+        "tool": "cycle",
+        "i": 3,
+        "t": 4
+      },
+      {
+        "tool": "hop",
+        "i": 6
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "2": {
+          "role": "STATE",
+          "delta": 3
+        },
+        "8": {
+          "role": "RESISTANCE",
+          "delta": -2
+        }
+      },
+      "trueYieldTarget": 64
+    }
+  },
+  {
+    "id": 2,
+    "sequence": [
+      9,
+      10,
+      5,
+      13,
+      7,
+      16,
+      11,
+      15,
+      14
+    ],
+    "tools": [
+      "merge",
+      "promote",
+      "promote",
+      "hop"
+    ],
+    "targets": {
+      "min": 12,
+      "max": 100
+    },
+    "solution": [
+      {
+        "tool": "merge",
+        "i": 5
+      },
+      {
+        "tool": "promote",
+        "i": 4
+      },
+      {
+        "tool": "promote",
+        "i": 3
+      },
+      {
+        "tool": "hop",
+        "i": 6
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "6": {
+          "role": "RESISTANCE",
+          "delta": -2
+        },
+        "8": {
+          "role": "STATE",
+          "delta": 1
+        }
+      },
+      "trueYieldTarget": 72
+    }
+  },
+  {
+    "id": 3,
+    "sequence": [
+      13,
+      8,
+      16,
+      14,
+      11,
+      9,
+      2,
+      1,
+      17
+    ],
+    "tools": [
+      "longswap",
+      "sink",
+      "hop",
+      "hop"
+    ],
+    "targets": {
+      "min": 9,
+      "max": 86
+    },
+    "solution": [
+      {
+        "tool": "longswap",
+        "i": 2,
+        "t": 6
+      },
+      {
+        "tool": "hop",
+        "i": 1
+      },
+      {
+        "tool": "hop",
+        "i": 4
+      },
+      {
+        "tool": "sink",
+        "i": 2
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "7": {
+          "role": "RESISTANCE",
+          "delta": -2
+        },
+        "8": {
+          "role": "STATE",
+          "delta": 2
+        }
+      },
+      "trueYieldTarget": 72
+    }
+  },
+  {
+    "id": 4,
+    "sequence": [
+      13,
+      3,
+      9,
+      15,
+      17,
+      4,
+      7,
+      2,
+      16
+    ],
+    "tools": [
+      "longswap",
+      "sink",
+      "halve",
+      "hop"
+    ],
+    "targets": {
+      "min": 3,
+      "max": 73
+    },
+    "solution": [
+      {
+        "tool": "longswap",
+        "i": 0,
+        "t": 5
+      },
+      {
+        "tool": "sink",
+        "i": 3
+      },
+      {
+        "tool": "halve",
+        "i": 0
+      },
+      {
+        "tool": "hop",
+        "i": 4
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "3": {
+          "role": "STATE",
+          "delta": 3
+        },
+        "7": {
+          "role": "RESISTANCE",
+          "delta": -3
+        }
+      },
+      "trueYieldTarget": 61
     }
   }
 ]

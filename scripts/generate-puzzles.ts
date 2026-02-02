@@ -29,7 +29,7 @@ interface DailyPuzzle {
     solution: DailyPuzzleMove[];
     // Resistance Data
     resistanceData?: {
-        agents: Record<number, 'RESISTANCE' | 'STATE'>; // Original Index -> Role
+        agents: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }>; // Original Index -> {role, delta}
         trueYieldTarget: number;
     };
 }
@@ -151,64 +151,71 @@ async function main() {
                         const selectedResistance = resistanceAgents[Math.floor(Math.random() * resistanceAgents.length)];
                         const selectedState = stateAgents[Math.floor(Math.random() * stateAgents.length)];
 
-                        // Assign Roles & True Values
-                        const agentsMap: Record<number, 'RESISTANCE' | 'STATE'> = {};
-                        agentsMap[selectedResistance] = 'RESISTANCE';
-                        agentsMap[selectedState] = 'STATE';
+                        // Randomly generate deltas (1-3)
+                        const resistanceDelta = -(Math.floor(Math.random() * 3) + 1); // -1 to -3
+                        const stateDelta = Math.floor(Math.random() * 3) + 1;         // +1 to +3
 
-                        // Calculate True Yield of the Resistance Path
-                        // Need to construct CardItems with True Values
+                        // Assign Roles & Deltas
+                        const agentsMap: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }> = {};
+                        agentsMap[selectedResistance] = { role: 'RESISTANCE', delta: resistanceDelta };
+                        agentsMap[selectedState] = { role: 'STATE', delta: stateDelta };
+
+                        // 1. Calculate Initial True Yield (Baseline)
                         const trueLevel = level.map((item, originalIdx) => {
                             let trueVal = item.val;
-                            const role = agentsMap[originalIdx];
-                            if (role === 'RESISTANCE') trueVal = item.val - 2;
-                            else if (role === 'STATE') trueVal = item.val + 3;
-
-                            return { ...item, trueValue: trueVal, hiddenRole: role ? (role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE) : HiddenRole.NONE };
+                            const agentData = agentsMap[originalIdx];
+                            if (agentData) {
+                                trueVal = item.val + agentData.delta;
+                            }
+                            return { ...item, trueValue: trueVal, hiddenRole: agentData ? (agentData.role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE) : HiddenRole.NONE };
                         });
-
-                        // Replay resistance moves on True Level
-                        // We need `calculateTrueYield` which sums trueValue of Survivors.
-                        // First get kept indices set for this path (we have it: altKeptIndices).
-                        // Sum true values of those indices.
-
-                        let startTrueYield = 0;
-                        // Initial true yield (no moves)?
-                        // "TrueYield > InitialTrueYield".
-                        // Initial Survivors (index 0..N, calculateBatchScore based on VISIBLE values logic determines survival, but we sum TRUE values?)
-                        // Assuming "Initial" means "Before Sorting".
-                        // `calculateTrueYield` function in gameLogic takes `items` and `targetLength`.
-                        // Using `targetLength` implies "Keep Zone" logic.
-                        // For initial state, if we treat it as sorted?
-                        // "Plausible Deniability... Yield > InitialYield" refers to VISIBLE yield (which we checked with threshold).
-                        // "Validation... Verify that the ResSet solution... results in a TrueYield > InitialTrueYield".
-
-                        // Initial State True Yield:
-                        // Run `gradeLevel` on initial `trueLevel` (using VISIBLE values for survival logic).
-                        // Sum trueValue of survivors.
 
                         const gradedInitial = gradeLevel(trueLevel).gradedList;
                         const initialTrueYield = gradedInitial.reduce((sum: number, item: any) =>
                             item.status !== 'eliminated' ? sum + item.trueValue : sum, 0);
 
-                        // Resistance Solution True Yield:
-                        // Replay moves on `trueLevel`.
-                        let currentTrueSeq = trueLevel.map((item, idx) => ({ ...item, originalIndex: idx }));
-                        for (const m of alt.moves) {
-                            const s = TOOL_REGISTRY[m.tool as ToolType];
-                            if (s) currentTrueSeq = s.apply(currentTrueSeq, m.i, m.t) as unknown as typeof currentTrueSeq;
-                        }
-                        const gradedRes = gradeLevel(currentTrueSeq).gradedList;
-                        const resTrueYield = gradedRes.reduce((sum: number, item: any) =>
-                            item.status !== 'eliminated' ? sum + item.trueValue : sum, 0);
+                        // 2. Find MAX True Yield satisfying constraints among ALL valid solutions
+                        // Recalculate all solutions with a low threshold to get maximum coverage
+                        const validationAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: -Infinity });
 
-                        if (resTrueYield > initialTrueYield) {
+                        let maxValidTrueYield = -Infinity;
+                        let foundConstraintSatisfyingPath = false;
+
+                        if (validationAnalysis.allSolutions) {
+                            for (const sol of validationAnalysis.allSolutions) {
+                                const keptIndices = getKeptIndicesSet(level, sol.moves);
+
+                                // Constraint Check
+                                const resistanceSurvives = keptIndices.has(selectedResistance);
+                                const stateEliminated = !keptIndices.has(selectedState);
+
+                                if (resistanceSurvives && stateEliminated) {
+                                    // Valid Path! Calculate True Yield.
+                                    let currentTrueYield = 0;
+                                    // Replay moves on trueLevel is overkill, just sum trueValues of kept indices
+                                    // (Since kept indices are determined by visible values which solve/getKeptIndicesSet handles)
+
+                                    // Wait, getKeptIndicesSet returns original indices that survived.
+                                    // So we can just look them up in trueLevel.
+                                    keptIndices.forEach(idx => {
+                                        currentTrueYield += trueLevel[idx].trueValue;
+                                    });
+
+                                    if (currentTrueYield > maxValidTrueYield) {
+                                        maxValidTrueYield = currentTrueYield;
+                                        foundConstraintSatisfyingPath = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (foundConstraintSatisfyingPath && maxValidTrueYield > initialTrueYield) {
                             // Valid!
                             validResData = {
                                 agents: agentsMap,
-                                trueYieldTarget: resTrueYield
+                                trueYieldTarget: maxValidTrueYield
                             };
-                            break; // Stop looking for helpers, we found a valid configuration.
+                            break; // Stop looking for helpers, we found a max yield configuration.
                         }
                     }
                 }

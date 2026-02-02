@@ -69,11 +69,11 @@ export const judgeStep = (
     return { survived, newMode, scoreToAdd };
 };
 
-// Pure function to calculate score
+// Pure function to calculate yield (sum of survivor values INCLUDING first item)
 export const calculateBatchScore = (numbers: ISortable[]): number => {
     if (!numbers || numbers.length === 0) return 0;
 
-    let score = 0;
+    let yield_ = 0;
     let lastSurvivor = 0;
     let lastSurvivorHasShield = false;
     let mode: 'ASC' | 'DESC' | null = null;
@@ -87,6 +87,7 @@ export const calculateBatchScore = (numbers: ISortable[]): number => {
 
         if (i === 0) {
             survived = true;
+            yield_ += currentVal; // Include first item's value
             lastSurvivor = currentVal;
             lastSurvivorHasShield = currentHasShield;
         } else {
@@ -95,13 +96,13 @@ export const calculateBatchScore = (numbers: ISortable[]): number => {
 
             if (survived) {
                 mode = result.newMode;
-                score += result.scoreToAdd;
+                yield_ += currentVal; // Add survivor's value
                 lastSurvivor = currentVal;
                 lastSurvivorHasShield = currentHasShield;
             }
         }
     }
-    return score;
+    return yield_;
 };
 
 /**

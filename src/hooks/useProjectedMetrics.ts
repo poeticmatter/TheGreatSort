@@ -3,8 +3,8 @@ import { CardItem } from '../../types';
 import { gradeLevel, calculateBatchScore } from '../utils/gameLogic';
 
 interface ProjectedMetrics {
-    currentScore: number;
-    startingScore: number;
+    currentYield: number;
+    startingYield: number;
     compliancePercentage: number;
     startingCompliance: number;
     yieldRatio: number;
@@ -14,36 +14,34 @@ interface ProjectedMetrics {
 export const useProjectedMetrics = (
     currentList: CardItem[],
     initialList: CardItem[],
-    optimalScore: number | null,
-    worstScore: number | null
+    optimalYield: number | null,
+    worstYield: number | null
 ): ProjectedMetrics => {
     return useMemo(() => {
-        // 1. Calculate Current Score
-        // gradeLevel returns { score, gradedList }. We only need score here.
-        const { score: currentScore } = gradeLevel(currentList);
+        // 1. Calculate Current Yield (sum of survivor values)
+        const { score: currentYield } = gradeLevel(currentList);
 
-        // 2. Calculate Starting Score (Baseline)
-        // We use calculateBatchScore on the initialList directly (Optimization: No regeneration)
-        const startingScore = calculateBatchScore(initialList);
+        // 2. Calculate Starting Yield (Baseline)
+        const startingYield = calculateBatchScore(initialList);
 
         // 3. Compliance Percentage (Current vs Optimal/Worst)
         let compliancePercentage = 0;
         let startingCompliance = 0;
 
-        if (optimalScore !== null && worstScore !== null && optimalScore > worstScore) {
+        if (optimalYield !== null && worstYield !== null && optimalYield > worstYield) {
             // Standard Range Calculation
-            const range = optimalScore - worstScore;
+            const range = optimalYield - worstYield;
 
-            const currentProgress = currentScore - worstScore;
+            const currentProgress = currentYield - worstYield;
             compliancePercentage = Math.round((currentProgress / range) * 100);
 
-            const startProgress = startingScore - worstScore;
+            const startProgress = startingYield - worstYield;
             startingCompliance = Math.round((startProgress / range) * 100);
 
-        } else if (optimalScore && optimalScore > 0) {
+        } else if (optimalYield && optimalYield > 0) {
             // Fallback
-            compliancePercentage = Math.round((currentScore / optimalScore) * 100);
-            startingCompliance = Math.round((startingScore / optimalScore) * 100);
+            compliancePercentage = Math.round((currentYield / optimalYield) * 100);
+            startingCompliance = Math.round((startingYield / optimalYield) * 100);
         }
 
         // Cap visually
@@ -52,22 +50,22 @@ export const useProjectedMetrics = (
 
         // 4. Yield Ratio (Current vs Starting)
         let yieldRatio = 0;
-        if (startingScore > 0) {
-            yieldRatio = currentScore / startingScore;
-        } else if (currentScore > 0) {
+        if (startingYield > 0) {
+            yieldRatio = currentYield / startingYield;
+        } else if (currentYield > 0) {
             yieldRatio = 1.0;
         }
 
         // 5. Zero Yield Flag
-        const isZeroYield = currentScore === 0 && currentList.length > 0;
+        const isZeroYield = currentYield === 0 && currentList.length > 0;
 
         return {
-            currentScore,
-            startingScore,
+            currentYield,
+            startingYield,
             compliancePercentage,
             startingCompliance,
             yieldRatio,
             isZeroYield
         };
-    }, [currentList, initialList, optimalScore, worstScore]);
+    }, [currentList, initialList, optimalYield, worstYield]);
 };

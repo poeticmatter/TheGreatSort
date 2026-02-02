@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PuzzleRepository } from '../services/puzzleRepository';
 import { CardItem, Move, ToolType } from '../../types';
 import { applyMove, Solution } from '../utils/gameLogic';
+import { PersistenceService } from '../services/persistence';
 
 export interface TimelineStep {
     list: CardItem[];
@@ -12,6 +13,7 @@ interface DailyAuditStats {
     userScore: number;
     optimalScore: number;
     worstScore: number;
+    resistanceStatus?: string;
 }
 
 export interface UseDailyAuditResult {
@@ -39,6 +41,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
     const [solution, setSolution] = useState<Solution | null>(null);
     const [worstScore, setWorstScore] = useState<number>(0);
     const [initialList, setInitialList] = useState<CardItem[]>([]);
+    const [resistanceStatus, setResistanceStatus] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         let mounted = true;
@@ -56,9 +59,17 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
 
                 const puzzle = PuzzleRepository.getDailyPuzzle(dateObj);
 
+                // Fetch Persisted Result for Resistance Status
+                const persistedResult = PersistenceService.getDailyResult(date);
+                if (persistedResult?.resistanceStatus) {
+                    setResistanceStatus(persistedResult.resistanceStatus);
+                }
+
                 // Hydrate Initial List
                 const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
                 setInitialList(list);
+
+                // ... (rest is same)
 
                 // Set Scores
                 setWorstScore(puzzle.targets.min);
@@ -104,7 +115,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         };
     }, [date]);
 
-    // Derive Timeline
+    // Derive Timeline (Keep same)
     const timeline = useMemo(() => {
         if (!solution || initialList.length === 0) return [];
 
@@ -141,7 +152,8 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         stats: {
             userScore: userHighScore,
             optimalScore: solution ? solution.score : 0,
-            worstScore
+            worstScore,
+            resistanceStatus
         }
     };
 };
