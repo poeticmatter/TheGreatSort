@@ -21,6 +21,7 @@ export enum UserTag {
 }
 
 export enum ResistanceStatus {
+  INACTIVE = 'inactive',
   ACTIVE = 'active',
   MIA = 'mia',
   COMPROMISED = 'compromised',

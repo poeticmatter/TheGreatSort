@@ -14,6 +14,10 @@ export interface DailyPuzzleData {
         i: number;
         t?: number;
     }[];
+    resistanceData?: {
+        agents: Record<number, 'RESISTANCE' | 'STATE'>;
+        trueYieldTarget?: number;
+    };
 }
 
 // Use local time construction: new Date(year, monthIndex, day)
