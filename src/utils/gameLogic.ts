@@ -2,8 +2,11 @@ import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, HiddenRol
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
+import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore';
 
-export type SolverItem = ISortable;
+export { calculateBatchScore, judgeStep };
+
+
 
 export interface DailyState {
   date: string;
@@ -24,53 +27,7 @@ export interface InspectionYield {
   detectedMode: 'ASC' | 'DESC' | null;
 }
 
-// Pure Logic Helper for Mode Determination & Survival
-export const judgeStep = (
-  currentVal: number,
-  currentHasShield: boolean,
-  lastSurvivorVal: number,
-  currentMode: 'ASC' | 'DESC' | null
-): { survived: boolean; newMode: 'ASC' | 'DESC' | null; scoreToAdd: number } => {
-  let survived = false;
-  let newMode = currentMode;
-  let scoreToAdd = 0;
 
-  // 1. Shield Logic (Always Survives)
-  if (currentHasShield) {
-    survived = true;
-    // Edge Case: Shielded item can still set the mode if currently pending
-    // "If currentVal != lastSurvivorVal (the physical value establishes the gradient, even if the item was forced to survive)."
-    if (newMode === null) {
-      if (currentVal > lastSurvivorVal) newMode = 'ASC';
-      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-      // If equal, mode remains null
-    }
-  }
-  // 2. Standard Logic
-  else {
-    if (newMode === null) {
-      // Pending Mode: Equality is OK, Difference sets mode
-      // "If currentVal == lastSurvivorVal: Item survives... newMode remains pending"
-      // "If currentVal != lastSurvivorVal: Item survives... newMode set"
-      survived = true;
-      if (currentVal > lastSurvivorVal) newMode = 'ASC';
-      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-    } else {
-      // Determined Mode
-      if (newMode === 'ASC') {
-        if (currentVal >= lastSurvivorVal) survived = true;
-      } else {
-        if (currentVal <= lastSurvivorVal) survived = true;
-      }
-    }
-  }
-
-  if (survived) {
-    scoreToAdd = currentVal;
-  }
-
-  return { survived, newMode, scoreToAdd };
-};
 
 export function* createInspectionStream(initialList: CardItem[]): Generator<InspectionYield> {
   const list = initialList.map(item => ({ ...item }));
@@ -148,41 +105,7 @@ export const stringToSeed = (str: string): number => {
   return h >>> 0;
 };
 
-// Pure function to calculate score for a given number array
-// Pure function to calculate score for a given number array
-export const calculateBatchScore = (numbers: ISortable[]): number => {
-  if (!numbers || numbers.length === 0) return 0;
 
-  let score = 0;
-  let lastSurvivor = 0;
-  let lastSurvivorHasShield = false;
-  let mode: 'ASC' | 'DESC' | null = null;
-
-  // Iterate
-  for (let i = 0; i < numbers.length; i++) {
-    const item = numbers[i];
-    const currentVal = item.val;
-    const currentHasShield = item.hasShield || false;
-    let survived = false;
-
-    if (i === 0) {
-      survived = true;
-      lastSurvivor = currentVal;
-      lastSurvivorHasShield = currentHasShield;
-    } else {
-      const result = judgeStep(currentVal, currentHasShield, lastSurvivor, mode);
-      survived = result.survived;
-
-      if (survived) {
-        mode = result.newMode;
-        score += result.scoreToAdd;
-        lastSurvivor = currentVal;
-        lastSurvivorHasShield = currentHasShield;
-      }
-    }
-  }
-  return score;
-};
 
 // Evaluate list to produce final scored items (for visual restoration)
 export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardItem[] } => {
@@ -217,41 +140,24 @@ export const findOptimalScore = (startList: CardItem[], availableTools?: ToolIns
 
 // Recursive Solver to find the optimal solution (score + path)
 // Note: availableTools here is a list of Types, representing the remaining usages.
+// Recursive Solver to find the optimal solution (score + path)
+// Note: availableTools here is a list of Types, representing the remaining usages.
 export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
   // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
-  let bestMoves: Move[] = [];
+  // Use the unified solver core
+  const result = solve(initialNums, availableTools);
 
-  const search = (currentNums: SolverItem[], currentTools: ToolType[], currentMoves: Move[]) => {
-    const currentScore = calculateBatchScore(currentNums);
-    if (currentScore > maxScore) {
-      maxScore = currentScore;
-      bestMoves = [...currentMoves];
-    }
+  // Map DailyPuzzleMove[] back to Move[]
+  const moves: Move[] = result.bestSolution.map(m => ({
+    tool: m.tool as ToolType,
+    index: m.i,
+    targetIndex: m.t,
+    description: '' // Fallback description
+  }));
 
-    if (currentTools.length === 0) return;
-
-    for (let t = 0; t < currentTools.length; t++) {
-      const tool = currentTools[t];
-      const nextTools = [...currentTools];
-      nextTools.splice(t, 1);
-
-      const strategy = TOOL_REGISTRY[tool];
-      if (strategy) {
-        const possibleMoves = strategy.generateMoves(currentNums);
-        for (const move of possibleMoves) {
-          // Apply move using the strategy logic (note: move.targetIndex corresponds to selection)
-          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-          search(nextNums, nextTools, [...currentMoves, move]);
-        }
-      }
-    }
-  };
-
-  search(initialNums, availableTools, []);
-  return { score: maxScore, moves: bestMoves };
+  return { score: result.maxYield, moves };
 };
 
 // Recursive Solver to find the theoretical minimum score
@@ -269,40 +175,18 @@ export const findWorstSolution = (startList: CardItem[], availableTools: ToolTyp
   // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  let minScore = Infinity;
-  let worstMoves: Move[] = [];
+  // Use the unified solver core with MIN objective
+  const result = solve(initialNums, availableTools, 'MIN');
 
-  const search = (currentNums: SolverItem[], currentTools: ToolType[], currentMoves: Move[]) => {
-    const currentScore = calculateBatchScore(currentNums);
-    if (currentScore < minScore) {
-      minScore = currentScore;
-      worstMoves = [...currentMoves];
-    }
+  // Map moves
+  const moves: Move[] = result.bestSolution.map(m => ({
+    tool: m.tool as ToolType,
+    index: m.i,
+    targetIndex: m.t,
+    description: ''
+  }));
 
-    if (currentTools.length === 0) return;
-
-    for (let t = 0; t < currentTools.length; t++) {
-      const tool = currentTools[t];
-      const nextTools = [...currentTools];
-      nextTools.splice(t, 1);
-
-      const strategy = TOOL_REGISTRY[tool];
-      if (strategy) {
-        const possibleMoves = strategy.generateMoves(currentNums);
-        for (const move of possibleMoves) {
-          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-          search(nextNums, nextTools, [...currentMoves, move]);
-        }
-      }
-    }
-  };
-
-  search(initialNums, availableTools, []);
-
-  // If initial score was never beaten (should be caught by first search call, but safety check)
-  if (minScore === Infinity) return { score: calculateBatchScore(initialNums), moves: [] };
-
-  return { score: minScore, moves: worstMoves };
+  return { score: result.maxYield, moves };
 };
 
 export const calculateRelativeEfficiency = (userScore: number, optimal: number, worst: number): number => {
