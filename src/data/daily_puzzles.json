@@ -2,50 +2,51 @@
   {
     "id": 0,
     "sequence": [
-      6,
+      3,
       7,
-      4,
-      14,
-      8,
-      11,
-      5,
+      18,
+      9,
       15,
-      9
+      5,
+      10,
+      4,
+      16
     ],
     "tools": [
-      "shrink",
-      "demote",
+      "hop",
       "swap",
-      "swap"
+      "swap",
+      "longswap"
     ],
     "targets": {
-      "min": 1,
-      "max": 61
+      "min": 3,
+      "max": 79
     },
     "solution": [
       {
-        "tool": "shrink",
+        "tool": "hop",
         "i": 5
       },
       {
-        "tool": "demote",
-        "i": 3
-      },
-      {
         "tool": "swap",
-        "i": 6
+        "i": 1
       },
       {
         "tool": "swap",
         "i": 7
+      },
+      {
+        "tool": "longswap",
+        "i": 1,
+        "t": 8
       }
     ],
     "resistanceData": {
       "agents": {
-        "2": "RESISTANCE",
-        "8": "STATE"
+        "0": "STATE",
+        "5": "RESISTANCE"
       },
-      "trueYieldTarget": 63
+      "trueYieldTarget": 52
     }
   }
 ]
