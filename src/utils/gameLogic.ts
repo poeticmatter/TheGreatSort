@@ -52,30 +52,39 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
     let survived = false;
     let pointsToAdd = 0;
 
-    if (i === 0) {
-      survived = true;
-      pointsToAdd = currentVal; // Include first item's value
-      lastSurvivorVal = currentVal;
-      lastSurvivorHasShield = currentHasShield;
+    // Handle pre-eliminated items (from Purge)
+    if (currentItem.status === 'eliminated') {
+      // Do nothing for logic. treat as non-existent.
+      // But we still yield below to support visualization.
     } else {
-      // Use judgeStep to determine outcome
-      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal!, sortDirection);
-      survived = result.survived;
-
-      // Update State if Survived
-      if (survived) {
-        sortDirection = result.newMode;
-        pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
+      if (lastSurvivorVal === null) {
+        // This is effectively the first item (or first non-eliminated item)
+        survived = true;
+        pointsToAdd = currentVal; // Include first item's value
         lastSurvivorVal = currentVal;
         lastSurvivorHasShield = currentHasShield;
+      } else {
+        // Use judgeStep to determine outcome
+        const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal, sortDirection);
+        survived = result.survived;
+
+        // Update State if Survived
+        if (survived) {
+          sortDirection = result.newMode;
+          pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
+          lastSurvivorVal = currentVal;
+          lastSurvivorHasShield = currentHasShield;
+        }
       }
     }
 
     // 3. Update Result State
-    if (survived) {
-      list[i] = { ...currentItem, status: 'safe' };
-    } else {
-      list[i] = { ...currentItem, status: 'eliminated' };
+    if (currentItem.status !== 'eliminated') { // Only update status if not already eliminated
+      if (survived) {
+        list[i] = { ...currentItem, status: 'safe' };
+      } else {
+        list[i] = { ...currentItem, status: 'eliminated' };
+      }
     }
 
     // 4. Yield Result
@@ -213,8 +222,11 @@ export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index:
     // Determine impacted indices based on tool type
     if (tool === 'purge') {
       impactedIndices = [index];
-    } else if (tool === 'merge') {
-      impactedIndices = [index, index + 1];
+    } else if (tool === 'transfer') {
+      impactedIndices = [index];
+      if (selection !== undefined && selection !== null) {
+        impactedIndices.push(selection);
+      }
     } else if (tool === 'swap') {
       impactedIndices = [index];
       if (selection !== undefined && selection !== null) {
@@ -294,7 +306,7 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
       val: val,
       status: 'pending',
       hiddenRole: HiddenRole.NONE,
-      trueValue: val,
+      delta: 0,
       userTag: UserTag.NONE
     };
   });
@@ -302,6 +314,8 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
 
 
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
+  // ... existing flavor map logic (omitted in tool, but I can't restart function half way) ...
+  // Actually, I can use separate chunks.
   const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
   const keys: FlavorKey[] = ["SOLVED", "DONE", "ADEQUATE", "INITIAL", "SUSPICIOUS", "SABOTAGE"];
   const map = {} as Record<FlavorKey, string>;
@@ -346,7 +360,7 @@ export const calculateYields = (items: CardItem[]): { visibleYield: number; true
   for (let i = 0; i < gradedList.length; i++) {
     if (gradedList[i].status === 'safe') {
       visibleYield += gradedList[i].val;
-      trueYield += gradedList[i].trueValue ?? gradedList[i].val;
+      trueYield += gradedList[i].val + (gradedList[i].delta || 0);
     }
   }
 

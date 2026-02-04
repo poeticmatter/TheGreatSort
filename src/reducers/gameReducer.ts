@@ -79,19 +79,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         t.instanceId === move.toolInstanceId ? { ...t, used: true } : t
       );
 
-      // --- Friendly Fire Check ---
-      let newResistanceStatus = state.resistanceStatus;
-      if (newResistanceStatus === ResistanceStatus.ACTIVE && impactedIndices && impactedIndices.length > 0) {
-        const hitResistance = impactedIndices.some(idx => {
-          if (idx < 0 || idx >= state.list.length) return false;
-          // Check ORIGINAL state list for HiddenRole
-          return state.list[idx].hiddenRole === HiddenRole.RESISTANCE;
-        });
-
-        if (hitResistance) {
-          newResistanceStatus = ResistanceStatus.MIA;
-        }
-      }
+      // --- Friendly Fire Check Removed ---
+      // Resistance status is now only updated at the final audit (verifyResistanceMission).
       // ---------------------------
 
       return {
@@ -101,7 +90,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         movesHistory: [...state.movesHistory, move],
         selection: null,
         selectedToolInstanceId: null,
-        resistanceStatus: newResistanceStatus,
+        resistanceStatus: state.resistanceStatus,
       };
     }
 

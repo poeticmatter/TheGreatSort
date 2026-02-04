@@ -12,7 +12,7 @@ describe('gameReducer', () => {
   });
 
   it('should handle START_LEVEL', () => {
-    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 10, userTag: UserTag.NONE }];
+    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE }];
     const mockTools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
 
     const action: GameAction = {
@@ -56,9 +56,9 @@ describe('gameReducer', () => {
   describe('SELECT_TILE', () => {
     // Setup
     const list: CardItem[] = [
-      { id: 'a', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 10, userTag: UserTag.NONE },
-      { id: 'b', val: 20, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 20, userTag: UserTag.NONE },
-      { id: 'c', val: 30, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 30, userTag: UserTag.NONE }
+      { id: 'a', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE },
+      { id: 'b', val: 20, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE },
+      { id: 'c', val: 30, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE }
     ];
     const tools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
     const baseState = { ...initialState, list, toolsAvailable: tools, phase: GamePhase.PLANNING };
@@ -77,88 +77,12 @@ describe('gameReducer', () => {
     // Obsolete tests removed: Logic for applying moves moved to hooks/APPLY_MOVE
   });
 
-  describe('Friendly Fire Mechanics', () => {
-    const resistanceItem: CardItem = { id: 'r', val: 10, status: 'pending', hiddenRole: HiddenRole.RESISTANCE, trueValue: 10, userTag: UserTag.NONE };
-    const normalItem: CardItem = { id: 'n', val: 20, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 20, userTag: UserTag.NONE };
-
-    const tools: ToolInstance[] = [
-      { instanceId: 'purge-1', type: 'purge', used: false },
-      { instanceId: 'merge-1', type: 'merge', used: false },
-      { instanceId: 'swap-1', type: 'swap', used: false }
-    ];
-
-    const baseState = {
-      ...initialState,
-      list: [resistanceItem, normalItem],
-      toolsAvailable: tools,
-      phase: GamePhase.PLANNING,
-      resistanceStatus: ResistanceStatus.ACTIVE
-    };
-
-    it('should set status to MIA when Purging a Resistance Agent', () => {
-      // Mock the move payload (APPLY_MOVE relies on logic having run, but we just check side effects here)
-      // Note: The reducer expects the NEW list to be passed in. The logic for filtering itself isn't in reducer.
-      // We simulate the new list being passed (one item removed)
-      const action: GameAction = {
-        type: 'APPLY_MOVE',
-        payload: {
-          list: [normalItem], // Agent removed
-          move: { tool: 'purge', toolInstanceId: 'purge-1', index: 0, description: 'Purge' }
-        }
-      };
-
-      const newState = gameReducer(baseState, action);
-      expect(newState.resistanceStatus).toBe(ResistanceStatus.MIA);
-    });
-
-    it('should set status to MIA when Merging a Resistance Agent (Left)', () => {
-      const action: GameAction = {
-        type: 'APPLY_MOVE',
-        payload: {
-          list: [{ ...resistanceItem, val: 30 }], // Merged result
-          move: { tool: 'merge', toolInstanceId: 'merge-1', index: 0, description: 'Merge' }
-        }
-      };
-
-      const newState = gameReducer(baseState, action);
-      expect(newState.resistanceStatus).toBe(ResistanceStatus.MIA);
-    });
-
-    it('should set status to MIA when Merging a Resistance Agent (Right)', () => {
-      // Setup: Normal, Resistance
-      const state = { ...baseState, list: [normalItem, resistanceItem] };
-
-      const action: GameAction = {
-        type: 'APPLY_MOVE',
-        payload: {
-          list: [{ ...normalItem, val: 30 }],
-          move: { tool: 'merge', toolInstanceId: 'merge-1', index: 0, description: 'Merge' }
-        }
-      };
-
-      const newState = gameReducer(state, action);
-      expect(newState.resistanceStatus).toBe(ResistanceStatus.MIA);
-    });
-
-    it('should NOT set status to MIA when Purging a normal item', () => {
-      const action: GameAction = {
-        type: 'APPLY_MOVE',
-        payload: {
-          list: [resistanceItem], // Normal removed (index 1)
-          move: { tool: 'purge', toolInstanceId: 'purge-1', index: 1, description: 'Purge' }
-        }
-      };
-
-      const newState = gameReducer(baseState, action);
-      // Should remain ACTIVE
-      expect(newState.resistanceStatus).toBe(ResistanceStatus.ACTIVE);
-    });
-  });
+  // Friendly Fire Mechanics tests removed (Logic moved to Audit Phase)
 
 
   describe('Tagging System', () => {
     it('should toggle tag: NONE -> SUSPICIOUS -> STATE -> RESISTANCE -> NONE', () => {
-      const item: CardItem = { id: 't1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, trueValue: 10, userTag: UserTag.NONE };
+      const item: CardItem = { id: 't1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE };
       let state = { ...initialState, list: [item] };
 
       // 1. NONE -> SUSPICIOUS

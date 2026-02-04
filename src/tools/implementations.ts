@@ -1,5 +1,5 @@
 import { ToolStrategy } from './types';
-import { ISortable, Move, ToolType } from '../../types';
+import { ISortable, Move, ToolType, CardItem } from '../../types';
 
 // Use shallow copy for performance and reference preservation
 const copy = <T extends ISortable>(list: T[]): T[] => [...list];
@@ -64,7 +64,10 @@ export class PurgeTool implements ToolStrategy {
     apply(list: ISortable[], index: number): ISortable[] {
         const newList = copy(list);
         if (index >= 0 && index < newList.length) {
-            newList.splice(index, 1);
+            // Soft Delete: Set status to eliminated instead of splicing
+            const item = newList[index] as unknown as CardItem;
+            // Assuming the consumer handles the cast or check
+            newList[index] = { ...newList[index], status: 'eliminated' } as any;
         }
         return newList;
     }
@@ -144,34 +147,37 @@ export class LongSwapTool implements ToolStrategy {
     }
 }
 
-export class MergeTool implements ToolStrategy {
-    type: ToolType = 'merge';
+export class TransferTool implements ToolStrategy {
+    type: ToolType = 'transfer';
     requiresSelection = true;
 
     apply(list: ISortable[], index: number, selection?: number): ISortable[] {
         const newList = copy(list);
-        let firstIdx = index;
         if (selection !== undefined && selection !== null) {
-            firstIdx = Math.min(index, selection);
-        }
-
-        if (firstIdx >= 0 && firstIdx < newList.length - 1) {
-            const sum = newList[firstIdx].val + newList[firstIdx + 1].val;
-            newList[firstIdx] = { ...newList[firstIdx], val: sum };
-            newList.splice(firstIdx + 1, 1);
+            if (index >= 0 && index < list.length && selection >= 0 && selection < list.length) {
+                // Logic: Decrease Selection by 2, Increase Target (Index) by 2
+                newList[selection] = { ...newList[selection], val: newList[selection].val - 2 };
+                newList[index] = { ...newList[index], val: newList[index].val + 2 };
+            }
         }
         return newList;
     }
 
     isValid(list: ISortable[], index: number, selection?: number): boolean {
         if (selection === undefined || selection === null) return index >= 0 && index < list.length;
-        return Math.abs(index - selection) === 1;
+        // Target must be non-adjacent (>1 distance)
+        return Math.abs(index - selection) > 1;
     }
 
     generateMoves(list: ISortable[]): Move[] {
         const moves: Move[] = [];
-        for (let i = 0; i < list.length - 1; i++) {
-            moves.push({ tool: this.type, index: i, description: `Merge items at index ${i}` });
+        // Generate potential moves for solver
+        for (let i = 0; i < list.length; i++) {
+            for (let j = 0; j < list.length; j++) {
+                if (Math.abs(i - j) > 1) {
+                    moves.push({ tool: this.type, index: j, targetIndex: i, description: `Transfer from ${i} to ${j}` });
+                }
+            }
         }
         return moves;
     }

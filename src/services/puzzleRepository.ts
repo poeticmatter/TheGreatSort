@@ -55,7 +55,7 @@ export const PuzzleRepository = {
             status: 'pending',
             hasShield: false, // Default to false as simple numbers don't imply shields
             hiddenRole: HiddenRole.NONE,
-            trueValue: val,
+            delta: 0,
             userTag: UserTag.NONE
         }));
     },

@@ -34,11 +34,11 @@ export interface CardItem extends ISortable {
   id: string;
   status: CardStatus;
   hiddenRole: HiddenRole;
-  trueValue: number;
+  delta?: number;
   userTag: UserTag;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'merge' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize';
+export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize' | 'transfer';
 
 export interface ToolDefinition {
   id: ToolType;

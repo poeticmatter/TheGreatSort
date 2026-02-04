@@ -173,7 +173,7 @@ export class GameHydrationService {
 
         if (!resistanceData) {
             return {
-                list: list.map(item => ({ ...item, hiddenRole: HiddenRole.NONE, trueValue: item.val })),
+                list: list.map(item => ({ ...item, hiddenRole: HiddenRole.NONE, delta: 0 })),
                 resistanceStatus: ResistanceStatus.INACTIVE
             };
         }
@@ -186,13 +186,12 @@ export class GameHydrationService {
 
             if (agentData) {
                 hiddenRole = agentData.role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE;
-                trueValue = item.val + agentData.delta; // Use delta from puzzle data
             }
 
             return {
                 ...item,
                 hiddenRole,
-                trueValue
+                delta: agentData ? agentData.delta : 0
             };
         });
 
