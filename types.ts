@@ -38,7 +38,7 @@ export interface CardItem extends ISortable {
   userTag: UserTag;
 }
 
-export type ToolType = 'demote' | 'swap' | 'purge' | 'promote' | 'longswap' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize' | 'transfer';
+export type ToolType = 'demote' | 'swap' | 'promote' | 'longswap' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize' | 'transfer';
 
 export interface ToolDefinition {
   id: ToolType;

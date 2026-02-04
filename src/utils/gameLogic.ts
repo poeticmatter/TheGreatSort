@@ -52,39 +52,31 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
     let survived = false;
     let pointsToAdd = 0;
 
-    // Handle pre-eliminated items (from Purge)
-    if (currentItem.status === 'eliminated') {
-      // Do nothing for logic. treat as non-existent.
-      // But we still yield below to support visualization.
+    if (lastSurvivorVal === null) {
+      // This is effectively the first item (or first non-eliminated item)
+      survived = true;
+      pointsToAdd = currentVal; // Include first item's value
+      lastSurvivorVal = currentVal;
+      lastSurvivorHasShield = currentHasShield;
     } else {
-      if (lastSurvivorVal === null) {
-        // This is effectively the first item (or first non-eliminated item)
-        survived = true;
-        pointsToAdd = currentVal; // Include first item's value
+      // Use judgeStep to determine outcome
+      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal, sortDirection);
+      survived = result.survived;
+
+      // Update State if Survived
+      if (survived) {
+        sortDirection = result.newMode;
+        pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
         lastSurvivorVal = currentVal;
         lastSurvivorHasShield = currentHasShield;
-      } else {
-        // Use judgeStep to determine outcome
-        const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal, sortDirection);
-        survived = result.survived;
-
-        // Update State if Survived
-        if (survived) {
-          sortDirection = result.newMode;
-          pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
-          lastSurvivorVal = currentVal;
-          lastSurvivorHasShield = currentHasShield;
-        }
       }
     }
 
     // 3. Update Result State
-    if (currentItem.status !== 'eliminated') { // Only update status if not already eliminated
-      if (survived) {
-        list[i] = { ...currentItem, status: 'safe' };
-      } else {
-        list[i] = { ...currentItem, status: 'eliminated' };
-      }
+    if (survived) {
+      list[i] = { ...currentItem, status: 'safe' };
+    } else {
+      list[i] = { ...currentItem, status: 'eliminated' };
     }
 
     // 4. Yield Result
@@ -141,7 +133,7 @@ export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardI
 // Recursive Solver to find the theoretical maximum score
 export const findOptimalScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
   // If no tools provided, default to standard set (legacy support or fallback)
-  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
   const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
 
   const solution = findOptimalSolution(startList, toolsToUse);
@@ -173,7 +165,7 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
 // Recursive Solver to find the theoretical minimum score
 export const findWorstScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
   // If no tools provided, default to standard set (legacy support or fallback)
-  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
   const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
 
   const solution = findWorstSolution(startList, toolsToUse);
@@ -220,9 +212,7 @@ export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index:
     let impactedIndices: number[] = [];
 
     // Determine impacted indices based on tool type
-    if (tool === 'purge') {
-      impactedIndices = [index];
-    } else if (tool === 'transfer') {
+    if (tool === 'transfer') {
       impactedIndices = [index];
       if (selection !== undefined && selection !== null) {
         impactedIndices.push(selection);

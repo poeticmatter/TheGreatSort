@@ -1,7 +1,7 @@
 import { ToolType } from '../../types';
 import { ToolStrategy } from './types';
 import {
-    DemoteTool, SwapTool, PurgeTool, PromoteTool,
+    DemoteTool, SwapTool, PromoteTool,
     LongSwapTool, TransferTool, SinkTool,
     HalveTool, ShieldTool, ShrinkTool,
     HopTool, MirrorTool, CycleTool, EqualizeTool
@@ -10,7 +10,7 @@ import {
 export const TOOL_REGISTRY: Record<ToolType, ToolStrategy> = {
     demote: new DemoteTool(),
     swap: new SwapTool(),
-    purge: new PurgeTool(),
+
     promote: new PromoteTool(),
     longswap: new LongSwapTool(),
     transfer: new TransferTool(),

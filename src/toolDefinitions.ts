@@ -5,12 +5,12 @@ export interface ToolMetadata {
     weight: number;
 }
 
-export const ALL_TOOL_TYPES = ['demote', 'swap', 'purge', 'promote', 'longswap', 'sink', 'halve', 'shield', 'shrink', 'hop', 'mirror', 'cycle', 'equalize', 'transfer'];
+export const ALL_TOOL_TYPES = ['demote', 'swap', 'promote', 'longswap', 'sink', 'halve', 'shield', 'shrink', 'hop', 'mirror', 'cycle', 'equalize', 'transfer'];
 
 export const TOOL_META: Record<string, ToolMetadata> = {
     DEMOTE: { id: 'demote', weight: 20 },
     SWAP: { id: 'swap', weight: 20 },
-    PURGE: { id: 'purge', weight: 10 },
+
     PROMOTE: { id: 'promote', weight: 20 },
     LONGSWAP: { id: 'longswap', weight: 10 },
     // MERGE Removed

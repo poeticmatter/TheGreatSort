@@ -57,33 +57,7 @@ export class PromoteTool implements ToolStrategy {
 }
 
 
-export class PurgeTool implements ToolStrategy {
-    type: ToolType = 'purge';
-    requiresSelection = false;
 
-    apply(list: ISortable[], index: number): ISortable[] {
-        const newList = copy(list);
-        if (index >= 0 && index < newList.length) {
-            // Soft Delete: Set status to eliminated instead of splicing
-            const item = newList[index] as unknown as CardItem;
-            // Assuming the consumer handles the cast or check
-            newList[index] = { ...newList[index], status: 'eliminated' } as any;
-        }
-        return newList;
-    }
-
-    isValid(list: ISortable[], index: number): boolean {
-        return index >= 0 && index < list.length;
-    }
-
-    generateMoves(list: ISortable[]): Move[] {
-        const moves: Move[] = [];
-        for (let i = 0; i < list.length; i++) {
-            moves.push({ tool: this.type, index: i, description: `Purge item at index ${i}` });
-        }
-        return moves;
-    }
-}
 
 export class SwapTool implements ToolStrategy {
     type: ToolType = 'swap';
