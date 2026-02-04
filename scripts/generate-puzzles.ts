@@ -30,7 +30,7 @@ interface DailyPuzzle {
     // Resistance Data
     resistanceData?: {
         agents: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }>; // Original Index -> {role, delta}
-        trueYieldTarget: number;
+        resistanceTarget: number;
     };
 }
 
@@ -181,18 +181,88 @@ async function main() {
                     if (resistanceAgents.length >= 1 && stateAgents.length >= 1) {
                         // FOUND ONE!
 
-                        // Randomly Select Agents (1 of each)
-                        const selectedResistance = resistanceAgents[Math.floor(Math.random() * resistanceAgents.length)];
-                        const selectedState = stateAgents[Math.floor(Math.random() * stateAgents.length)];
+                        // Randomly define scenario: 2 or 3 agents
+                        const scenarios: ('1v1' | '2v1' | '1v2')[] = [];
+                        if (resistanceAgents.length >= 1 && stateAgents.length >= 1) scenarios.push('1v1');
+                        if (resistanceAgents.length >= 2 && stateAgents.length >= 1) scenarios.push('2v1');
+                        if (resistanceAgents.length >= 1 && stateAgents.length >= 2) scenarios.push('1v2');
 
-                        // Randomly generate deltas (1-3)
-                        const resistanceDelta = -(Math.floor(Math.random() * 3) + 1); // -1 to -3
-                        const stateDelta = Math.floor(Math.random() * 3) + 1;         // +1 to +3
+                        if (scenarios.length === 0) continue;
 
-                        // Assign Roles & Deltas
+                        const distribution = scenarios[Math.floor(Math.random() * scenarios.length)];
+
+                        // Select Indices
+                        const shuffle = (arr: number[]) => [...arr].sort(() => Math.random() - 0.5);
+                        const shuffledRes = shuffle(resistanceAgents);
+                        const shuffledState = shuffle(stateAgents);
+
+                        let selectedResIndices: number[] = [];
+                        let selectedStateIndices: number[] = [];
+
+                        if (distribution === '1v1') {
+                            selectedResIndices = [shuffledRes[0]];
+                            selectedStateIndices = [shuffledState[0]];
+                        } else if (distribution === '2v1') {
+                            selectedResIndices = [shuffledRes[0], shuffledRes[1]];
+                            selectedStateIndices = [shuffledState[0]];
+                        } else { // 1v2
+                            selectedResIndices = [shuffledRes[0]];
+                            selectedStateIndices = [shuffledState[0], shuffledState[1]];
+                        }
+
+                        // Calculate Deltas (Zero-Sum)
+                        let validDeltasFound = false;
+                        let deltaAttempts = 0;
+                        const MAX_DELTA_ATTEMPTS = 50;
                         const agentsMap: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }> = {};
-                        agentsMap[selectedResistance] = { role: 'RESISTANCE', delta: resistanceDelta };
-                        agentsMap[selectedState] = { role: 'STATE', delta: stateDelta };
+
+                        while (!validDeltasFound && deltaAttempts < MAX_DELTA_ATTEMPTS) {
+                            deltaAttempts++;
+                            const tempMap: typeof agentsMap = {};
+                            let validRun = true;
+
+                            if (distribution === '1v1') {
+                                // 1v1: Res = -X, State = +X. X in [1..3]
+                                const mag = Math.floor(Math.random() * 3) + 1;
+                                tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: -mag };
+                                tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: mag };
+                            }
+                            else if (distribution === '2v1') {
+                                // 2 Res (Group A), 1 State (Group B)
+                                const r1 = -(Math.floor(Math.random() * 3) + 1);
+                                const r2 = -(Math.floor(Math.random() * 3) + 1);
+                                const stateNeeded = -(r1 + r2);
+
+                                if (stateNeeded > 5) validRun = false;
+                                else {
+                                    tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: r1 };
+                                    tempMap[selectedResIndices[1]] = { role: 'RESISTANCE', delta: r2 };
+                                    tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: stateNeeded };
+                                }
+                            }
+                            else { // 1v2: 1 Res (Group B), 2 State (Group A)
+                                const s1 = (Math.floor(Math.random() * 3) + 1);
+                                const s2 = (Math.floor(Math.random() * 3) + 1);
+                                const resNeeded = -(s1 + s2);
+
+                                if (resNeeded < -5) validRun = false;
+                                else {
+                                    tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: s1 };
+                                    tempMap[selectedStateIndices[1]] = { role: 'STATE', delta: s2 };
+                                    tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: resNeeded };
+                                }
+                            }
+
+                            if (validRun) {
+                                Object.assign(agentsMap, tempMap);
+                                validDeltasFound = true;
+                            }
+                        }
+
+                        if (!validDeltasFound) {
+                            console.log(`   -> Alt ${altIndex}: Discarded (Could not balance deltas)`);
+                            continue;
+                        }
 
                         // 1. Calculate Initial True Yield (Baseline)
                         const trueLevel = level.map((item, originalIdx) => {
@@ -213,6 +283,7 @@ async function main() {
                         const validationAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: -Infinity });
 
                         let maxValidTrueYield = -Infinity;
+                        let maxValidVisibleYield = -Infinity;
                         let foundConstraintSatisfyingPath = false;
 
                         if (validationAnalysis.allSolutions) {
@@ -220,23 +291,22 @@ async function main() {
                                 const keptIndices = getKeptIndicesSet(level, sol.moves);
 
                                 // Constraint Check
-                                const resistanceSurvives = keptIndices.has(selectedResistance);
-                                const stateEliminated = !keptIndices.has(selectedState);
+                                const allResistanceSurvive = selectedResIndices.every(idx => keptIndices.has(idx));
+                                const allStateEliminated = selectedStateIndices.every(idx => !keptIndices.has(idx));
 
-                                if (resistanceSurvives && stateEliminated) {
+                                if (allResistanceSurvive && allStateEliminated) {
                                     // Valid Path! Calculate True Yield.
                                     let currentTrueYield = 0;
-                                    // Replay moves on trueLevel is overkill, just sum trueValues of kept indices
-                                    // (Since kept indices are determined by visible values which solve/getKeptIndicesSet handles)
+                                    let currentVisibleYield = 0;
 
-                                    // Wait, getKeptIndicesSet returns original indices that survived.
-                                    // So we can just look them up in trueLevel.
                                     keptIndices.forEach(idx => {
                                         currentTrueYield += trueLevel[idx].trueValue;
+                                        currentVisibleYield += trueLevel[idx].val;
                                     });
 
                                     if (currentTrueYield > maxValidTrueYield) {
                                         maxValidTrueYield = currentTrueYield;
+                                        maxValidVisibleYield = currentVisibleYield;
                                         foundConstraintSatisfyingPath = true;
                                     }
                                 }
@@ -247,7 +317,7 @@ async function main() {
                             // Valid!
                             validResData = {
                                 agents: agentsMap,
-                                trueYieldTarget: maxValidTrueYield
+                                resistanceTarget: maxValidVisibleYield
                             };
                             break; // Stop looking for helpers, we found a max yield configuration.
                         } else {

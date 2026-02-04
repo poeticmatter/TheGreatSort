@@ -4,7 +4,7 @@ import { TOOL_REGISTRY } from '../tools';
 export interface SolverItem extends ISortable { }
 
 export interface DailyPuzzleMove {
-    tool: string;
+    tool: ToolType;
     i: number;
     t?: number;
 }

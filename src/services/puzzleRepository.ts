@@ -16,7 +16,7 @@ export interface DailyPuzzleData {
     }[];
     resistanceData?: {
         agents: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }>;
-        trueYieldTarget?: number;
+        resistanceTarget?: number;
     };
 }
 

@@ -3,7 +3,7 @@ import { GamePhase, ResistanceStatus } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Tooltip from '../Tooltip';
 import { ComplianceMeter } from '../ComplianceMeter';
-import { ResistanceYield } from '../ResistanceYield';
+import { InterferenceMeter } from '../InterferenceMeter';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
@@ -128,7 +128,7 @@ export function PuzzleBoard({
                     <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
                         <div className="pointer-events-auto h-full flex items-center">
                             {isResistanceActive ? (
-                                <ResistanceYield
+                                <InterferenceMeter
                                     visibleYield={effectiveVisibleYield}
                                     trueYield={effectiveTrueYield}
                                     layout={layout}
@@ -188,7 +188,7 @@ export function PuzzleBoard({
             {gridContent}
 
             {isResistanceActive ? (
-                <ResistanceYield
+                <InterferenceMeter
                     visibleYield={effectiveVisibleYield}
                     trueYield={effectiveTrueYield}
                     layout={layout}

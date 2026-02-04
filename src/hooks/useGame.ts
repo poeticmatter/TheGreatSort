@@ -144,17 +144,17 @@ export function useGame(sessionDate: string) {
       const puzzleDate = new Date(y, m - 1, d);
       const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
 
-      // Calculate Initial True Yield (for floor)
-      const initialTrueYield = calculateYields(coreState.initialList).trueYield;
-      const maxTrueYield = puzzle.resistanceData?.trueYieldTarget || 0;
+      // Calculate Initial Regular Yield (for floor) per user request
+      const initialYield = calculateYields(coreState.initialList).visibleYield;
+      const targetYield = puzzle.resistanceData?.resistanceTarget || 0;
 
       // Verify
       finalStatus = verifyResistanceMission(
         coreState.list,
         coreState.resistanceStatus,
         coreState.list.length,
-        initialTrueYield,
-        maxTrueYield
+        initialYield,
+        targetYield
       );
     }
 

@@ -367,8 +367,8 @@ export const verifyResistanceMission = (
   items: CardItem[],
   currentStatus: ResistanceStatus,
   targetLength: number,
-  initialTrueYield: number,
-  maxTrueYield: number
+  initialYield: number,
+  targetYield: number
 ): ResistanceStatus => {
   // 1. If already MIA, game over.
   if (currentStatus === ResistanceStatus.MIA) {
@@ -397,12 +397,16 @@ export const verifyResistanceMission = (
     }
   }
 
-  // 3. Logic based on True Yield (No Failures)
-  const { trueYield } = calculateYields(items);
+  // 3. Logic based on Regular Yield (Visible) per user request
+  const { visibleYield } = calculateYields(items);
 
-  if (trueYield >= maxTrueYield) {
+  // Success Condition: Visible Yield meets Target (which is now Regular Yield in JSON)
+  if (visibleYield >= targetYield) {
     return ResistanceStatus.SUCCESS;
-  } else if (trueYield > initialTrueYield) {
+  } else if (visibleYield > initialYield) {
+    // "Careful" -> Improved Visible Yield but didn't hit target? 
+    // Or maybe we should keep True Yield for "Careful" status? 
+    // User said "Only interference meter". So let's stick to visible.
     return ResistanceStatus.CAREFUL;
   } else {
     // If yield is at initial or below
