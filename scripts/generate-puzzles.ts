@@ -77,24 +77,48 @@ async function main() {
         // 1. Generate Tools
         const toolInstances = generateTools();
         const toolTypes = toolInstances.map(t => t.type);
+        console.log('\n[Tools Selected]:', toolTypes.join(', '));
 
         // 2. Find Valid Base Puzzle
         let validCandidateFound = false;
         let puzzle: DailyPuzzle | null = null;
+        let candidateAttempt = 0;
 
         while (!validCandidateFound) {
+            candidateAttempt++;
             const level = generateLevel(LEVEL_LENGTH);
             const initialSequenceNumbers = level.map(c => c.val);
             const initialScore = calculateBatchScore(level);
 
-            process.stdout.write(`\r[${generatedCount}/${count}] searching...`);
+            process.stdout.write(`[Attempt ${candidateAttempt}] Seq: [${initialSequenceNumbers.slice(0, 3).join(',')}...] `);
 
             // Standard Solve
             const analysis = solve(level, toolTypes, 'MAX');
 
-            if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH || analysis.distinctSolvedStates > 1) {
+            if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH) {
+                // Determine unused tools
+                const toolsUsed = analysis.bestSolution.map(move => move.tool);
+                // Create a copy of toolTypes to track available tools
+                const availableTools = [...toolTypes];
+
+                // Remove used tools from availableTools one by one to handle duplicates correctly
+                for (const usedTool of toolsUsed) {
+                    const index = availableTools.indexOf(usedTool);
+                    if (index !== -1) {
+                        availableTools.splice(index, 1);
+                    }
+                }
+
+                const unusedTools = availableTools;
+                console.log(`-> Discarded: Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH} (Too easy). Unused Tools: [${unusedTools.join(', ')}]`);
                 continue;
             }
+            if (analysis.distinctSolvedStates > 1) {
+                console.log(`-> Discarded: Distinct Solutions ${analysis.distinctSolvedStates} > 1`);
+                continue;
+            }
+
+            console.log(`-> Base Valid. Searching for Resistance Layer...`);
 
             // Base Puzzle
             const minSol = findWorstSolution(level, toolTypes);
@@ -118,7 +142,9 @@ async function main() {
             let validResData = null;
 
             if (altAnalysis.allSolutions) {
+                let altIndex = 0;
                 for (const alt of altAnalysis.allSolutions) {
+                    altIndex++;
                     // Check: Kept Indices != Standard Kept Indices
                     const altKeptIndices = getKeptIndicesSet(level, alt.moves);
 
@@ -126,7 +152,10 @@ async function main() {
                     const areSetsEqual = (a: Set<number>, b: Set<number>) =>
                         a.size === b.size && [...a].every(value => b.has(value));
 
-                    if (areSetsEqual(standardKeptIndices, altKeptIndices)) continue;
+                    if (areSetsEqual(standardKeptIndices, altKeptIndices)) {
+                        console.log(`   -> Alt ${altIndex}: Discarded (Sets equal)`);
+                        continue;
+                    }
 
                     // Derive Roles
                     // Resistance Agent: In Alt (ResSet), NOT in Standard (StateSet)
@@ -144,6 +173,11 @@ async function main() {
                     });
 
                     // Constraint: At least 1 of each
+                    if (resistanceAgents.length < 1 || stateAgents.length < 1) {
+                        console.log(`   -> Alt ${altIndex}: Discarded (Insufficient roles: R=${resistanceAgents.length}, S=${stateAgents.length})`);
+                        continue;
+                    }
+
                     if (resistanceAgents.length >= 1 && stateAgents.length >= 1) {
                         // FOUND ONE!
 
@@ -216,6 +250,8 @@ async function main() {
                                 trueYieldTarget: maxValidTrueYield
                             };
                             break; // Stop looking for helpers, we found a max yield configuration.
+                        } else {
+                            console.log(`   -> Alt ${altIndex}: Discarded (Max Yield ${maxValidTrueYield} <= Initial ${initialTrueYield} or No Path)`);
                         }
                     }
                 }
@@ -227,7 +263,7 @@ async function main() {
                 validCandidateFound = true;
                 console.log(` -> Found Resistance Layer! (Standard: ${analysis.maxYield}, Res Path: ${validResData.trueYieldTarget})`);
             } else {
-                // console.log(" -> No valid resistance layer found. Retrying...");
+                console.log(`[Attempt ${candidateAttempt}] Failed: Resistance layer constraints not met.`);
             }
         }
 
