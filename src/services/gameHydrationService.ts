@@ -38,7 +38,7 @@ export class GameHydrationService {
 
         moves.forEach(move => {
             // Apply move logic to list
-            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex).newList;
 
             // Mark tool as used
             const toolIndex = currentTools.findIndex(t => t.instanceId === move.toolInstanceId);

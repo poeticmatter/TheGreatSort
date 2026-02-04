@@ -46,7 +46,7 @@ export type GameAction =
   }
   | { type: 'SELECT_TOOL'; payload: { toolInstanceId: string | null } }
   | { type: 'SELECT_TILE'; payload: { index: number } }
-  | { type: 'APPLY_MOVE'; payload: { list: CardItem[]; move: Move } }
+  | { type: 'APPLY_MOVE'; payload: { list: CardItem[]; move: Move; impactedIndices: number[] } }
   | { type: 'CANCEL_SELECTION' }
   | {
     type: 'INSPECTION_STEP';

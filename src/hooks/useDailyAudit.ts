@@ -130,8 +130,8 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
                 move: move
             });
 
-            // Apply move to get next state
-            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+            // Apply move logic to get next state
+            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex).newList;
         }
 
         // Final Result State

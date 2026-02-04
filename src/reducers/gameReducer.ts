@@ -72,7 +72,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
     case 'APPLY_MOVE': {
       if (state.phase !== GamePhase.PLANNING) return state;
-      const { list, move } = action.payload;
+      const { list, move, impactedIndices } = action.payload;
 
       // Mark tool as used
       const newTools = state.toolsAvailable.map(t =>
@@ -81,35 +81,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       // --- Friendly Fire Check ---
       let newResistanceStatus = state.resistanceStatus;
-      if (newResistanceStatus === ResistanceStatus.ACTIVE) { // Only check if currently ACTIVE
-        const targetIndex = move.index;
+      if (newResistanceStatus === ResistanceStatus.ACTIVE && impactedIndices && impactedIndices.length > 0) {
+        const hitResistance = impactedIndices.some(idx => {
+          if (idx < 0 || idx >= state.list.length) return false;
+          // Check ORIGINAL state list for HiddenRole
+          return state.list[idx].hiddenRole === HiddenRole.RESISTANCE;
+        });
 
-        if (move.tool === 'purge') {
-          // Purge affects single item at index
-          if (targetIndex >= 0 && targetIndex < state.list.length) {
-            const targetRole = state.list[targetIndex].hiddenRole;
-            if (targetRole === HiddenRole.RESISTANCE) {
-              newResistanceStatus = ResistanceStatus.MIA;
-            }
-          }
-        } else if (move.tool === 'merge') {
-          // Merge affects index and index+1
-          // We must be careful about bounds, but usually the tool/move generator ensures valid moves.
-          // Still good to check.
-          const idx1 = targetIndex;
-          const idx2 = targetIndex + 1;
-
-          let hitResistance = false;
-          if (idx1 >= 0 && idx1 < state.list.length) {
-            if (state.list[idx1].hiddenRole === HiddenRole.RESISTANCE) hitResistance = true;
-          }
-          if (idx2 >= 0 && idx2 < state.list.length) {
-            if (state.list[idx2].hiddenRole === HiddenRole.RESISTANCE) hitResistance = true;
-          }
-
-          if (hitResistance) {
-            newResistanceStatus = ResistanceStatus.MIA;
-          }
+        if (hitResistance) {
+          newResistanceStatus = ResistanceStatus.MIA;
         }
       }
       // ---------------------------
@@ -198,7 +178,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       newHistory.forEach(move => {
         // Apply move logic
-        currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+        const result = applyMove(currentList, move.tool, move.index, move.targetIndex);
+        currentList = result.newList;
 
         // Mark tool as used
         const toolIdx = currentTools.findIndex(t => t.instanceId === move.toolInstanceId);

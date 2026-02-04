@@ -198,24 +198,36 @@ export const calculateRelativeEfficiency = (userScore: number, optimal: number, 
 
 
 
-// Apply a move to a list and return the new list
-export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): T[] {
+export interface MoveResult<T> {
+  newList: T[];
+  impactedIndices: number[];
+}
+
+// Apply a move to a list and return the new list and impacted indices
+export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): MoveResult<T> {
   const strategy = TOOL_REGISTRY[tool];
   if (strategy) {
-    // We cast to ISortable[] for the strategy, and rely on it returning T[] implicitly (same structure)
-    // However, strategy.apply returns ISortable[]. We need to ensure types align.
-    // T extends ISortable. Strategy returns ISortable[].
-    // The strategies use `copy(list)` which maps `{...item}`. This preserves extra props like `id` if they exist on the input objects.
-    // So passing `list` (T[]) into `strategy.apply` works at runtime.
-    // TypeScript might complain about return type not being guaranteed T[].
-    // We can cast the result.
+    const newList = strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
+    let impactedIndices: number[] = [];
 
-    // Wait, strategy.apply takes ISortable[]. list is T[]. T extends ISortable. OK.
-    // Returns ISortable[]. We need T[].
-    // The implementation of strategies preserves properties via spread.
-    return strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
+    // Determine impacted indices based on tool type
+    if (tool === 'purge') {
+      impactedIndices = [index];
+    } else if (tool === 'merge') {
+      impactedIndices = [index, index + 1];
+    } else if (tool === 'swap') {
+      impactedIndices = [index];
+      if (selection !== undefined && selection !== null) {
+        impactedIndices.push(selection);
+      }
+    } else {
+      // Default single-index action (promote, demote, etc.)
+      impactedIndices = [index];
+    }
+
+    return { newList, impactedIndices };
   }
-  return list;
+  return { newList: list, impactedIndices: [] };
 }
 
 // Generate 4 tools from the pool
