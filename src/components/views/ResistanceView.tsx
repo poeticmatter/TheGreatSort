@@ -1,17 +1,18 @@
 import React from 'react';
 import { ResistanceLetter } from '../ResistanceLetter';
+import { useGameContext } from '../../context/GameContext';
 
-// Ideally, text content or other state should be passed here or retrieved from context if needed.
-// For now, it just renders the letter which might have its own static content or props.
-interface ResistanceViewProps {
-    onClose: () => void;
-    onBackgroundClick: () => void;
-}
+export function ResistanceView() {
+    const { state, dispatch } = useGameContext();
+    const { isViewOpen, status } = state.resistance;
 
-export function ResistanceView({ onClose, onBackgroundClick }: ResistanceViewProps) {
+    if (!isViewOpen) return null;
+
     return (
-        <main className="flex-1 flex flex-col items-center p-4 relative overflow-y-auto custom-scrollbar" onClick={onBackgroundClick}>
-            <ResistanceLetter onClose={onClose} />
-        </main>
+        <ResistanceLetter
+            onClose={() => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' })}
+        // We can pass status down if ResistanceLetter needs to adapt its message 
+        // e.g. status={status} 
+        />
     );
 }

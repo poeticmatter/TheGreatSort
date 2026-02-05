@@ -1,9 +1,14 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { GameState, GameAction } from '../reducers/gameState';
 import { MetaState, MetaActions } from './useMetaGame';
-import { ResistanceStatus, CardItem } from '../../types';
+import { ResistanceStatus } from '../../types';
 import { PersistenceService } from '../services/persistence';
-import { verifyResistanceMission, gradeLevel, shouldTriggerResistance, calculateCompliance } from '../utils/gameLogic';
+import {
+    verifyResistanceMission,
+    gradeLevel,
+    shouldTriggerResistance,
+    selectResistanceTriggerContext
+} from '../utils/gameLogic';
 
 interface UseResistanceSystemProps {
     coreState: GameState;
@@ -13,6 +18,7 @@ interface UseResistanceSystemProps {
     saveDailyResult: (score: number, resistanceStatus: ResistanceStatus) => void;
     retryDaily: () => void;
     nextLevel: () => void;
+    hasJoinedResistance: boolean; // Now passed as prop instead of loading inside hook
 }
 
 export function useResistanceSystem({
@@ -22,42 +28,25 @@ export function useResistanceSystem({
     metaActions,
     saveDailyResult,
     retryDaily,
-    nextLevel
+    nextLevel,
+    hasJoinedResistance
 }: UseResistanceSystemProps) {
 
+    // Intercept Model: Check Trigger via Selector
+    const checkResistanceTrigger = useCallback(() => {
+        const context = selectResistanceTriggerContext(
+            coreState,
+            metaState.gameMode,
+            hasJoinedResistance
+        );
 
-
-    // Intercept Model: Check Trigger Explicitly
-    const checkResistanceTrigger = useCallback((
-        currentList: CardItem[],
-        optimalScore: number | null,
-        worstScore: number | null,
-        movesCount: number
-    ) => {
-        // 1. Calculate Metrics on the Fly
-        const { score: currentYield } = gradeLevel(currentList);
-        const compliancePercentage = calculateCompliance(currentYield, optimalScore, worstScore);
-        const scoresCalculated = optimalScore !== null && worstScore !== null;
-        const joined = PersistenceService.loadResistanceStatus();
-
-        // 2. Evaluate Rule
-        if (shouldTriggerResistance({
-            gameMode: metaState.gameMode,
-            resistanceActive: coreState.resistance.isViewOpen || coreState.resistance.status !== ResistanceStatus.INACTIVE,
-            scoresCalculated,
-            compliancePercentage,
-            listLength: currentList.length,
-            hasJoined: joined,
-            movesCount: movesCount,
-            hasTriggeredLocal: coreState.resistance.hasTriggered
-        })) {
-            // metaActions.triggerResistance(); // REMOVED: Now handled by reducer
+        if (shouldTriggerResistance(context)) {
             coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
         }
     }, [
         metaState.gameMode,
-        coreState.resistance, // Depend on resistance state object
-        metaActions,
+        coreState,
+        hasJoinedResistance,
         coreDispatch
     ]);
 
@@ -66,14 +55,9 @@ export function useResistanceSystem({
         let finalStatus = coreState.resistance.status;
 
         if (coreState.resistance.status !== ResistanceStatus.INACTIVE) {
-            // Fetch Targets
-            // We rely on state resistanceTarget or fallback to 0 (which shouldn't happen if mode active)
             const targetYield = coreState.resistance.targetYield || 0;
-
-            // Calculate Initial Yield (for floor check logic in verification if needed)
             const initialYield = coreState.initialList ? gradeLevel(coreState.initialList).score : 0;
 
-            // Verify
             finalStatus = verifyResistanceMission(
                 coreState.list,
                 coreState.resistance.status,
@@ -86,13 +70,12 @@ export function useResistanceSystem({
         // Composite action: Save Persist + Meta Update
         saveDailyResult(coreState.levelScore, finalStatus);
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-        // metaActions.setResistancePending(true); // REPLACED
         coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: true } });
         metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
     }, [
         saveDailyResult,
         coreState.levelScore,
-        coreState.resistance, // Updated dependency
+        coreState.resistance,
         coreState.optimalScore,
         coreDispatch,
         metaActions,
@@ -103,11 +86,8 @@ export function useResistanceSystem({
     const closeResistanceAndReset = useCallback(() => {
         // 1. Commit the player to the resistance
         PersistenceService.saveResistanceStatus(true);
-        // Ensure we don't re-trigger immediately (though reload will reset this, localstorage protects it then)
-        // hasTriggeredResistance.current = true; // Handled in Reducer now
 
         // 2. Close the UI overlay
-        // metaActions.closeResistance(); // REPLACED
         coreDispatch({ type: 'CLOSE_RESISTANCE_VIEW' });
 
         // 3. Restart the level with the new status
@@ -116,7 +96,14 @@ export function useResistanceSystem({
         } else {
             nextLevel();
         }
-    }, [metaActions, metaState.gameMode, retryDaily, nextLevel]);
+    }, [metaState.gameMode, retryDaily, nextLevel, coreDispatch]);
+
+    // Reactive Trigger Check: Runs after state update/render
+    React.useEffect(() => {
+        if (metaState.gameMode === 'DAILY' && coreState.movesHistory.length > 0) {
+            checkResistanceTrigger();
+        }
+    }, [coreState.movesHistory, checkResistanceTrigger, metaState.gameMode]);
 
     return {
         checkResistanceTrigger,
@@ -124,3 +111,4 @@ export function useResistanceSystem({
         closeResistanceAndReset
     };
 }
+

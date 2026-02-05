@@ -33,6 +33,8 @@ export interface ResistanceTriggerContext {
   resistanceActive: boolean;
   scoresCalculated: boolean;
   compliancePercentage: number;
+  currentYield: number;
+  worstScore: number | null;
   listLength: number;
   hasJoined: boolean;
   movesCount: number;
@@ -40,16 +42,62 @@ export interface ResistanceTriggerContext {
 }
 
 export const shouldTriggerResistance = (context: ResistanceTriggerContext): boolean => {
+  // Trigger when player hits the exact minimum yield (Failure State)
+  // Scores must be calculated and match the worst possible score.
   return (
     context.gameMode === 'DAILY' &&
     context.scoresCalculated &&
-    context.compliancePercentage === 0 &&
+    context.worstScore !== null &&
+    context.currentYield <= context.worstScore && // Integer comparison
     !context.resistanceActive &&
     context.listLength > 0 &&
     !context.hasJoined &&
     context.movesCount > 0 &&
     !context.hasTriggeredLocal
   );
+};
+
+// --- Selector: Derives ResistanceTriggerContext from state ---
+export interface ResistanceTriggerStateInput {
+  list: CardItem[];
+  optimalScore: number | null;
+  worstScore: number | null;
+  movesHistory: Move[];
+  resistance: {
+    isViewOpen: boolean;
+    hasTriggered: boolean;
+    status: ResistanceStatus;
+  };
+}
+
+export const selectResistanceTriggerContext = (
+  coreState: ResistanceTriggerStateInput,
+  gameMode: string,
+  hasJoined: boolean
+): ResistanceTriggerContext => {
+  const { score: currentYield } = gradeLevel(coreState.list);
+  const compliancePercentage = calculateCompliance(
+    currentYield,
+    coreState.optimalScore,
+    coreState.worstScore
+  );
+  const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
+  const resistanceActive =
+    coreState.resistance.isViewOpen ||
+    coreState.resistance.status !== ResistanceStatus.INACTIVE;
+
+  return {
+    gameMode,
+    resistanceActive,
+    scoresCalculated,
+    compliancePercentage,
+    currentYield,
+    worstScore: coreState.worstScore,
+    listLength: coreState.list.length,
+    hasJoined,
+    movesCount: coreState.movesHistory.length,
+    hasTriggeredLocal: coreState.resistance.hasTriggered,
+  };
 };
 
 export interface DailyState {

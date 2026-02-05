@@ -1,8 +1,9 @@
-import { GameState } from '../reducers/gameState';
+import { GameState, ResistanceState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
 import { GamePhase, ToolInstance, Move, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
+import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export interface HydrationResult {
     initialState: Partial<GameState>;
@@ -86,8 +87,11 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: phase === GamePhase.RESULTS,
-            resistanceStatus,
-            resistanceTarget, // Set the target
+            resistance: {
+                ...initialResistanceState,
+                status: resistanceStatus,
+                targetYield: resistanceTarget,
+            },
             // Default others
             totalScore: 0,
             totalOptimalScore: 0,
@@ -128,8 +132,11 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: false,
-            resistanceStatus,
-            resistanceTarget, // Set the target
+            resistance: {
+                ...initialResistanceState,
+                status: resistanceStatus,
+                targetYield: resistanceTarget,
+            },
         };
 
         return { initialState: state, isValid: true };
@@ -160,7 +167,7 @@ export class GameHydrationService {
             optimalScore: null, // Practice calculates this async usually
             worstScore: null,
             dailyCompleted: false,
-            resistanceStatus: ResistanceStatus.INACTIVE,
+            resistance: { ...initialResistanceState },
         };
 
         return { initialState: state, isValid: true };

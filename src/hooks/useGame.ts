@@ -13,17 +13,13 @@ import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
 import { useGameInteractions } from './useGameInteractions';
 import { useResistanceSystem } from './useResistanceSystem';
 import { PersistenceService } from '../services/persistence';
+import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export function useGame(sessionDate: string) {
 
   // 1. Core Game (Board, Reducer, Loop)
-  const onMoveRef = useRef<((newList: CardItem[], move: Move) => void) | undefined>();
 
-  const onMoveWrapper = useCallback((newList: CardItem[], move: Move) => {
-    onMoveRef.current?.(newList, move);
-  }, []);
-
-  const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame({ onMoveApplied: onMoveWrapper });
+  const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame();
 
   // 2. Meta Game (Mode, Audit, Resistance)
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
@@ -85,7 +81,7 @@ export function useGame(sessionDate: string) {
     const { initialState } = GameHydrationService.hydrateDailyNew(puzzle); // 2. [CRITICAL] Inject Resistance Status if player has joined
     const hasJoined = PersistenceService.loadResistanceStatus();
     if (hasJoined) {
-      initialState.resistanceStatus = ResistanceStatus.ACTIVE;
+      initialState.resistance = { ...initialResistanceState, status: ResistanceStatus.ACTIVE };
     }
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
@@ -98,7 +94,8 @@ export function useGame(sessionDate: string) {
   }, [coreDispatch, metaActions]);
 
   // --- Resistance System ---
-  // --- Resistance System ---
+  const hasJoinedResistance = PersistenceService.loadResistanceStatus();
+
   const { finalizeResistanceMission, closeResistanceAndReset, checkResistanceTrigger } = useResistanceSystem({
     coreState,
     coreDispatch,
@@ -106,20 +103,11 @@ export function useGame(sessionDate: string) {
     metaActions,
     saveDailyResult,
     retryDaily,
-    nextLevel
+    nextLevel,
+    hasJoinedResistance
   });
 
-  // Wiring: Update Interceptor
-  useEffect(() => {
-    onMoveRef.current = (newList, move) => {
-      checkResistanceTrigger(
-        newList,
-        coreState.optimalScore,
-        coreState.worstScore,
-        coreState.movesHistory.length + 1
-      );
-    };
-  });
+
 
   // --- Initialization ---
 
@@ -129,7 +117,7 @@ export function useGame(sessionDate: string) {
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
-          dailyConfig.resistanceStatus = ResistanceStatus.ACTIVE;
+          dailyConfig.resistance = { ...initialResistanceState, status: ResistanceStatus.ACTIVE };
         }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
@@ -236,7 +224,7 @@ export function useGame(sessionDate: string) {
     shareResult,
     closeAudit: metaActions.closeAudit,
     triggerCurrentAudit: metaActions.triggerCurrentAudit,
-    triggerResistance: metaActions.triggerResistance,
+    triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
     closeResistance: closeResistanceAndReset,
     saveDaily: finalizeResistanceMission
   }), [
@@ -263,7 +251,7 @@ export function useGame(sessionDate: string) {
       sessionDate,
       dailyResult,
       isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked,
-      resistanceActive: metaState.gameMode === 'PRACTICE' ? false : metaState.resistanceActive,
+      resistanceActive: metaState.gameMode === 'PRACTICE' ? false : (coreState.resistance?.isViewOpen ?? false),
       persistenceLoaded: dailyStatus === 'READY',
       startingCompliance,
       isZeroYield,

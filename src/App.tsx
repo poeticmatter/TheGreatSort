@@ -47,25 +47,19 @@ function TheGreatSortContent() {
   // --- View Routing ---
   // State Machine logic for View Selection
   const getView = () => {
-    if (data.resistanceActive) {
-      return (
-        <ResistanceView
-          onClose={actions.closeResistance}
-          onBackgroundClick={actions.handleBackgroundClick}
-        />
-      );
-    }
-
     // Audit State is now handled within GameView's orchestration
-
     return (
-      <GameView
-        data={data}
-        interaction={interaction}
-        actions={actions}
-        layout={layout}
-        onLayoutChange={setLayout}
-      />
+      <>
+        <GameView
+          data={data}
+          interaction={interaction}
+          actions={actions}
+          layout={layout}
+          onLayoutChange={setLayout}
+        />
+        {/* ResistanceView controls its own visibility via Context */}
+        <ResistanceView />
+      </>
     );
   };
 

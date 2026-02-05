@@ -73,7 +73,9 @@ export function PuzzleBoard({
 
     // [ARCHITECTURAL FIX]
     // The UI must respond to the Core Status (Persistent), not the Meta Active flag (Transient Letter).
-    const isResistanceActive = state.resistanceStatus !== ResistanceStatus.INACTIVE;
+    // Access nested state safely, as resistance object was refactored.
+    const resistanceStatus = state.resistance?.status ?? ResistanceStatus.INACTIVE;
+    const isResistanceActive = resistanceStatus !== ResistanceStatus.INACTIVE;
 
     // Grid Content
     const gridContent = (

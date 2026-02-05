@@ -77,7 +77,6 @@ export type GameAction =
   | { type: 'SET_DETECTED_MODE'; payload: { mode: 'ASC' | 'DESC' | null } }
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
   | { type: 'UNDO_MOVE' }
-  | { type: 'UNDO_MOVE' }
   | { type: 'ACTIVATE_RESISTANCE' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'SET_RESISTANCE_PENDING'; payload: { pending: boolean } }

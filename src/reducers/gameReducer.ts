@@ -80,10 +80,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         t.instanceId === move.toolInstanceId ? { ...t, used: true } : t
       );
 
-      // --- Friendly Fire Check Removed ---
-      // Resistance status is now only updated at the final audit (verifyResistanceMission).
-      // ---------------------------
-
       return {
         ...state,
         list,
@@ -91,7 +87,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         movesHistory: [...state.movesHistory, move],
         selection: null,
         selectedToolInstanceId: null,
-        resistance: state.resistance,
       };
     }
 
