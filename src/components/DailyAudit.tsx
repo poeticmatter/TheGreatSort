@@ -1,11 +1,14 @@
-import React from 'react';
-import { calculateRelativeEfficiency, calculateBatchScore, verifyResistanceMission } from '../utils/gameLogic';
+import React, { useState } from 'react';
+import { calculateRelativeEfficiency, calculateBatchScore, verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
 import { ResistanceStatus } from '../../types';
 import { TOOLS } from '../constants';
-import { CheckCircle, AlertTriangle, ArrowDown, FileText } from 'lucide-react';
+import { CheckCircle, AlertTriangle, ArrowDown, FileText, Share2, Clipboard } from 'lucide-react';
 import InventoryGrid from './InventoryGrid';
 import { useDailyAudit } from '../hooks/useDailyAudit';
 import { FlavorText as FlavorTextComponent } from './FlavorText';
+import { useShareResult } from '../hooks/useShareResult';
+import { performShare } from '../utils/shareUtils';
+import { useSystemMood } from '../hooks/useSystemMood';
 
 interface DailyAuditProps {
   date: string;
@@ -16,9 +19,14 @@ interface DailyAuditProps {
 }
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText }) => {
-  const { loading, solution, timeline, initialList, stats } = useDailyAudit(date, userHighScore);
+  const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
+
+  // Share Feedback State
+  const [shareFeedback, setShareFeedback] = useState<'IDLE' | 'COPIED' | 'DEBUG' | 'MANUAL'>('IDLE');
+  const [shareDebug, setShareDebug] = useState<string[]>([]);
+  const [manualCopyText, setManualCopyText] = useState<string>('');
 
   // Responsive Logic
   const [isMobile, setIsMobile] = React.useState(false);
@@ -42,34 +50,51 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     ? calculateRelativeEfficiency(userScore, optimalScore, worstScore)
     : 0;
 
+  // Determine Mood for Share
+  // We use the actual adherence value to determine the performance mood.
+  // We pass 'false' for isDailyCompleted to get the graded mood (SOLVED/ADEQUATE/etc) instead of generic "DONE".
+  const mood = useSystemMood(adherence, 100, false);
+
+  const { generatePayload } = useShareResult();
+
+  const handleShare = async () => {
+    if (!solution || !timeline || timeline.length === 0) {
+      setShareDebug(['No solution/timeline']);
+      setShareFeedback('DEBUG');
+      return;
+    }
+
+    // Use the user's final list (their actual submission state, not the initial puzzle or optimal solution)
+    const { gradedList: finalItems } = gradeLevel(userFinalList);
+
+    const text = generatePayload({
+      userScore,
+      compliancePercentage: adherence,
+      mood,
+      items: finalItems
+    });
+
+    const result = await performShare(text);
+    setShareDebug(result.debug);
+
+    if (result.method === 'manual' && result.textForManualCopy) {
+      setManualCopyText(result.textForManualCopy);
+      setShareFeedback('MANUAL');
+    } else if (result.success) {
+      setShareFeedback('COPIED');
+      setTimeout(() => setShareFeedback('IDLE'), 2500);
+    } else {
+      setShareFeedback('DEBUG');
+      setTimeout(() => setShareFeedback('IDLE'), 10000);
+    }
+  };
+
   // Determine Interrogation Status
   // If user score is worse than the initial board state score
   const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
   const isInterrogation = userScore < initialScore;
 
   // Resistance Verification
-  // Determine if Resistance Mode was/is active.
-  // We don't have explicit 'resistanceMode' prop here, but we can check if `stats.resistanceStatus` exists?
-  // Actually, useDailyAudit returns `stats` which comes from `useGamePersistence`.
-  // `useGamePersistence` saves `GameResult`. We need to verify if `GameResult` has resistance status.
-  // Wait, `verifyResistanceMission` needs items.
-  // We have `solution.list` (the final sorted list).
-  // We need `resistanceStatus` from the game state calculated at that time.
-  // OR we calculate it now using the helper.
-  // But we need the PRIOR `resistanceStatus` (e.g. was it MIA before audit?).
-  // If we only have the final list, we can check for COMPROMISED (State in Keep) or MISSING (Resistance in Reject).
-  // But if dynamic "MIA" status happened during gameplay (Friendly Fire), we need that info.
-  // Does `useDailyAudit` return the final game state? 
-  // `useDailyAudit` returns `stats` (DailyResult).
-  // `DailyResult` interface in `persistence/types.ts` might need `finalResistanceStatus`.
-  // CHECK: src/services/persistence/types.ts
-
-  // For now, let's assume we implement logic purely based on the FINAL list, 
-  // BUT we really need to know if we already failed (MIA).
-  // Let's modify logic to call verifyResistanceMission assuming Active start if we can't get history.
-  // OR, better: Add `finalResistanceStatus` to DailyResult schema in a later refactor.
-  // For this step, simply running verification on the list is the requested logic.
-
   // Checking `stats`:
   const resistanceOutcome = React.useMemo(() => {
     // @ts-ignore - solution type missing list property in definition currently
@@ -233,6 +258,80 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           </div>
         )}
 
+        {/* Share Button Section */}
+        <div className="w-full flex flex-col items-center mb-8 gap-2">
+          {shareFeedback === 'MANUAL' ? (
+            <div className="w-full max-w-md bg-stone-900 border-2 border-amber-500/50 p-4 rounded flex flex-col gap-3">
+              <div className="text-amber-500 font-bold uppercase tracking-wide text-sm text-center">
+                Long-press to select, then copy:
+              </div>
+              <textarea
+                readOnly
+                value={manualCopyText}
+                className="w-full h-40 bg-stone-950 border border-stone-700 p-3 text-stone-300 font-mono text-xs rounded resize-none"
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                onClick={() => {
+                  setShareFeedback('IDLE');
+                  setManualCopyText('');
+                }}
+                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 border border-stone-600 text-stone-300 uppercase tracking-wide text-sm font-bold rounded"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handleShare}
+                disabled={shareFeedback !== 'IDLE'}
+                className={`relative group px-12 py-4 border-4 transition-all duration-200 uppercase tracking-widest font-black text-xl flex items-center gap-3 overflow-hidden
+                        ${shareFeedback === 'COPIED'
+                    ? 'border-green-500 bg-green-900/20 text-green-500'
+                    : shareFeedback === 'DEBUG'
+                      ? 'border-red-500 bg-red-900/20 text-red-500'
+                      : 'border-stone-500 bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-stone-200 hover:border-stone-400'
+                  }
+                    `}
+              >
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+
+                {shareFeedback === 'COPIED' ? (
+                  <>
+                    <Clipboard className="w-6 h-6 animate-bounce" />
+                    <span>COPIED TO CLIPBOARD</span>
+                  </>
+                ) : shareFeedback === 'DEBUG' ? (
+                  <span>SHARE FAILED</span>
+                ) : (
+                  <>
+                    <Share2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <span>Share Report</span>
+                  </>
+                )}
+
+                {/* Decorative Corners */}
+                <div className="absolute top-0 left-0 w-2 h-2 bg-current"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 bg-current"></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2 bg-current"></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2 bg-current"></div>
+              </button>
+
+              {/* Debug Info Display */}
+              {shareFeedback === 'DEBUG' && shareDebug.length > 0 && (
+                <div className="bg-red-950/50 border border-red-500/30 p-3 rounded text-red-300 text-xs font-mono max-w-md">
+                  <div className="font-bold mb-1">Debug Info:</div>
+                  {shareDebug.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         {passed ? (
           <div className="bg-amber-900/10 border border-amber-500/30 p-6 rounded flex items-center gap-4 w-full">
             <CheckCircle className="w-10 h-10 text-amber-500 shrink-0" />
@@ -323,3 +422,4 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     </div>
   );
 };
+

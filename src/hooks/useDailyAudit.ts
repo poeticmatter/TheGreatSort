@@ -20,6 +20,7 @@ export interface UseDailyAuditResult {
     loading: boolean;
     error: string | null;
     initialList: CardItem[];
+    userFinalList: CardItem[]; // The user's actual submitted list
     solution: Solution | null;
     timeline: TimelineStep[];
     stats: DailyAuditStats;
@@ -39,6 +40,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
     const [solution, setSolution] = useState<Solution | null>(null);
     const [worstScore, setWorstScore] = useState<number>(0);
     const [initialList, setInitialList] = useState<CardItem[]>([]);
+    const [userFinalList, setUserFinalList] = useState<CardItem[]>([]);
     const [resistanceStatus, setResistanceStatus] = useState<string | undefined>(undefined);
 
     useEffect(() => {
@@ -66,6 +68,15 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
                 // Hydrate Initial List
                 const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
                 setInitialList(list);
+
+                // Load user's final list from persistence (snapshot)
+                const savedState = PersistenceService.loadDailyState(date);
+                if (savedState?.snapshot?.list) {
+                    setUserFinalList(savedState.snapshot.list);
+                } else {
+                    // Fallback: if no snapshot, use initial list (user made no changes)
+                    setUserFinalList(list);
+                }
 
                 // ... (rest is same)
 
@@ -145,6 +156,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         loading,
         error,
         initialList,
+        userFinalList,
         solution,
         timeline,
         stats: {

@@ -1,0 +1,62 @@
+import { useCallback } from 'react';
+import { CardItem, CardStatus } from '../../types';
+import { SystemMood } from './useSystemMood';
+import { SHARE_FLAVOR_DATABASE, ShareFlavorEntry } from '../config/shareFlavor';
+
+interface UseShareResultProps {
+    userScore: number;
+    compliancePercentage: number;
+    mood: SystemMood;
+    items: CardItem[];
+}
+
+// Logic Exports (Pure)
+export const getWeightedFlavor = (mood: SystemMood): string => {
+    const entries = SHARE_FLAVOR_DATABASE[mood];
+    if (!entries || entries.length === 0) return "Process Complete.";
+
+    const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const entry of entries) {
+        if (random < entry.weight) return entry.text;
+        random -= entry.weight;
+    }
+    return entries[0].text;
+};
+
+export const generateEmojiGrid = (items: CardItem[]): string => {
+    return items.map(item => {
+        if (item.status === 'eliminated') {
+            return '🟥';
+        }
+        return '🟨';
+    }).join('');
+};
+
+export const formatSharePayload = (
+    userScore: number,
+    compliancePercentage: number,
+    flavorText: string,
+    emojiGrid: string
+): string => {
+    return [
+        `THE GREAT SORT`,
+        `Citizen Yield: ${userScore}`,
+        `Compliance: ${compliancePercentage}%`,
+        ``,
+        `"${flavorText}"`,
+        ``,
+        emojiGrid
+    ].join('\n');
+};
+
+export const useShareResult = () => {
+    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items }: UseShareResultProps) => {
+        const flavorText = getWeightedFlavor(mood);
+        const emojiGrid = generateEmojiGrid(items);
+        return formatSharePayload(userScore, compliancePercentage, flavorText, emojiGrid);
+    }, []);
+
+    return { generatePayload };
+};
