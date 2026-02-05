@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PuzzleRepository } from '../services/puzzleRepository';
 import { CardItem, Move, ToolType } from '../../types';
 import { applyMove, Solution } from '../utils/gameLogic';
+import { PersistenceService } from '../services/persistence';
 
 export interface TimelineStep {
     list: CardItem[];
@@ -12,6 +13,7 @@ interface DailyAuditStats {
     userScore: number;
     optimalScore: number;
     worstScore: number;
+    resistanceStatus?: string;
 }
 
 export interface UseDailyAuditResult {
@@ -23,11 +25,9 @@ export interface UseDailyAuditResult {
     stats: DailyAuditStats;
 }
 
-const VALID_TOOLS: Set<string> = new Set([
-    'demote', 'swap', 'purge', 'promote', 'longswap',
-    'merge', 'sink', 'halve', 'shield', 'shrink',
-    'hop', 'mirror', 'cycle', 'equalize'
-]);
+import { ALL_TOOL_TYPES } from '../constants';
+
+const VALID_TOOLS: Set<string> = new Set(ALL_TOOL_TYPES);
 
 function isToolType(tool: string): tool is ToolType {
     return VALID_TOOLS.has(tool);
@@ -39,6 +39,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
     const [solution, setSolution] = useState<Solution | null>(null);
     const [worstScore, setWorstScore] = useState<number>(0);
     const [initialList, setInitialList] = useState<CardItem[]>([]);
+    const [resistanceStatus, setResistanceStatus] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         let mounted = true;
@@ -56,9 +57,17 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
 
                 const puzzle = PuzzleRepository.getDailyPuzzle(dateObj);
 
+                // Fetch Persisted Result for Resistance Status
+                const persistedResult = PersistenceService.getDailyResult(date);
+                if (persistedResult?.resistanceStatus) {
+                    setResistanceStatus(persistedResult.resistanceStatus);
+                }
+
                 // Hydrate Initial List
                 const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
                 setInitialList(list);
+
+                // ... (rest is same)
 
                 // Set Scores
                 setWorstScore(puzzle.targets.min);
@@ -104,7 +113,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         };
     }, [date]);
 
-    // Derive Timeline
+    // Derive Timeline (Keep same)
     const timeline = useMemo(() => {
         if (!solution || initialList.length === 0) return [];
 
@@ -119,8 +128,8 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
                 move: move
             });
 
-            // Apply move to get next state
-            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+            // Apply move logic to get next state
+            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex).newList;
         }
 
         // Final Result State
@@ -141,7 +150,8 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         stats: {
             userScore: userHighScore,
             optimalScore: solution ? solution.score : 0,
-            worstScore
+            worstScore,
+            resistanceStatus
         }
     };
 };

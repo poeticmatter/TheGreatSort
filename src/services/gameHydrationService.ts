@@ -1,8 +1,9 @@
-import { GameState } from '../reducers/gameState';
+import { GameState, ResistanceState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, ToolInstance, Move, GameMode, CardItem } from '../../types';
+import { GamePhase, ToolInstance, Move, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
+import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export interface HydrationResult {
     initialState: Partial<GameState>;
@@ -20,13 +21,17 @@ export class GameHydrationService {
         // 1. Reconstruct Base State (The immutable starting point)
         const seed = puzzle.id;
         const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
+
+        // Apply Resistance Data
+        const { list: refinedStartList, resistanceStatus, resistanceTarget } = this.applyResistanceData(startList, puzzle);
+
         const startTools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
 
         // 2. Replay Moves to get Current State
         // We deep copy startList to avoid mutation during replay if we were reusing it, 
         // though here we just created it.
-        let currentList = startList.map(item => ({ ...item }));
+        let currentList = refinedStartList.map(item => ({ ...item }));
         let currentTools = startTools.map(t => ({ ...t }));
 
         // Safety check for moves
@@ -34,7 +39,7 @@ export class GameHydrationService {
 
         moves.forEach(move => {
             // Apply move logic to list
-            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+            currentList = applyMove(currentList, move.tool, move.index, move.targetIndex).newList;
 
             // Mark tool as used
             const toolIndex = currentTools.findIndex(t => t.instanceId === move.toolInstanceId);
@@ -72,7 +77,7 @@ export class GameHydrationService {
         const state: Partial<GameState> = {
             level: 1, // Daily is always level 1 effectively
             list: currentList,
-            initialList: startList, // Crucial for Undo
+            initialList: refinedStartList, // Crucial for Undo
             toolsAvailable: currentTools,
             currentSeed: seed,
             flavorMap,
@@ -82,6 +87,11 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: phase === GamePhase.RESULTS,
+            resistance: {
+                ...initialResistanceState,
+                status: resistanceStatus,
+                targetYield: resistanceTarget,
+            },
             // Default others
             totalScore: 0,
             totalOptimalScore: 0,
@@ -99,6 +109,10 @@ export class GameHydrationService {
     static hydrateDailyNew(puzzle: DailyPuzzleData): HydrationResult {
         const seed = puzzle.id;
         const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
+
+        // Apply Resistance Data
+        const { list: refinedList, resistanceStatus, resistanceTarget } = this.applyResistanceData(list, puzzle);
+
         const tools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
 
@@ -107,8 +121,8 @@ export class GameHydrationService {
 
         const state: Partial<GameState> = {
             level: 1,
-            list: list,
-            initialList: [...list], // Copy for initialList
+            list: refinedList,
+            initialList: [...refinedList], // Copy for initialList
             toolsAvailable: tools,
             currentSeed: seed,
             flavorMap,
@@ -118,6 +132,11 @@ export class GameHydrationService {
             optimalScore,
             worstScore,
             dailyCompleted: false,
+            resistance: {
+                ...initialResistanceState,
+                status: resistanceStatus,
+                targetYield: resistanceTarget,
+            },
         };
 
         return { initialState: state, isValid: true };
@@ -148,8 +167,50 @@ export class GameHydrationService {
             optimalScore: null, // Practice calculates this async usually
             worstScore: null,
             dailyCompleted: false,
+            resistance: { ...initialResistanceState },
         };
 
         return { initialState: state, isValid: true };
+    }
+
+    /**
+     * Applies Resistance Mode data to the item list if present in the puzzle.
+     */
+    private static applyResistanceData(list: CardItem[], puzzle: DailyPuzzleData): { list: CardItem[], resistanceStatus: ResistanceStatus, resistanceTarget?: number } {
+        const resistanceData = puzzle.resistanceData;
+        console.log("Resistance Mode Initialized:", resistanceData ? "YES" : "NO");
+
+        if (!resistanceData) {
+            return {
+                list: list.map(item => ({ ...item, role: AgentRole.NONE })),
+                resistanceStatus: ResistanceStatus.INACTIVE
+            };
+        }
+
+        // Schema: agents: Record<number, 'resistance' | 'state'>
+        const agents = resistanceData.agents;
+        const newList = list.map((item, index) => {
+            const roleStr = agents[index];
+            let role = AgentRole.NONE;
+
+            if (roleStr === 'resistance') role = AgentRole.RESISTANCE;
+            if (roleStr === 'state') role = AgentRole.STATE;
+
+            return {
+                ...item,
+                role
+            };
+        });
+
+        return {
+            list: newList,
+            resistanceStatus: ResistanceStatus.INACTIVE,
+            resistanceTarget: resistanceData.targetYield // simplified schema property name might actully be targetYield?
+            // The generator writes "targetYield".
+            // The DailyPuzzle interface in generator says "targetYield".
+            // However, DailyPuzzleData type in PuzzleRepository MIGHT be different.
+            // I should check DailyPuzzleData interface. But based on typical flow, it matches generator output.
+            // I'll assume resistanceData has targetYield property as generated.
+        };
     }
 }

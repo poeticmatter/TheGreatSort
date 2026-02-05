@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useDailyLock } from './hooks/useDailyLock';
+import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { getTodayDateString } from './utils/dateUtils';
 import { LayoutType } from './components/InventoryGrid';
 import { GameProvider } from './context/GameContext';
@@ -37,22 +38,7 @@ function TheGreatSortContent() {
   }, [trackPageView]);
 
   // --- Asset Preloading (Deferred) ---
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const img = new Image();
-      img.src = ResistanceLetter;
-      img.decode()
-        .then(() => {
-          // Preload success - fire and forget
-        })
-        .catch((e) => {
-          // Preload failed - silent fail
-          // console.warn('Failed to preload Resistance Letter:', e);
-        });
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, []);
+  useAssetPreloader([ResistanceLetter]);
 
   // --- Daily Lock & Warnings ---
   // Note: useGame/useDailyChallenge now handles locking and audit request logic internally via 'interaction' state.
@@ -61,25 +47,19 @@ function TheGreatSortContent() {
   // --- View Routing ---
   // State Machine logic for View Selection
   const getView = () => {
-    if (data.resistanceActive) {
-      return (
-        <ResistanceView
-          onClose={actions.closeResistance}
-          onBackgroundClick={actions.handleBackgroundClick}
-        />
-      );
-    }
-
     // Audit State is now handled within GameView's orchestration
-
     return (
-      <GameView
-        data={data}
-        interaction={interaction}
-        actions={actions}
-        layout={layout}
-        onLayoutChange={setLayout}
-      />
+      <>
+        <GameView
+          data={data}
+          interaction={interaction}
+          actions={actions}
+          layout={layout}
+          onLayoutChange={setLayout}
+        />
+        {/* ResistanceView controls its own visibility via Context */}
+        <ResistanceView />
+      </>
     );
   };
 

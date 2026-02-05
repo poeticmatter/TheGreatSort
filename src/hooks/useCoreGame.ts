@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
-import { GamePhase, CardItem, ToolInstance } from '../../types';
+import { GamePhase, CardItem, ToolInstance, Move } from '../../types';
 import { useGameLoop } from './useGameLoop';
 import { useAnalytics } from './useAnalytics';
 import { TOOL_REGISTRY } from '../tools';
@@ -8,9 +8,10 @@ import { applyMove } from '../utils/gameLogic';
 
 interface UseCoreGameProps {
     onGameComplete?: (score: number) => void;
+    onMoveApplied?: (newList: CardItem[], move: Move) => void;
 }
 
-export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
+export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps = {}) {
     const { state, dispatch } = useGameContext();
     const { trackToolInteraction } = useAnalytics(); // Core gameplay analytics
 
@@ -34,12 +35,13 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
             if (strategy.isValid(state.list, state.selection)) {
                 // Execute move immediately
                 const targetIndex = state.selection;
-                const newList = applyMove(state.list, toolInstance.type, targetIndex);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, targetIndex) as { newList: CardItem[], impactedIndices: number[] };
 
                 dispatch({
                     type: 'APPLY_MOVE',
                     payload: {
                         list: newList,
+                        impactedIndices,
                         move: {
                             tool: toolInstance.type,
                             toolInstanceId: toolInstanceId,
@@ -48,6 +50,15 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: targetIndex,
+                        description: `${toolInstance.type} at ${targetIndex}`
+                    });
+                }
                 return;
             }
         }
@@ -71,11 +82,17 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
 
         // Must have tool selected
         const toolInstanceId = state.selectedToolInstanceId;
-        if (!toolInstanceId) return;
+
+        if (!toolInstanceId) {
+            return;
+        }
 
         const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
         if (!toolInstance || toolInstance.used) {
             dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+            // Since we just deselected, maybe we should also toggle tag?
+            // "Clicking card cancels tool if tool bad" -> User intention was tool use.
+            // Let's stop here.
             return;
         }
 
@@ -84,11 +101,12 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         // 1. One-Step Tool
         if (!strategy.requiresSelection) {
             if (strategy.isValid(state.list, index)) {
-                const newList = applyMove(state.list, toolInstance.type, index);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index) as { newList: CardItem[], impactedIndices: number[] };
                 dispatch({
                     type: 'APPLY_MOVE',
                     payload: {
                         list: newList,
+                        impactedIndices,
                         move: {
                             tool: toolInstance.type,
                             toolInstanceId: toolInstanceId,
@@ -97,6 +115,15 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: index,
+                        description: `${toolInstance.type} at ${index}`
+                    });
+                }
             } else {
                 dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
             }
@@ -104,49 +131,18 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         }
 
         // 2. Two-Step Tool
-        // If nothing selected, select this card (via internal state logic? Or can we treat 'selection' as a Reducer state?)
-        // The reducer has 'selection'. We cancelled selection in 'SELECT_TOOL' if strictly toggling, but we kept it otherwise.
-        // Wait, 'SELECT_TOOL' in my new reducer IMPLEMENTATION:
-        /*
-        case 'SELECT_TOOL': 
-             return { ...state, selectedToolInstanceId: toolInstanceId }
-        */
-        // It doesn't touch `selection`? 
-        // If I click a card and no selection exists -> I need to set selection?
-        // Wait, gameReducer.ts doesn't have `SELECT_CARD`?
-        // Ah, `INTERACT_TILE` used to handle "Select this if nothing selected".
-        // I need a `SELECT_TILE` action or similar?
-        // Or I can use `CANCEL_SELECTION` (deselect) but how to SELECT?
-        // I need to add `SELECT_TILE` to reducer?
-        // Or reuse `SELECT_TOOL`... no.
-
-        // The instructions said "Reducer should only accept Executive actions... SELECT_TOOL, APPLY_MOVE".
-        // Did I miss `SELECT_TILE`?
-        // "The logic for ... belongs in ... interaction hook".
-        // But if the "Selection" state needs to be persisted in the Reducer (to highlight the card), I need an action to set it.
-        // Unless "Selection" is now Local State?
-        // The Prompt said: "Remove all INTERACT_TOOL and INTERACT_TILE logic... The View should be dumb... useGameInteractions...".
-        // But `PuzzleBoard` reads `state.selection`.
-        // So Selection MUST be in Reducer state (or Context).
-        // I should add `SELECT_TILE` (simple setter) to reducer? Or `SET_SELECTION`.
-
-        // I'll assume I should add `SET_SELECTION` or `SELECT_TILE` (executive) to reducer. 
-        // Or can I use `APPLY_MOVE`? No.
-
-        // Let's add `SELECT_TILE` to reducer quickly since I rewrote it. Or is it `SELECT_ITEM`?
-        // `INTERACT_TILE` did: `return { ...state, selection: index };`
-
         if (state.selection === null) {
             // Select this card as the first target
             dispatch({ type: 'SELECT_TILE', payload: { index } });
         } else {
             // Second click -> Execute
             if (strategy.isValid(state.list, index, state.selection)) {
-                const newList = applyMove(state.list, toolInstance.type, index, state.selection);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index, state.selection) as { newList: CardItem[], impactedIndices: number[] };
                 dispatch({
                     type: 'APPLY_MOVE',
                     payload: {
                         list: newList,
+                        impactedIndices,
                         move: {
                             tool: toolInstance.type,
                             toolInstanceId: toolInstanceId,
@@ -156,6 +152,16 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: index,
+                        targetIndex: state.selection,
+                        description: `${toolInstance.type} ${state.selection} and ${index}`
+                    });
+                }
             } else {
                 dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
             }

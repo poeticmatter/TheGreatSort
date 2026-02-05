@@ -12,6 +12,9 @@ export interface GameViewModel extends GameState {
     // Derived
     mood: SystemMood;
     compliancePercentage: number;
+    resistanceActive: boolean;
+    visibleYield?: number;
+    trueYield?: number;
 
     // Aliases & Extras
     selectedTool: string | null;
@@ -19,5 +22,4 @@ export interface GameViewModel extends GameState {
     startingCompliance: number;
     isZeroYield: boolean;
     yieldRatio: number;
-    currentScore: number;
 }

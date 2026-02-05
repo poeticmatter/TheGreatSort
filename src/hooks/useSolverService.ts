@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { CardItem, ToolInstance } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { generateLevel, generateTools } from '../utils/gameLogic';
+import { GameAction } from '../reducers/gameState';
 
 interface SolverState {
     optimalScore: number | null;
@@ -15,7 +16,8 @@ export function useSolverService(
     list: CardItem[],
     tools: ToolInstance[],
     existingOptimal: number | null = null,
-    existingWorst: number | null = null
+    existingWorst: number | null = null,
+    dispatch?: React.Dispatch<GameAction> // Optional for backward compatibility if needed, but we will pass it
 ) {
     const [solverState, setSolverState] = useState<SolverState>({
         optimalScore: null,
@@ -123,6 +125,18 @@ export function useSolverService(
     useEffect(() => {
         triggerCalculation();
     }, [triggerCalculation]);
+
+    // Sync Scores Logic (moved from useGame)
+    useEffect(() => {
+        if (gameMode === 'PRACTICE' && dispatch) {
+            if (solverState.optimalScore !== null && existingOptimal === null) {
+                dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
+            }
+            if (solverState.worstScore !== null && existingWorst === null) {
+                dispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
+            }
+        }
+    }, [solverState.optimalScore, solverState.worstScore, existingOptimal, existingWorst, dispatch, gameMode]);
 
     return solverState;
 }

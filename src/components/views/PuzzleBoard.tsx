@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { GamePhase } from '../../../types';
+import { GamePhase, ResistanceStatus } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Tooltip from '../Tooltip';
 import { ComplianceMeter } from '../ComplianceMeter';
@@ -71,6 +71,12 @@ export function PuzzleBoard({
 
     const flavorText = state.flavorMap ? state.flavorMap[state.mood] : "";
 
+    // [ARCHITECTURAL FIX]
+    // The UI must respond to the Core Status (Persistent), not the Meta Active flag (Transient Letter).
+    // Access nested state safely, as resistance object was refactored.
+    const resistanceStatus = state.resistance?.status ?? ResistanceStatus.INACTIVE;
+    const isResistanceActive = resistanceStatus !== ResistanceStatus.INACTIVE;
+
     // Grid Content
     const gridContent = (
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
@@ -80,6 +86,7 @@ export function PuzzleBoard({
                     onItemClick={handleCardClickWrapper}
                     disabled={isLocked}
                     layout={layout}
+                    showRoles={isResistanceActive}
                 />
             ) : (
                 state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
@@ -111,6 +118,7 @@ export function PuzzleBoard({
                         onRetryPractice={actions.retryPractice}
                         onViewAudit={onRequestAudit}
                         isLocked={isLocked}
+                        isResistanceActive={isResistanceActive}
                     />
                     {state.gameMode !== 'PRACTICE' && <FlavorText mood={state.mood} text={flavorText} />}
                 </div>
@@ -164,6 +172,7 @@ export function PuzzleBoard({
                     onRetryPractice={actions.retryPractice}
                     onViewAudit={onRequestAudit}
                     isLocked={isLocked}
+                    isResistanceActive={isResistanceActive}
                 />
                 {state.gameMode !== 'PRACTICE' && <FlavorText mood={state.mood} text={flavorText} />}
             </div>

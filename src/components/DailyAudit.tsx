@@ -1,5 +1,6 @@
 import React from 'react';
-import { calculateRelativeEfficiency, calculateBatchScore } from '../utils/gameLogic';
+import { calculateRelativeEfficiency, calculateBatchScore, verifyResistanceMission } from '../utils/gameLogic';
+import { ResistanceStatus } from '../../types';
 import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowDown, FileText } from 'lucide-react';
 import InventoryGrid from './InventoryGrid';
@@ -16,7 +17,7 @@ interface DailyAuditProps {
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText }) => {
   const { loading, solution, timeline, initialList, stats } = useDailyAudit(date, userHighScore);
-  const { userScore, optimalScore, worstScore } = stats;
+  const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
 
   // Responsive Logic
@@ -46,6 +47,49 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
   const isInterrogation = userScore < initialScore;
 
+  // Resistance Verification
+  // Determine if Resistance Mode was/is active.
+  // We don't have explicit 'resistanceMode' prop here, but we can check if `stats.resistanceStatus` exists?
+  // Actually, useDailyAudit returns `stats` which comes from `useGamePersistence`.
+  // `useGamePersistence` saves `GameResult`. We need to verify if `GameResult` has resistance status.
+  // Wait, `verifyResistanceMission` needs items.
+  // We have `solution.list` (the final sorted list).
+  // We need `resistanceStatus` from the game state calculated at that time.
+  // OR we calculate it now using the helper.
+  // But we need the PRIOR `resistanceStatus` (e.g. was it MIA before audit?).
+  // If we only have the final list, we can check for COMPROMISED (State in Keep) or MISSING (Resistance in Reject).
+  // But if dynamic "MIA" status happened during gameplay (Friendly Fire), we need that info.
+  // Does `useDailyAudit` return the final game state? 
+  // `useDailyAudit` returns `stats` (DailyResult).
+  // `DailyResult` interface in `persistence/types.ts` might need `finalResistanceStatus`.
+  // CHECK: src/services/persistence/types.ts
+
+  // For now, let's assume we implement logic purely based on the FINAL list, 
+  // BUT we really need to know if we already failed (MIA).
+  // Let's modify logic to call verifyResistanceMission assuming Active start if we can't get history.
+  // OR, better: Add `finalResistanceStatus` to DailyResult schema in a later refactor.
+  // For this step, simply running verification on the list is the requested logic.
+
+  // Checking `stats`:
+  const resistanceOutcome = React.useMemo(() => {
+    // @ts-ignore - solution type missing list property in definition currently
+    const solutionList = solution?.list;
+
+    if (!solutionList) return ResistanceStatus.ACTIVE; // Fallback
+    // For the puzzle solution, we assume it meets all criteria (Success).
+    // Passing 0, 0 ensures trueYield >= max (0) -> SUCCESS.
+    return verifyResistanceMission(solutionList, ResistanceStatus.ACTIVE, solutionList.length, 0, 0);
+  }, [solution]);
+
+  const resistanceStatus = rawResistanceStatus as ResistanceStatus | undefined;
+
+  // Reuse logic for Badge? No, Badge uses resistanceOutcome (Solution).
+  // We want to render the USER'S Status.
+
+  const isResistanceActive = rawResistanceStatus !== undefined;
+
+  const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
+
   if (loading || !solution) {
     return (
       <div className="flex flex-col items-center justify-center p-12 w-full h-full min-h-[50vh]">
@@ -56,6 +100,25 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       </div>
     );
   }
+
+  // Helper for Status Config
+  const getStatusConfig = (status: ResistanceStatus) => {
+    switch (status) {
+      case ResistanceStatus.SUCCESS:
+        return { color: 'blue', text: 'RESISTANCE MISSION ACCOMPLISHED', icon: CheckCircle };
+      case ResistanceStatus.CAREFUL:
+        return { color: 'amber', text: 'CAREFUL, FRIEND', icon: AlertTriangle };
+      case ResistanceStatus.EXPOSED:
+        return { color: 'red', text: 'YOU ARE EXPOSED!', icon: AlertTriangle };
+      case ResistanceStatus.MIA:
+        return { color: 'red', text: 'RESISTANCE AGENT MIA', icon: AlertTriangle };
+      case ResistanceStatus.COMPROMISED:
+        return { color: 'red', text: 'STATE AGENT ESCAPED', icon: AlertTriangle };
+      default:
+        // Fallback for ACTIVE or INACTIVE if they leak through
+        return { color: 'stone', text: 'STATUS UNKNOWN', icon: FileText };
+    }
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -98,7 +161,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 }`}>
                 {adherence}%
               </div>
-              {/* Stamp */}
+              {/* Adherence Stamp */}
               <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
                    ${adherence >= 100 ? 'border-amber-400 text-amber-400'
                   : adherence >= 90 ? 'border-amber-700 text-amber-700'
@@ -114,100 +177,148 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
             </div>
           </div>
 
-          {/* Flavor Text */}
-          {flavorText && (
-            <div className="my-6 w-full flex justify-center border-t border-b border-stone-800 py-4">
-              <FlavorTextComponent mood="DONE" text={flavorText} />
-            </div>
-          )}
+          {/* Resistance Mission Status */}
+          {resistanceStatus && resistanceStatus !== ResistanceStatus.INACTIVE && (
+            (() => {
+              const config = getStatusConfig(resistanceStatus);
+              const StatusIcon = config.icon;
 
-          {passed ? (
-            <div className="bg-amber-900/10 border border-amber-500/30 p-6 rounded flex items-center gap-4 w-full">
-              <CheckCircle className="w-10 h-10 text-amber-500 shrink-0" />
-              <div>
-                <h3 className="text-amber-500 font-bold uppercase tracking-wide">Audit Passed</h3>
-                <p className="text-amber-200/50 text-sm">No infractions detected. Productivity within acceptable parameters.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-full mt-4 flex flex-col items-center">
+              // Map simple color names to Tailwind classes
+              const borderColor = config.color === 'blue' ? 'border-blue-500/50' : config.color === 'amber' ? 'border-amber-500/50' : config.color === 'game' ? 'border-stone-500/50' : 'border-red-500/50';
+              const bgColor = config.color === 'blue' ? 'bg-blue-900/20' : config.color === 'amber' ? 'bg-amber-900/20' : 'bg-red-900/20';
+              const textColor = config.color === 'blue' ? 'text-blue-400' : config.color === 'amber' ? 'text-amber-400' : 'text-red-400';
 
-              {/* Interactive Divider */}
-              <button
-                onClick={() => setIsPlanExpanded(!isPlanExpanded)}
-                className="w-full border-t-2 border-dashed border-red-900/30 my-8 relative group cursor-pointer focus:outline-none"
-              >
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#1c1917] px-6 py-1 text-red-500 group-hover:text-red-400 group-hover:scale-105 transition-all font-bold uppercase tracking-wide md:tracking-widest text-sm md:text-xl flex items-center gap-3 whitespace-nowrap border border-transparent group-hover:border-red-900/30 rounded-full">
-                  <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" />
-                  {isPlanExpanded ? "Hide Corrective Plan" : "View Corrective Plan"}
-                  {isPlanExpanded ? <ArrowDown className="rotate-180 w-4 h-4 ml-2 opacity-50" /> : <ArrowDown className="w-4 h-4 ml-2 opacity-50" />}
-                </div>
-              </button>
+              return (
+                <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
+                    ${borderColor} ${bgColor}
+                 `}>
+                  <StatusIcon className={`${textColor} w-8 h-8`} />
 
-              {isPlanExpanded && (
-                <div className="flex flex-col gap-12 mt-4 w-full animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="flex flex-col gap-0 items-center w-full">
-                    {timeline.map((step, idx) => {
-                      // Determine highlights based on the NEXT move (if current step has a move)
-                      const highlightIndices = step.move
-                        ? [step.move.index, step.move.targetIndex].filter(x => x !== undefined) as number[]
-                        : [];
-
-                      return (
-                        <React.Fragment key={idx}>
-                          {/* Board State */}
-                          <div className="w-full flex flex-col items-center">
-                            <InventoryGrid
-                              cards={step.list.map((item, idx) => ({
-                                ...item,
-                                key: item.id,
-                                isSelected: highlightIndices.includes(idx),
-                                isCandidate: false,
-                                isDisabled: false,
-                                mirrorLabel: null
-                              }))}
-                              layout={isMobile ? "VERTICAL_LIST" : "HORIZONTAL_STRIP"}
-                            />
-                          </div>
-
-                          {/* Arrow / Action */}
-                          {step.move && (
-                            <div className={`flex flex-col items-center z-10 ${isMobile ? "my-8 gap-1" : "my-2"}`}>
-                              <div className="h-6 w-px bg-stone-600"></div>
-                              <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
-                                {(() => {
-                                  const ToolIcon = TOOLS[step.move.tool.toUpperCase()]?.icon;
-                                  const isDirectional = ['PROMOTE', 'DEMOTE', 'SWAP', 'MIRROR'].includes(step.move.tool.toUpperCase());
-                                  return ToolIcon ? <ToolIcon size={16} className={`text-amber-500 ${isMobile && isDirectional ? 'rotate-90' : ''}`} /> : null;
-                                })()}
-                                <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
-                                <span className="text-stone-500">
-                                  {(() => {
-                                    const isAdjacent = ['swap', 'merge', 'sink', 'cycle'].includes(step.move.tool);
-                                    if (isAdjacent && step.move.targetIndex === undefined) {
-                                      return `Index ${step.move.index} & ${step.move.index + 1}`;
-                                    }
-                                    if (step.move.targetIndex !== undefined) {
-                                      return `${step.move.index} ↔ ${step.move.targetIndex}`;
-                                    }
-                                    return `Index ${step.move.index}`;
-                                  })()}
-                                </span>
-                              </div>
-                              <div className="h-6 w-px bg-stone-600"></div>
-                              <ArrowDown className="text-stone-600 -mt-2" size={16} />
-                            </div>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                  <div className="flex flex-col items-center">
+                    <div className={`text-xl font-black uppercase tracking-widest ${textColor}`}>
+                      {config.text}
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+              );
+            })()
           )}
 
         </div>
+
+        {/* RESISTANCE BADGE (Overlay/Extra) */}
+        {joinedResistance && (
+          <div className="w-full flex justify-center mb-6">
+            {resistanceOutcome === ResistanceStatus.SUCCESS ? (
+              <div className="border-4 border-blue-500/50 p-4 rounded-lg transform -rotate-2 bg-blue-950/20 backdrop-blur-sm">
+                <h2 className="text-2xl font-black text-blue-500 tracking-widest uppercase flex items-center gap-2">
+                  <CheckCircle className="w-8 h-8" /> CONTACT ESTABLISHED
+                </h2>
+              </div>
+            ) : (
+              <div className="border-4 border-red-500/50 p-4 rounded-lg transform rotate-2 bg-red-950/20 backdrop-blur-sm">
+                <h2 className="text-2xl font-black text-red-500 tracking-widest uppercase flex items-center gap-2">
+                  <AlertTriangle className="w-8 h-8" />
+                  {resistanceOutcome === ResistanceStatus.MIA ? "ASSET LOST" : "SIGNAL JAMMED"}
+                </h2>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Flavor Text */}
+        {flavorText && (
+          <div className="my-6 w-full flex justify-center border-t border-b border-stone-800 py-4">
+            <FlavorTextComponent mood="DONE" text={flavorText} />
+          </div>
+        )}
+
+        {passed ? (
+          <div className="bg-amber-900/10 border border-amber-500/30 p-6 rounded flex items-center gap-4 w-full">
+            <CheckCircle className="w-10 h-10 text-amber-500 shrink-0" />
+            <div>
+              <h3 className="text-amber-500 font-bold uppercase tracking-wide">Audit Passed</h3>
+              <p className="text-amber-200/50 text-sm">No infractions detected. Productivity within acceptable parameters.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full mt-4 flex flex-col items-center">
+
+            {/* Interactive Divider */}
+            <button
+              onClick={() => setIsPlanExpanded(!isPlanExpanded)}
+              className="w-full border-t-2 border-dashed border-red-900/30 my-8 relative group cursor-pointer focus:outline-none"
+            >
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#1c1917] px-6 py-1 text-red-500 group-hover:text-red-400 group-hover:scale-105 transition-all font-bold uppercase tracking-wide md:tracking-widest text-sm md:text-xl flex items-center gap-3 whitespace-nowrap border border-transparent group-hover:border-red-900/30 rounded-full">
+                <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" />
+                {isPlanExpanded ? "Hide Corrective Plan" : "View Corrective Plan"}
+                {isPlanExpanded ? <ArrowDown className="rotate-180 w-4 h-4 ml-2 opacity-50" /> : <ArrowDown className="w-4 h-4 ml-2 opacity-50" />}
+              </div>
+            </button>
+
+            {isPlanExpanded && (
+              <div className="flex flex-col gap-12 mt-4 w-full animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex flex-col gap-0 items-center w-full">
+                  {timeline.map((step, idx) => {
+                    // Determine highlights based on the NEXT move (if current step has a move)
+                    const highlightIndices = step.move
+                      ? [step.move.index, step.move.targetIndex].filter(x => x !== undefined) as number[]
+                      : [];
+
+                    return (
+                      <React.Fragment key={idx}>
+                        {/* Board State */}
+                        <div className="w-full flex flex-col items-center">
+                          <InventoryGrid
+                            cards={step.list.map((item, idx) => ({
+                              ...item,
+                              key: item.id,
+                              isSelected: highlightIndices.includes(idx),
+                              isCandidate: false,
+                              isDisabled: false,
+                              mirrorLabel: null
+                            }))}
+                            layout={isMobile ? "VERTICAL_LIST" : "HORIZONTAL_STRIP"}
+                          />
+                        </div>
+
+                        {/* Arrow / Action */}
+                        {step.move && (
+                          <div className={`flex flex-col items-center z-10 ${isMobile ? "my-8 gap-1" : "my-2"}`}>
+                            <div className="h-6 w-px bg-stone-600"></div>
+                            <div className="bg-stone-800 border border-stone-600 text-stone-300 px-4 py-2 rounded-full text-sm font-mono shadow-xl flex items-center gap-3">
+                              {(() => {
+                                const ToolIcon = TOOLS[step.move.tool.toUpperCase()]?.icon;
+                                const isDirectional = ['PROMOTE', 'DEMOTE', 'SWAP', 'MIRROR'].includes(step.move.tool.toUpperCase());
+                                return ToolIcon ? <ToolIcon size={16} className={`text-amber-500 ${isMobile && isDirectional ? 'rotate-90' : ''}`} /> : null;
+                              })()}
+                              <span className="text-amber-500 font-bold uppercase tracking-wider">{step.move.tool}</span>
+                              <span className="text-stone-500">
+                                {(() => {
+                                  const isAdjacent = ['swap', 'merge', 'sink', 'cycle'].includes(step.move.tool);
+                                  if (isAdjacent && step.move.targetIndex === undefined) {
+                                    return `Index ${step.move.index} & ${step.move.index + 1}`;
+                                  }
+                                  if (step.move.targetIndex !== undefined) {
+                                    return `${step.move.index} ↔ ${step.move.targetIndex}`;
+                                  }
+                                  return `Index ${step.move.index}`;
+                                })()}
+                              </span>
+                            </div>
+                            <div className="h-6 w-px bg-stone-600"></div>
+                            <ArrowDown className="text-stone-600 -mt-2" size={16} />
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );

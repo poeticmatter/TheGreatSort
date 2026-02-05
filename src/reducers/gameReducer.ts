@@ -1,6 +1,7 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType } from '../../types';
+import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
 import { applyMove } from '../utils/gameLogic';
+import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
 export const initialState: GameState = {
   level: 1,
@@ -20,6 +21,7 @@ export const initialState: GameState = {
   shakeTools: 0,
   dailyCompleted: false,
   currentSeed: undefined,
+  resistance: initialResistanceState,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -71,7 +73,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
     case 'APPLY_MOVE': {
       if (state.phase !== GamePhase.PLANNING) return state;
-      const { list, move } = action.payload;
+      const { list, move, impactedIndices } = action.payload;
 
       // Mark tool as used
       const newTools = state.toolsAvailable.map(t =>
@@ -161,7 +163,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       newHistory.forEach(move => {
         // Apply move logic
-        currentList = applyMove(currentList, move.tool, move.index, move.targetIndex);
+        const result = applyMove(currentList, move.tool, move.index, move.targetIndex);
+        currentList = result.newList;
 
         // Mark tool as used
         const toolIdx = currentTools.findIndex(t => t.instanceId === move.toolInstanceId);
@@ -177,6 +180,17 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         movesHistory: newHistory,
         selection: null,
         selectedToolInstanceId: null
+      };
+    }
+
+    case 'ACTIVATE_RESISTANCE':
+    case 'CLOSE_RESISTANCE_VIEW':
+    case 'SET_RESISTANCE_PENDING':
+    case 'SET_RESISTANCE_STATUS':
+    case 'RESISTANCE_MISSION_COMPLETE': {
+      return {
+        ...state,
+        resistance: resistanceReducer(state.resistance, action)
       };
     }
 

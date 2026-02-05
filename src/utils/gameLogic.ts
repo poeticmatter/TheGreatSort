@@ -1,9 +1,104 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types';
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
+import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore';
 
-export type SolverItem = ISortable;
+export { calculateBatchScore, judgeStep };
+
+export const calculateCompliance = (
+  currentYield: number,
+  optimalYield: number | null,
+  worstYield: number | null
+): number => {
+  let compliancePercentage = 0;
+
+  if (optimalYield !== null && worstYield !== null && optimalYield > worstYield) {
+    const range = optimalYield - worstYield;
+    const currentProgress = currentYield - worstYield;
+    compliancePercentage = Math.round((currentProgress / range) * 100);
+  } else if (optimalYield && optimalYield > 0) {
+    // Fallback
+    compliancePercentage = Math.round((currentYield / optimalYield) * 100);
+  }
+
+  // Cap visually
+  return Math.min(100, Math.max(0, compliancePercentage));
+};
+
+
+
+export interface ResistanceTriggerContext {
+  gameMode: string;
+  resistanceActive: boolean;
+  scoresCalculated: boolean;
+  compliancePercentage: number;
+  currentYield: number;
+  worstScore: number | null;
+  listLength: number;
+  hasJoined: boolean;
+  movesCount: number;
+  hasTriggeredLocal: boolean;
+}
+
+export const shouldTriggerResistance = (context: ResistanceTriggerContext): boolean => {
+  // Trigger when player hits the exact minimum yield (Failure State)
+  // Scores must be calculated and match the worst possible score.
+  return (
+    context.gameMode === 'DAILY' &&
+    context.scoresCalculated &&
+    context.worstScore !== null &&
+    context.currentYield <= context.worstScore && // Integer comparison
+    !context.resistanceActive &&
+    context.listLength > 0 &&
+    !context.hasJoined &&
+    context.movesCount > 0 &&
+    !context.hasTriggeredLocal
+  );
+};
+
+// --- Selector: Derives ResistanceTriggerContext from state ---
+export interface ResistanceTriggerStateInput {
+  list: CardItem[];
+  optimalScore: number | null;
+  worstScore: number | null;
+  movesHistory: Move[];
+  resistance: {
+    isViewOpen: boolean;
+    hasTriggered: boolean;
+    status: ResistanceStatus;
+  };
+}
+
+export const selectResistanceTriggerContext = (
+  coreState: ResistanceTriggerStateInput,
+  gameMode: string,
+  hasJoined: boolean
+): ResistanceTriggerContext => {
+  const { score: currentYield } = gradeLevel(coreState.list);
+  const compliancePercentage = calculateCompliance(
+    currentYield,
+    coreState.optimalScore,
+    coreState.worstScore
+  );
+  const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
+  const resistanceActive =
+    coreState.resistance.isViewOpen ||
+    coreState.resistance.status !== ResistanceStatus.INACTIVE;
+
+  return {
+    gameMode,
+    resistanceActive,
+    scoresCalculated,
+    compliancePercentage,
+    currentYield,
+    worstScore: coreState.worstScore,
+    listLength: coreState.list.length,
+    hasJoined,
+    movesCount: coreState.movesHistory.length,
+    hasTriggeredLocal: coreState.resistance.hasTriggered,
+  };
+};
 
 export interface DailyState {
   date: string;
@@ -24,53 +119,7 @@ export interface InspectionYield {
   detectedMode: 'ASC' | 'DESC' | null;
 }
 
-// Pure Logic Helper for Mode Determination & Survival
-export const judgeStep = (
-  currentVal: number,
-  currentHasShield: boolean,
-  lastSurvivorVal: number,
-  currentMode: 'ASC' | 'DESC' | null
-): { survived: boolean; newMode: 'ASC' | 'DESC' | null; scoreToAdd: number } => {
-  let survived = false;
-  let newMode = currentMode;
-  let scoreToAdd = 0;
 
-  // 1. Shield Logic (Always Survives)
-  if (currentHasShield) {
-    survived = true;
-    // Edge Case: Shielded item can still set the mode if currently pending
-    // "If currentVal != lastSurvivorVal (the physical value establishes the gradient, even if the item was forced to survive)."
-    if (newMode === null) {
-      if (currentVal > lastSurvivorVal) newMode = 'ASC';
-      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-      // If equal, mode remains null
-    }
-  }
-  // 2. Standard Logic
-  else {
-    if (newMode === null) {
-      // Pending Mode: Equality is OK, Difference sets mode
-      // "If currentVal == lastSurvivorVal: Item survives... newMode remains pending"
-      // "If currentVal != lastSurvivorVal: Item survives... newMode set"
-      survived = true;
-      if (currentVal > lastSurvivorVal) newMode = 'ASC';
-      else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-    } else {
-      // Determined Mode
-      if (newMode === 'ASC') {
-        if (currentVal >= lastSurvivorVal) survived = true;
-      } else {
-        if (currentVal <= lastSurvivorVal) survived = true;
-      }
-    }
-  }
-
-  if (survived) {
-    scoreToAdd = currentVal;
-  }
-
-  return { survived, newMode, scoreToAdd };
-};
 
 export function* createInspectionStream(initialList: CardItem[]): Generator<InspectionYield> {
   const list = initialList.map(item => ({ ...item }));
@@ -95,19 +144,21 @@ export function* createInspectionStream(initialList: CardItem[]): Generator<Insp
     let survived = false;
     let pointsToAdd = 0;
 
-    if (i === 0) {
+    if (lastSurvivorVal === null) {
+      // This is effectively the first item (or first non-eliminated item)
       survived = true;
+      pointsToAdd = currentVal; // Include first item's value
       lastSurvivorVal = currentVal;
       lastSurvivorHasShield = currentHasShield;
     } else {
       // Use judgeStep to determine outcome
-      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal!, sortDirection);
+      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal, sortDirection);
       survived = result.survived;
 
       // Update State if Survived
       if (survived) {
         sortDirection = result.newMode;
-        pointsToAdd = result.scoreToAdd;
+        pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
         lastSurvivorVal = currentVal;
         lastSurvivorHasShield = currentHasShield;
       }
@@ -148,41 +199,7 @@ export const stringToSeed = (str: string): number => {
   return h >>> 0;
 };
 
-// Pure function to calculate score for a given number array
-// Pure function to calculate score for a given number array
-export const calculateBatchScore = (numbers: ISortable[]): number => {
-  if (!numbers || numbers.length === 0) return 0;
 
-  let score = 0;
-  let lastSurvivor = 0;
-  let lastSurvivorHasShield = false;
-  let mode: 'ASC' | 'DESC' | null = null;
-
-  // Iterate
-  for (let i = 0; i < numbers.length; i++) {
-    const item = numbers[i];
-    const currentVal = item.val;
-    const currentHasShield = item.hasShield || false;
-    let survived = false;
-
-    if (i === 0) {
-      survived = true;
-      lastSurvivor = currentVal;
-      lastSurvivorHasShield = currentHasShield;
-    } else {
-      const result = judgeStep(currentVal, currentHasShield, lastSurvivor, mode);
-      survived = result.survived;
-
-      if (survived) {
-        mode = result.newMode;
-        score += result.scoreToAdd;
-        lastSurvivor = currentVal;
-        lastSurvivorHasShield = currentHasShield;
-      }
-    }
-  }
-  return score;
-};
 
 // Evaluate list to produce final scored items (for visual restoration)
 export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardItem[] } => {
@@ -208,7 +225,7 @@ export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardI
 // Recursive Solver to find the theoretical maximum score
 export const findOptimalScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
   // If no tools provided, default to standard set (legacy support or fallback)
-  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
   const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
 
   const solution = findOptimalSolution(startList, toolsToUse);
@@ -216,48 +233,24 @@ export const findOptimalScore = (startList: CardItem[], availableTools?: ToolIns
 };
 
 // Recursive Solver to find the optimal solution (score + path)
-// Note: availableTools here is a list of Types, representing the remaining usages.
 export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  let maxScore = -1; // Start with -1 to ensure we pick up 0 score if that's the best
-  let bestMoves: Move[] = [];
+  const result = solve(initialNums, availableTools);
 
-  const search = (currentNums: SolverItem[], currentTools: ToolType[], currentMoves: Move[]) => {
-    const currentScore = calculateBatchScore(currentNums);
-    if (currentScore > maxScore) {
-      maxScore = currentScore;
-      bestMoves = [...currentMoves];
-    }
+  const moves: Move[] = result.bestSolution.map(m => ({
+    tool: m.tool as ToolType,
+    index: m.i,
+    targetIndex: m.t,
+    description: '' // Fallback description
+  }));
 
-    if (currentTools.length === 0) return;
-
-    for (let t = 0; t < currentTools.length; t++) {
-      const tool = currentTools[t];
-      const nextTools = [...currentTools];
-      nextTools.splice(t, 1);
-
-      const strategy = TOOL_REGISTRY[tool];
-      if (strategy) {
-        const possibleMoves = strategy.generateMoves(currentNums);
-        for (const move of possibleMoves) {
-          // Apply move using the strategy logic (note: move.targetIndex corresponds to selection)
-          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-          search(nextNums, nextTools, [...currentMoves, move]);
-        }
-      }
-    }
-  };
-
-  search(initialNums, availableTools, []);
-  return { score: maxScore, moves: bestMoves };
+  return { score: result.maxYield, moves };
 };
 
 // Recursive Solver to find the theoretical minimum score
 export const findWorstScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
-  // If no tools provided, default to standard set (legacy support or fallback)
-  const defaultTools: ToolType[] = ['swap', 'purge', 'promote', 'demote'];
+  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
   const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
 
   const solution = findWorstSolution(startList, toolsToUse);
@@ -266,43 +259,18 @@ export const findWorstScore = (startList: CardItem[], availableTools?: ToolInsta
 
 // Recursive Solver to find the worst solution (score + path)
 export const findWorstSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  let minScore = Infinity;
-  let worstMoves: Move[] = [];
+  const result = solve(initialNums, availableTools, 'MIN');
 
-  const search = (currentNums: SolverItem[], currentTools: ToolType[], currentMoves: Move[]) => {
-    const currentScore = calculateBatchScore(currentNums);
-    if (currentScore < minScore) {
-      minScore = currentScore;
-      worstMoves = [...currentMoves];
-    }
+  const moves: Move[] = result.bestSolution.map(m => ({
+    tool: m.tool as ToolType,
+    index: m.i,
+    targetIndex: m.t,
+    description: ''
+  }));
 
-    if (currentTools.length === 0) return;
-
-    for (let t = 0; t < currentTools.length; t++) {
-      const tool = currentTools[t];
-      const nextTools = [...currentTools];
-      nextTools.splice(t, 1);
-
-      const strategy = TOOL_REGISTRY[tool];
-      if (strategy) {
-        const possibleMoves = strategy.generateMoves(currentNums);
-        for (const move of possibleMoves) {
-          const nextNums = strategy.apply(currentNums, move.index, move.targetIndex);
-          search(nextNums, nextTools, [...currentMoves, move]);
-        }
-      }
-    }
-  };
-
-  search(initialNums, availableTools, []);
-
-  // If initial score was never beaten (should be caught by first search call, but safety check)
-  if (minScore === Infinity) return { score: calculateBatchScore(initialNums), moves: [] };
-
-  return { score: minScore, moves: worstMoves };
+  return { score: result.maxYield, moves };
 };
 
 export const calculateRelativeEfficiency = (userScore: number, optimal: number, worst: number): number => {
@@ -313,41 +281,52 @@ export const calculateRelativeEfficiency = (userScore: number, optimal: number, 
 
 
 
-// Apply a move to a list and return the new list
-export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): T[] {
+export interface MoveResult<T> {
+  newList: T[];
+  impactedIndices: number[];
+}
+
+// Apply a move to a list and return the new list and impacted indices
+export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): MoveResult<T> {
   const strategy = TOOL_REGISTRY[tool];
   if (strategy) {
-    // We cast to ISortable[] for the strategy, and rely on it returning T[] implicitly (same structure)
-    // However, strategy.apply returns ISortable[]. We need to ensure types align.
-    // T extends ISortable. Strategy returns ISortable[].
-    // The strategies use `copy(list)` which maps `{...item}`. This preserves extra props like `id` if they exist on the input objects.
-    // So passing `list` (T[]) into `strategy.apply` works at runtime.
-    // TypeScript might complain about return type not being guaranteed T[].
-    // We can cast the result.
+    const newList = strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
+    let impactedIndices: number[] = [];
 
-    // Wait, strategy.apply takes ISortable[]. list is T[]. T extends ISortable. OK.
-    // Returns ISortable[]. We need T[].
-    // The implementation of strategies preserves properties via spread.
-    return strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
+    // Determine impacted indices based on tool type
+    if (tool === 'transfer') {
+      impactedIndices = [index];
+      if (selection !== undefined && selection !== null) {
+        impactedIndices.push(selection);
+      }
+    } else if (tool === 'swap') {
+      impactedIndices = [index];
+      if (selection !== undefined && selection !== null) {
+        impactedIndices.push(selection);
+      }
+    } else {
+      // Default single-index action (promote, demote, etc.)
+      impactedIndices = [index];
+    }
+
+    return { newList, impactedIndices };
   }
-  return list;
+  return { newList: list, impactedIndices: [] };
 }
 
 // Generate 4 tools from the pool
 export const generateTools = (seed?: number): ToolInstance[] => {
-  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
+  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random;
   const tools: ToolInstance[] = [];
 
-  // Calculate total weight
   const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
     const def = TOOL_META[toolId.toUpperCase()];
     return sum + (def ? def.weight : 0);
   }, 0);
 
-  // Pick 4 tools allowing duplicates
   for (let i = 0; i < 4; i++) {
     let threshold = random() * totalWeight;
-    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
+    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType;
 
     for (const toolId of ALL_TOOL_TYPES) {
       const def = TOOL_META[toolId.toUpperCase()];
@@ -370,24 +349,19 @@ export const generateTools = (seed?: number): ToolInstance[] => {
 
 // Utility to generate random levels
 export const generateLevel = (length: number, seed?: number): CardItem[] => {
-  // Setup Random Generator
   const random = seed !== undefined ? mulberry32(seed) : Math.random;
 
-  // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
 
-  // Fisher-Yates Shuffle the pool
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  // Select the first 'length' numbers
   const numbers = pool.slice(0, length);
 
   return numbers.map(val => {
-    // We also want deterministic IDs if seeded, to avoid hydration mismatches or randomness
     const idSuffix = seed !== undefined
       ? Math.floor(random() * 1000000).toString(36)
       : Math.random().toString(36).substring(2, 9);
@@ -395,22 +369,24 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
     return {
       id: idSuffix,
       val: val,
-      status: 'pending'
+      status: 'pending',
+      role: AgentRole.NONE,
+      // delta removed
+      // userTag removed
     };
   });
 };
 
 
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
-  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
+  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random;
   const keys: FlavorKey[] = ["SOLVED", "DONE", "ADEQUATE", "INITIAL", "SUSPICIOUS", "SABOTAGE"];
   const map = {} as Record<FlavorKey, string>;
 
   keys.forEach(key => {
     const options = FLAVOR_DATABASE[key];
-    if (!options) return; // Safety check in case of mismatch
+    if (!options) return;
 
-    // Weighted random selection based on seed
     const totalWeight = options.reduce((sum, item) => sum + item.weight, 0);
     let r = random() * totalWeight;
     let selected = options[0].text;
@@ -426,4 +402,77 @@ export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   });
 
   return map;
+};
+
+// Deprecated logic removed.
+
+export const verifyResistanceMission = (
+  items: CardItem[],
+  currentStatus: ResistanceStatus,
+  targetLength: number,
+  initialYield: number,
+  targetYield: number // The Conditional Maximum Yield
+): ResistanceStatus => {
+  // If already ended irrecoverably (e.g. MIA), preserve it?
+  // Actually, standard logic is to re-evaluate on every inspection fully.
+  // Except if we have a persisted failure state that shouldn't be cleared?
+  // Let's assume re-evaluation is fine because inspection is transient until final result.
+
+  // 1. Determine Survivors
+  // We assume 'items' passed here are already GRADED (have status 'safe' or 'eliminated').
+  // If not, we should grade them. But usually this is called with the result of gradeLevel or current game state.
+  // To be safe, let's recalculate grade if status is pending, but usually this is called in RESULTS phase or during check.
+  // Actually, usually we verify based on the FINAL state.
+
+  let visibleYield = 0;
+  let resistanceSurvived = true; // Start true, check if any faltered
+  let stateEliminated = true; // Start true, check if any survived
+  let hasResistance = false;
+  let hasState = false;
+
+  for (const item of items) {
+    if (item.status === 'safe') {
+      visibleYield += item.val;
+      if (item.role === AgentRole.RESISTANCE) {
+        hasResistance = true;
+        // Good
+      }
+      if (item.role === AgentRole.STATE) {
+        hasState = true;
+        stateEliminated = false; // Fail: State agent survived
+      }
+    } else if (item.status === 'eliminated') {
+      if (item.role === AgentRole.RESISTANCE) {
+        hasResistance = true;
+        resistanceSurvived = false; // Fail: Resistance agent eliminated
+      }
+      if (item.role === AgentRole.STATE) {
+        hasState = true;
+        // Good
+      }
+    } else {
+      // If pending/scanning, we can't judge yet. Return INACTIVE or currentStatus?
+      // Usually verifyResistanceMission is called at the end.
+    }
+  }
+
+  // If no agents are present (not resistance mode), return INACTIVE
+  if (!hasResistance && !hasState) return ResistanceStatus.INACTIVE;
+
+  // Check Fail Conditions
+  if (!resistanceSurvived) {
+    return ResistanceStatus.EXPOSED; // Resistance Agent died
+  }
+
+  if (!stateEliminated) {
+    return ResistanceStatus.COMPROMISED; // State Agent survived
+  }
+
+  // Check Success Condition
+  // If we are here, means Resistance Clean and State Gone.
+  if (visibleYield >= targetYield) {
+    return ResistanceStatus.SUCCESS;
+  } else {
+    return ResistanceStatus.CAREFUL; // Logic: Survived but yield too low
+  }
 };

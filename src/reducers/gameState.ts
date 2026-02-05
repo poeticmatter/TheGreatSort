@@ -1,5 +1,14 @@
-import { CardItem, GamePhase, ToolInstance, Move } from '../../types';
+import { CardItem, GamePhase, ToolInstance, Move, ResistanceStatus } from '../../types';
 import { FlavorKey } from '../config/flavorText';
+
+
+export interface ResistanceState {
+  status: ResistanceStatus;
+  isViewOpen: boolean;
+  isPending: boolean;
+  hasTriggered: boolean;
+  targetYield?: number;
+}
 
 export interface GameState {
   level: number;
@@ -20,6 +29,7 @@ export interface GameState {
   dailyCompleted: boolean;
   currentSeed: number | undefined;
   flavorMap?: Record<FlavorKey, string>;
+  resistance: ResistanceState;
 }
 
 export type GameAction =
@@ -45,7 +55,7 @@ export type GameAction =
   }
   | { type: 'SELECT_TOOL'; payload: { toolInstanceId: string | null } }
   | { type: 'SELECT_TILE'; payload: { index: number } }
-  | { type: 'APPLY_MOVE'; payload: { list: CardItem[]; move: Move } }
+  | { type: 'APPLY_MOVE'; payload: { list: CardItem[]; move: Move; impactedIndices: number[] } }
   | { type: 'CANCEL_SELECTION' }
   | {
     type: 'INSPECTION_STEP';
@@ -66,4 +76,9 @@ export type GameAction =
   | { type: 'SET_LIST'; payload: { list: CardItem[] } }
   | { type: 'SET_DETECTED_MODE'; payload: { mode: 'ASC' | 'DESC' | null } }
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
-  | { type: 'UNDO_MOVE' };
+  | { type: 'UNDO_MOVE' }
+  | { type: 'ACTIVATE_RESISTANCE' }
+  | { type: 'CLOSE_RESISTANCE_VIEW' }
+  | { type: 'SET_RESISTANCE_PENDING'; payload: { pending: boolean } }
+  | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }
+  | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }; // Composite action logic maybe?

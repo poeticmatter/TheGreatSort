@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { CardItem } from '../../types';
-import { Play } from 'lucide-react';
+import { CardItem, AgentRole } from '../../types';
+import { Play, Siren, Shield } from 'lucide-react';
 
 interface CardProps {
   item: CardItem;
@@ -13,6 +13,7 @@ interface CardProps {
   isDisabled?: boolean;
   mirrorLabel?: string | null;
   variant?: 'standard' | 'wide';
+  showRoles?: boolean;
 }
 
 const getCardVisuals = (
@@ -87,7 +88,8 @@ const Card: React.FC<CardProps> = React.memo(({
   disableResponsiveOverrides,
   isDisabled,
   mirrorLabel,
-  variant = 'standard'
+  variant = 'standard',
+  showRoles
 }) => {
 
   const { bgColor, borderColor, textColor, scale, opacity, shadow } = useMemo(() =>
@@ -178,10 +180,40 @@ const Card: React.FC<CardProps> = React.memo(({
         </div>
       )}
 
+      {/* Permanent Agent Role Badges */}
+      {showRoles && item.role === AgentRole.STATE && (
+        <div className={`
+          absolute animate-in fade-in zoom-in duration-200 text-red-500
+          ${variant === 'wide'
+            ? 'left-1 top-1/2 -translate-y-1/2' // Mobile/Wide: Left Side
+            : 'bottom-2 left-1/2 -translate-x-1/2' // Desktop/Standard: Bottom Center
+          }
+        `}>
+          <Siren className="w-3 h-3 sm:w-4 sm:h-4 fill-red-900/50" />
+        </div>
+      )}
+      {showRoles && item.role === AgentRole.RESISTANCE && (
+        <div className={`
+          absolute animate-in fade-in zoom-in duration-200 text-blue-500
+          ${variant === 'wide'
+            ? 'left-1 top-1/2 -translate-y-1/2' // Mobile/Wide: Left Side
+            : 'bottom-2 left-1/2 -translate-x-1/2' // Desktop/Standard: Bottom Center
+          }
+        `}>
+          <Shield className="w-3 h-3 sm:w-4 sm:h-4 fill-blue-900/50" />
+        </div>
+      )}
+
 
       {/* Mirror Label Badge */}
       {mirrorLabel && (
-        <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-300">
+        <div className={`
+          absolute z-30 animate-in fade-in zoom-in duration-300
+          ${variant === 'wide'
+            ? 'right-1 top-1/2 -translate-y-1/2' // Mobile/Wide: Right Side
+            : '-top-3 left-1/2 -translate-x-1/2' // Desktop/Standard: Top Center
+          }
+        `}>
           <div className="bg-cyan-950 text-cyan-400 font-serif font-bold text-[8px] sm:text-[10px] uppercase px-1 sm:px-1.5 py-[0.5px] leading-none rounded-full border border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]">
             {mirrorLabel}
           </div>
@@ -201,10 +233,12 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
     prev.mirrorLabel === next.mirrorLabel &&
     prev.variant === next.variant &&
     prev.onClick === next.onClick &&
+    prev.showRoles === next.showRoles &&
     // Item checks (Deep check on relevant fields to handle reference instability)
     prev.item.val === next.item.val &&
     prev.item.status === next.item.status &&
     prev.item.hasShield === next.item.hasShield &&
+    prev.item.role === next.item.role && // updated property
 
     prev.item.id === next.item.id
   );

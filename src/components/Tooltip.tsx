@@ -14,21 +14,32 @@ interface TooltipProps {
   onRetryPractice?: () => void;
   onViewAudit?: () => void;
   isLocked?: boolean;
+  isResistanceActive?: boolean;
 }
 
 import { TOOLS } from '../constants';
+import { Siren, Shield } from 'lucide-react';
 
 const Tooltip: React.FC<TooltipProps> = ({
   phase,
   selectedTool,
   selection,
   gameMode,
-  isLocked
+  isLocked,
+  isResistanceActive
 }) => {
 
-  const getInstruction = () => {
+  const getInstruction = (): React.ReactNode => {
     if (phase === GamePhase.RESULTS) return "Sequence Complete. Review results.";
     if (phase === GamePhase.INSPECTING) return "Processing sequence...";
+
+    if (isResistanceActive) {
+      return (
+        <span>
+          The <span className="text-red-500 font-bold not-italic">state <Siren className="inline w-3 h-3 mb-0.5" /></span> agent must be eliminated. The <span className="text-blue-500 font-bold not-italic">resistance <Shield className="inline w-3 h-3 mb-0.5" /></span> agent must survive.
+        </span>
+      );
+    }
 
     if (gameMode === 'DAILY' && isLocked) return "Quota Locked. Training Mode Active.";
 

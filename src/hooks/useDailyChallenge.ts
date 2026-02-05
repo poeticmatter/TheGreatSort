@@ -94,8 +94,8 @@ export function useDailyChallenge(
         gameState?.currentSeed
     ]);
 
-    const saveDailyResult = (score: number) => {
-        const result: DailyResult = { score, date: sessionDate };
+    const saveDailyResult = (score: number, resistanceStatus?: string) => {
+        const result: DailyResult = { score, date: sessionDate, resistanceStatus };
         PersistenceService.saveDailyResult(sessionDate, result);
         PersistenceService.updateDailyHistory(sessionDate, score);
         setDailyResult(result);

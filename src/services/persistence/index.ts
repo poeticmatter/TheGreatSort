@@ -12,6 +12,23 @@ export const PersistenceService = {
 
     // --- Daily State ---
 
+    // --- Resistance Persistence ---
+    saveResistanceStatus: (status: boolean) => {
+        try {
+            localStorage.setItem('joinedResistance', String(status));
+        } catch (e) {
+            console.error("PersistenceService: Failed to save resistance status", e);
+        }
+    },
+
+    loadResistanceStatus: (): boolean => {
+        try {
+            return localStorage.getItem('joinedResistance') === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
     saveDailyState: (date: string, data: Omit<SaveStateSchema, 'version' | 'date' | 'gameMode'>) => {
         try {
             const payload: SaveStateSchema = {
