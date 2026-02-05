@@ -11,8 +11,21 @@ export interface ShareResult {
 
 const isMobileDevice = (): boolean => {
     if (typeof navigator === 'undefined') return false;
-    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
-    return /android|ipad|iphone|ipod/i.test(ua);
+
+    // Modern approach: User-Agent Client Hints
+    const uaData = (navigator as any).userAgentData;
+    if (uaData?.mobile !== undefined) {
+        return uaData.mobile;
+    }
+
+    // Fallback: touch capability check
+    if (navigator.maxTouchPoints > 0) {
+        // Additional check to exclude touch-enabled laptops
+        const isNarrowScreen = window.matchMedia?.('(max-width: 768px)')?.matches ?? false;
+        if (isNarrowScreen) return true;
+    }
+
+    return false;
 };
 
 export const performShare = async (text: string): Promise<ShareResult> => {
