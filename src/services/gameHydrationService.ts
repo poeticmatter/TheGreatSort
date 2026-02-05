@@ -2,7 +2,7 @@ import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, ToolInstance, Move, GameMode, CardItem, HiddenRole, ResistanceStatus } from '../../types';
+import { GamePhase, ToolInstance, Move, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
 
 export interface HydrationResult {
     initialState: Partial<GameState>;
@@ -22,7 +22,7 @@ export class GameHydrationService {
         const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
 
         // Apply Resistance Data
-        const { list: refinedStartList, resistanceStatus } = this.applyResistanceData(startList, puzzle);
+        const { list: refinedStartList, resistanceStatus, resistanceTarget } = this.applyResistanceData(startList, puzzle);
 
         const startTools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
@@ -87,6 +87,7 @@ export class GameHydrationService {
             worstScore,
             dailyCompleted: phase === GamePhase.RESULTS,
             resistanceStatus,
+            resistanceTarget, // Set the target
             // Default others
             totalScore: 0,
             totalOptimalScore: 0,
@@ -106,7 +107,7 @@ export class GameHydrationService {
         const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
 
         // Apply Resistance Data
-        const { list: refinedList, resistanceStatus } = this.applyResistanceData(list, puzzle);
+        const { list: refinedList, resistanceStatus, resistanceTarget } = this.applyResistanceData(list, puzzle);
 
         const tools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
@@ -128,6 +129,7 @@ export class GameHydrationService {
             worstScore,
             dailyCompleted: false,
             resistanceStatus,
+            resistanceTarget, // Set the target
         };
 
         return { initialState: state, isValid: true };
@@ -167,37 +169,41 @@ export class GameHydrationService {
     /**
      * Applies Resistance Mode data to the item list if present in the puzzle.
      */
-    private static applyResistanceData(list: CardItem[], puzzle: DailyPuzzleData): { list: CardItem[], resistanceStatus: ResistanceStatus } {
+    private static applyResistanceData(list: CardItem[], puzzle: DailyPuzzleData): { list: CardItem[], resistanceStatus: ResistanceStatus, resistanceTarget?: number } {
         const resistanceData = puzzle.resistanceData;
         console.log("Resistance Mode Initialized:", resistanceData ? "YES" : "NO");
 
         if (!resistanceData) {
             return {
-                list: list.map(item => ({ ...item, hiddenRole: HiddenRole.NONE, delta: 0 })),
+                list: list.map(item => ({ ...item, role: AgentRole.NONE })),
                 resistanceStatus: ResistanceStatus.INACTIVE
             };
         }
 
+        // Schema: agents: Record<number, 'resistance' | 'state'>
         const agents = resistanceData.agents;
         const newList = list.map((item, index) => {
-            const agentData = agents[index];
-            let hiddenRole = HiddenRole.NONE;
-            let trueValue = item.val;
+            const roleStr = agents[index];
+            let role = AgentRole.NONE;
 
-            if (agentData) {
-                hiddenRole = agentData.role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE;
-            }
+            if (roleStr === 'resistance') role = AgentRole.RESISTANCE;
+            if (roleStr === 'state') role = AgentRole.STATE;
 
             return {
                 ...item,
-                hiddenRole,
-                delta: agentData ? agentData.delta : 0
+                role
             };
         });
 
         return {
             list: newList,
-            resistanceStatus: ResistanceStatus.INACTIVE
+            resistanceStatus: ResistanceStatus.INACTIVE,
+            resistanceTarget: resistanceData.targetYield // simplified schema property name might actully be targetYield?
+            // The generator writes "targetYield".
+            // The DailyPuzzle interface in generator says "targetYield".
+            // However, DailyPuzzleData type in PuzzleRepository MIGHT be different.
+            // I should check DailyPuzzleData interface. But based on typical flow, it matches generator output.
+            // I'll assume resistanceData has targetYield property as generated.
         };
     }
 }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { CardItem, UserTag } from '../../types';
-import { Play, HelpCircle, Siren, Shield } from 'lucide-react';
+import { CardItem, AgentRole } from '../../types';
+import { Play, Siren, Shield } from 'lucide-react';
 
 interface CardProps {
   item: CardItem;
@@ -13,6 +13,7 @@ interface CardProps {
   isDisabled?: boolean;
   mirrorLabel?: string | null;
   variant?: 'standard' | 'wide';
+  showRoles?: boolean;
 }
 
 const getCardVisuals = (
@@ -87,7 +88,8 @@ const Card: React.FC<CardProps> = React.memo(({
   disableResponsiveOverrides,
   isDisabled,
   mirrorLabel,
-  variant = 'standard'
+  variant = 'standard',
+  showRoles
 }) => {
 
   const { bgColor, borderColor, textColor, scale, opacity, shadow } = useMemo(() =>
@@ -178,23 +180,17 @@ const Card: React.FC<CardProps> = React.memo(({
         </div>
       )}
 
-      {/* Deduction Tags */}
-      {item.userTag === UserTag.SUSPICIOUS && (
-        <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-amber-500 animate-in fade-in zoom-in duration-200">
-          <HelpCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-        </div>
-      )}
-      {item.userTag === UserTag.STATE && (
+      {/* Permanent Agent Role Badges */}
+      {showRoles && item.role === AgentRole.STATE && (
         <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-red-500 animate-in fade-in zoom-in duration-200">
-          <Siren className="w-3 h-3 sm:w-4 sm:h-4" />
+          <Siren className="w-3 h-3 sm:w-4 sm:h-4 fill-red-900/50" />
         </div>
       )}
-      {item.userTag === UserTag.RESISTANCE && (
+      {showRoles && item.role === AgentRole.RESISTANCE && (
         <div className="absolute bottom-1 sm:bottom-2 -translate-x-1/2 left-1/2 text-blue-500 animate-in fade-in zoom-in duration-200">
-          <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+          <Shield className="w-3 h-3 sm:w-4 sm:h-4 fill-blue-900/50" />
         </div>
       )}
-
 
 
       {/* Mirror Label Badge */}
@@ -219,11 +215,12 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
     prev.mirrorLabel === next.mirrorLabel &&
     prev.variant === next.variant &&
     prev.onClick === next.onClick &&
+    prev.showRoles === next.showRoles &&
     // Item checks (Deep check on relevant fields to handle reference instability)
     prev.item.val === next.item.val &&
     prev.item.status === next.item.status &&
     prev.item.hasShield === next.item.hasShield &&
-    prev.item.userTag === next.item.userTag &&
+    prev.item.role === next.item.role && // updated property
 
     prev.item.id === next.item.id
   );

@@ -1,5 +1,5 @@
 import dailyPuzzles from '../data/daily_puzzles.json';
-import { CardItem, ToolInstance, ToolType, HiddenRole, UserTag } from '../../types';
+import { CardItem, ToolInstance, ToolType, AgentRole } from '../../types';
 
 export interface DailyPuzzleData {
     id: number;
@@ -15,8 +15,8 @@ export interface DailyPuzzleData {
         t?: number;
     }[];
     resistanceData?: {
-        agents: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }>;
-        resistanceTarget?: number;
+        agents: Record<number, 'resistance' | 'state'>;
+        targetYield: number;
     };
 }
 
@@ -45,7 +45,7 @@ export const PuzzleRepository = {
         const puzzleCount = dailyPuzzles.length;
         const puzzleIndex = index % puzzleCount;
 
-        return dailyPuzzles[puzzleIndex] as DailyPuzzleData;
+        return dailyPuzzles[puzzleIndex] as unknown as DailyPuzzleData;
     },
 
     hydrateSequence(sequence: number[]): CardItem[] {
@@ -54,9 +54,7 @@ export const PuzzleRepository = {
             val: val,
             status: 'pending',
             hasShield: false, // Default to false as simple numbers don't imply shields
-            hiddenRole: HiddenRole.NONE,
-            delta: 0,
-            userTag: UserTag.NONE
+            role: AgentRole.NONE
         }));
     },
 

@@ -4,7 +4,7 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
-import { calculateYields, verifyResistanceMission } from '../utils/gameLogic';
+import { verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
@@ -63,12 +63,16 @@ export function useGame(sessionDate: string) {
 
 
   // 6. Derived Metrics & Mood
+  // Metric Goal: Always use the State's Optimal Score for true "Compliance".
+  // The Resistance Target is a secret objective that does not shift the public Compliance Meter.
+  const targetScoreForMetrics = coreState.optimalScore;
+
   const {
     compliancePercentage,
     startingCompliance,
     isZeroYield,
     yieldRatio
-  } = useProjectedMetrics(coreState.list, coreState.initialList || [], coreState.optimalScore, coreState.worstScore);
+  } = useProjectedMetrics(coreState.list, coreState.initialList || [], targetScoreForMetrics, coreState.worstScore);
 
   const mood = useSystemMood(compliancePercentage, startingCompliance, isLocked);
 
@@ -139,14 +143,13 @@ export function useGame(sessionDate: string) {
     let finalStatus = coreState.resistanceStatus;
 
     if (coreState.resistanceStatus !== ResistanceStatus.INACTIVE) {
-      // Fetch Targets to Validate Success/Failure
-      const [y, m, d] = sessionDate.split('-').map(Number);
-      const puzzleDate = new Date(y, m - 1, d);
-      const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
+      // Fetch Targets
+      // We rely on state resistanceTarget or fallback to 0 (which shouldn't happen if mode active)
+      const targetYield = coreState.resistanceTarget || 0;
 
-      // Calculate Initial Regular Yield (for floor) per user request
-      const initialYield = calculateYields(coreState.initialList).visibleYield;
-      const targetYield = puzzle.resistanceData?.resistanceTarget || 0;
+      // Calculate Initial Yield (for floor check logic in verification if needed)
+      // Standard score for initial list
+      const initialYield = gradeLevel(coreState.initialList).score;
 
       // Verify
       finalStatus = verifyResistanceMission(
@@ -163,7 +166,7 @@ export function useGame(sessionDate: string) {
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
     metaActions.setResistancePending(true);
     metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
-  }, [saveDailyResult, coreState.levelScore, coreState.resistanceStatus, coreState.optimalScore, coreDispatch, metaActions, sessionDate, coreState.list, coreState.initialList]);
+  }, [saveDailyResult, coreState.levelScore, coreState.resistanceStatus, coreState.resistanceTarget, coreState.optimalScore, coreDispatch, metaActions, coreState.list, coreState.initialList]);
 
   const changeMode = useCallback((newMode: GameMode) => {
     metaActions.closeAudit();
@@ -333,11 +336,7 @@ export function useGame(sessionDate: string) {
       yieldRatio,
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
       selectedTool: coreState.selectedToolInstanceId,
-      // Calculate Yields on the fly for UI (Resistance Mode)
-      // visibleYield = sum of survivor vals, trueYield = sum of survivor trueValues
-      ...(coreState.resistanceStatus !== ResistanceStatus.INACTIVE
-        ? calculateYields(coreState.list)
-        : { visibleYield: 0, trueYield: 0 })
+      // trueYield/visibleYield removed
     },
     // UI Logic (The "ViewModel")
     interaction,

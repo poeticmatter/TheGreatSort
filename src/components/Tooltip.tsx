@@ -14,6 +14,7 @@ interface TooltipProps {
   onRetryPractice?: () => void;
   onViewAudit?: () => void;
   isLocked?: boolean;
+  isResistanceActive?: boolean;
 }
 
 import { TOOLS } from '../constants';
@@ -23,12 +24,17 @@ const Tooltip: React.FC<TooltipProps> = ({
   selectedTool,
   selection,
   gameMode,
-  isLocked
+  isLocked,
+  isResistanceActive
 }) => {
 
   const getInstruction = () => {
     if (phase === GamePhase.RESULTS) return "Sequence Complete. Review results.";
     if (phase === GamePhase.INSPECTING) return "Processing sequence...";
+
+    if (isResistanceActive) {
+      return "The state (in red) agent must be eliminated. The resistance (in blue) agent must survive.";
+    }
 
     if (gameMode === 'DAILY' && isLocked) return "Quota Locked. Training Mode Active.";
 

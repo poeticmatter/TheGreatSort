@@ -1,4 +1,4 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, HiddenRole, UserTag, ResistanceStatus } from '../../types';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types';
 import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
 import { TOOL_REGISTRY } from '../tools';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
@@ -141,17 +141,11 @@ export const findOptimalScore = (startList: CardItem[], availableTools?: ToolIns
 };
 
 // Recursive Solver to find the optimal solution (score + path)
-// Note: availableTools here is a list of Types, representing the remaining usages.
-// Recursive Solver to find the optimal solution (score + path)
-// Note: availableTools here is a list of Types, representing the remaining usages.
 export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  // Use the unified solver core
   const result = solve(initialNums, availableTools);
 
-  // Map DailyPuzzleMove[] back to Move[]
   const moves: Move[] = result.bestSolution.map(m => ({
     tool: m.tool as ToolType,
     index: m.i,
@@ -164,7 +158,6 @@ export const findOptimalSolution = (startList: CardItem[], availableTools: ToolT
 
 // Recursive Solver to find the theoretical minimum score
 export const findWorstScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
-  // If no tools provided, default to standard set (legacy support or fallback)
   const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
   const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
 
@@ -174,13 +167,10 @@ export const findWorstScore = (startList: CardItem[], availableTools?: ToolInsta
 
 // Recursive Solver to find the worst solution (score + path)
 export const findWorstSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  // Convert to SolverItem for potentially rich state
   const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
 
-  // Use the unified solver core with MIN objective
   const result = solve(initialNums, availableTools, 'MIN');
 
-  // Map moves
   const moves: Move[] = result.bestSolution.map(m => ({
     tool: m.tool as ToolType,
     index: m.i,
@@ -234,19 +224,17 @@ export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index:
 
 // Generate 4 tools from the pool
 export const generateTools = (seed?: number): ToolInstance[] => {
-  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random; // Offset seed slightly to not correlate with level gen
+  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random;
   const tools: ToolInstance[] = [];
 
-  // Calculate total weight
   const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
     const def = TOOL_META[toolId.toUpperCase()];
     return sum + (def ? def.weight : 0);
   }, 0);
 
-  // Pick 4 tools allowing duplicates
   for (let i = 0; i < 4; i++) {
     let threshold = random() * totalWeight;
-    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType; // Default fallback
+    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType;
 
     for (const toolId of ALL_TOOL_TYPES) {
       const def = TOOL_META[toolId.toUpperCase()];
@@ -269,24 +257,19 @@ export const generateTools = (seed?: number): ToolInstance[] => {
 
 // Utility to generate random levels
 export const generateLevel = (length: number, seed?: number): CardItem[] => {
-  // Setup Random Generator
   const random = seed !== undefined ? mulberry32(seed) : Math.random;
 
-  // Generate numbers from 1 to N*2
   const maxVal = length * 2;
   const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
 
-  // Fisher-Yates Shuffle the pool
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  // Select the first 'length' numbers
   const numbers = pool.slice(0, length);
 
   return numbers.map(val => {
-    // We also want deterministic IDs if seeded, to avoid hydration mismatches or randomness
     const idSuffix = seed !== undefined
       ? Math.floor(random() * 1000000).toString(36)
       : Math.random().toString(36).substring(2, 9);
@@ -295,26 +278,23 @@ export const generateLevel = (length: number, seed?: number): CardItem[] => {
       id: idSuffix,
       val: val,
       status: 'pending',
-      hiddenRole: HiddenRole.NONE,
-      delta: 0,
-      userTag: UserTag.NONE
+      role: AgentRole.NONE,
+      // delta removed
+      // userTag removed
     };
   });
 };
 
 
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
-  // ... existing flavor map logic (omitted in tool, but I can't restart function half way) ...
-  // Actually, I can use separate chunks.
-  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random; // Offset seed
+  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random;
   const keys: FlavorKey[] = ["SOLVED", "DONE", "ADEQUATE", "INITIAL", "SUSPICIOUS", "SABOTAGE"];
   const map = {} as Record<FlavorKey, string>;
 
   keys.forEach(key => {
     const options = FLAVOR_DATABASE[key];
-    if (!options) return; // Safety check in case of mismatch
+    if (!options) return;
 
-    // Weighted random selection based on seed
     const totalWeight = options.reduce((sum, item) => sum + item.weight, 0);
     let r = random() * totalWeight;
     let selected = options[0].text;
@@ -332,84 +312,75 @@ export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
   return map;
 };
 
-/**
- * Calculates both visible yield and true yield based on survivors.
- * Yield = sum of visible values (val) of all survivors
- * True Yield = sum of hidden values (trueValue) of all survivors
- * This is different from game "score" which excludes the first item.
- */
-export const calculateYields = (items: CardItem[]): { visibleYield: number; trueYield: number } => {
-  if (!items || items.length === 0) return { visibleYield: 0, trueYield: 0 };
-
-  // Grade the list to determine survivors based on sorting rules
-  const { gradedList } = gradeLevel(items);
-
-  let visibleYield = 0;
-  let trueYield = 0;
-
-  for (let i = 0; i < gradedList.length; i++) {
-    if (gradedList[i].status === 'safe') {
-      visibleYield += gradedList[i].val;
-      trueYield += gradedList[i].val + (gradedList[i].delta || 0);
-    }
-  }
-
-  return { visibleYield, trueYield };
-};
-
-// Legacy wrapper for backward compatibility
-export const calculateTrueYield = (items: CardItem[], targetLength: number): number => {
-  return calculateYields(items).trueYield;
-};
-
+// Deprecated logic removed.
 
 export const verifyResistanceMission = (
   items: CardItem[],
   currentStatus: ResistanceStatus,
   targetLength: number,
   initialYield: number,
-  targetYield: number
+  targetYield: number // The Conditional Maximum Yield
 ): ResistanceStatus => {
-  // 1. If already MIA, game over.
-  if (currentStatus === ResistanceStatus.MIA) {
-    return ResistanceStatus.MIA;
-  }
+  // If already ended irrecoverably (e.g. MIA), preserve it?
+  // Actually, standard logic is to re-evaluate on every inspection fully.
+  // Except if we have a persisted failure state that shouldn't be cleared?
+  // Let's assume re-evaluation is fine because inspection is transient until final result.
 
-  // 2. Iterate through items to check Roles
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    // Keep Zone: Indices 0 to targetLength-1, provided they are NOT eliminated.
-    // Reject Zone: Indices >= targetLength OR any Eliminated item.
-    const isKept = i < targetLength && item.status !== 'eliminated';
+  // 1. Determine Survivors
+  // We assume 'items' passed here are already GRADED (have status 'safe' or 'eliminated').
+  // If not, we should grade them. But usually this is called with the result of gradeLevel or current game state.
+  // To be safe, let's recalculate grade if status is pending, but usually this is called in RESULTS phase or during check.
+  // Actually, usually we verify based on the FINAL state.
 
-    if (isKept) {
-      // KEEP ZONE Logic
-      // If we Keep a STATE agent -> COMPROMISED
-      if (item.hiddenRole === HiddenRole.STATE) {
-        return ResistanceStatus.COMPROMISED;
+  let visibleYield = 0;
+  let resistanceSurvived = true; // Start true, check if any faltered
+  let stateEliminated = true; // Start true, check if any survived
+  let hasResistance = false;
+  let hasState = false;
+
+  for (const item of items) {
+    if (item.status === 'safe') {
+      visibleYield += item.val;
+      if (item.role === AgentRole.RESISTANCE) {
+        hasResistance = true;
+        // Good
+      }
+      if (item.role === AgentRole.STATE) {
+        hasState = true;
+        stateEliminated = false; // Fail: State agent survived
+      }
+    } else if (item.status === 'eliminated') {
+      if (item.role === AgentRole.RESISTANCE) {
+        hasResistance = true;
+        resistanceSurvived = false; // Fail: Resistance agent eliminated
+      }
+      if (item.role === AgentRole.STATE) {
+        hasState = true;
+        // Good
       }
     } else {
-      // REJECT ZONE Logic
-      // If we Reject (or Eliminate) a RESISTANCE agent -> MIA
-      if (item.hiddenRole === HiddenRole.RESISTANCE) {
-        return ResistanceStatus.MIA;
-      }
+      // If pending/scanning, we can't judge yet. Return INACTIVE or currentStatus?
+      // Usually verifyResistanceMission is called at the end.
     }
   }
 
-  // 3. Logic based on Regular Yield (Visible) per user request
-  const { visibleYield } = calculateYields(items);
+  // If no agents are present (not resistance mode), return INACTIVE
+  if (!hasResistance && !hasState) return ResistanceStatus.INACTIVE;
 
-  // Success Condition: Visible Yield meets Target (which is now Regular Yield in JSON)
+  // Check Fail Conditions
+  if (!resistanceSurvived) {
+    return ResistanceStatus.EXPOSED; // Resistance Agent died
+  }
+
+  if (!stateEliminated) {
+    return ResistanceStatus.COMPROMISED; // State Agent survived
+  }
+
+  // Check Success Condition
+  // If we are here, means Resistance Clean and State Gone.
   if (visibleYield >= targetYield) {
     return ResistanceStatus.SUCCESS;
-  } else if (visibleYield > initialYield) {
-    // "Careful" -> Improved Visible Yield but didn't hit target? 
-    // Or maybe we should keep True Yield for "Careful" status? 
-    // User said "Only interference meter". So let's stick to visible.
-    return ResistanceStatus.CAREFUL;
   } else {
-    // If yield is at initial or below
-    return ResistanceStatus.EXPOSED;
+    return ResistanceStatus.CAREFUL; // Logic: Survived but yield too low
   }
 };

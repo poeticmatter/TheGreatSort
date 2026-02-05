@@ -2,60 +2,253 @@
   {
     "id": 0,
     "sequence": [
-      6,
-      17,
-      18,
-      4,
-      10,
+      16,
+      12,
+      7,
+      2,
+      14,
       8,
       9,
-      2,
-      11
+      11,
+      6
     ],
     "tools": [
-      "sink",
-      "hop",
-      "swap",
-      "demote"
+      "promote",
+      "transfer",
+      "shrink",
+      "mirror"
     ],
     "targets": {
-      "min": 12,
+      "min": 3,
       "max": 67
     },
     "solution": [
       {
-        "tool": "sink",
-        "i": 1
+        "tool": "transfer",
+        "i": 6,
+        "t": 1
       },
       {
-        "tool": "swap",
+        "tool": "shrink",
+        "i": 4
+      },
+      {
+        "tool": "mirror",
+        "i": 0
+      },
+      {
+        "tool": "promote",
         "i": 3
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "4": "state",
+        "7": "resistance"
+      },
+      "targetYield": 53
+    }
+  },
+  {
+    "id": 1,
+    "sequence": [
+      8,
+      1,
+      18,
+      2,
+      5,
+      7,
+      11,
+      4,
+      10
+    ],
+    "tools": [
+      "sink",
+      "transfer",
+      "promote",
+      "hop"
+    ],
+    "targets": {
+      "min": 1,
+      "max": 52
+    },
+    "solution": [
+      {
+        "tool": "transfer",
+        "i": 8,
+        "t": 0
+      },
+      {
+        "tool": "promote",
+        "i": 4
+      },
+      {
+        "tool": "hop",
+        "i": 4
+      },
+      {
+        "tool": "sink",
+        "i": 5
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "2": "state",
+        "8": "resistance"
+      },
+      "targetYield": 45
+    }
+  },
+  {
+    "id": 2,
+    "sequence": [
+      18,
+      12,
+      6,
+      9,
+      15,
+      3,
+      10,
+      8,
+      16
+    ],
+    "tools": [
+      "longswap",
+      "hop",
+      "shrink",
+      "halve"
+    ],
+    "targets": {
+      "min": 3,
+      "max": 80
+    },
+    "solution": [
+      {
+        "tool": "longswap",
+        "i": 0,
+        "t": 5
       },
       {
         "tool": "hop",
         "i": 5
       },
       {
-        "tool": "demote",
-        "i": 0
+        "tool": "shrink",
+        "i": 5
+      },
+      {
+        "tool": "halve",
+        "i": 1
       }
     ],
     "resistanceData": {
       "agents": {
-        "0": {
-          "role": "RESISTANCE",
-          "delta": -3
-        },
-        "6": {
-          "role": "STATE",
-          "delta": 2
-        },
-        "7": {
-          "role": "STATE",
-          "delta": 1
-        }
+        "4": "resistance",
+        "6": "state"
       },
-      "trueYieldTarget": 74
+      "targetYield": 75
+    }
+  },
+  {
+    "id": 3,
+    "sequence": [
+      18,
+      11,
+      15,
+      13,
+      5,
+      6,
+      10,
+      4,
+      16
+    ],
+    "tools": [
+      "equalize",
+      "shrink",
+      "transfer",
+      "longswap"
+    ],
+    "targets": {
+      "min": 7,
+      "max": 90
+    },
+    "solution": [
+      {
+        "tool": "equalize",
+        "i": 5,
+        "t": 8
+      },
+      {
+        "tool": "shrink",
+        "i": 2
+      },
+      {
+        "tool": "transfer",
+        "i": 1,
+        "t": 3
+      },
+      {
+        "tool": "longswap",
+        "i": 4,
+        "t": 8
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "0": "state",
+        "7": "resistance"
+      },
+      "targetYield": 76
+    }
+  },
+  {
+    "id": 4,
+    "sequence": [
+      2,
+      18,
+      13,
+      9,
+      6,
+      7,
+      17,
+      5,
+      10
+    ],
+    "tools": [
+      "demote",
+      "longswap",
+      "hop",
+      "hop"
+    ],
+    "targets": {
+      "min": 7,
+      "max": 81
+    },
+    "solution": [
+      {
+        "tool": "demote",
+        "i": 1
+      },
+      {
+        "tool": "longswap",
+        "i": 1,
+        "t": 6
+      },
+      {
+        "tool": "hop",
+        "i": 3
+      },
+      {
+        "tool": "hop",
+        "i": 6
+      }
+    ],
+    "resistanceData": {
+      "agents": {
+        "3": "resistance",
+        "8": "state"
+      },
+      "targetYield": 72
     }
   }
 ]

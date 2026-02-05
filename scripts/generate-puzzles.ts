@@ -5,12 +5,11 @@ import {
     generateTools,
     calculateBatchScore,
     findWorstSolution,
-    calculateTrueYield,
     gradeLevel
 } from '../src/utils/gameLogic';
 import { TOOL_REGISTRY } from '../src/tools/index';
-import { ToolType, ISortable, CardItem, HiddenRole } from '../types';
-import { solve, DailyPuzzleMove, AlternativeSolution, judgeStep } from '../src/utils/solverCore';
+import { ToolType, CardItem, AgentRole } from '../types';
+import { solve, DailyPuzzleMove } from '../src/utils/solverCore';
 
 const OUTPUT_FILE_PATH = path.join(process.cwd(), 'src/data/daily_puzzles.json');
 const LEVEL_LENGTH = 9;
@@ -29,11 +28,10 @@ interface DailyPuzzle {
     solution: DailyPuzzleMove[];
     // Resistance Data
     resistanceData?: {
-        agents: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }>; // Original Index -> {role, delta}
-        resistanceTarget: number;
+        agents: Record<number, 'resistance' | 'state'>; // originalIndex -> role
+        targetYield: number; // The max score possible GIVEN the survival constraints
     };
 }
-
 
 
 function getKeptIndicesSet(initialLevel: CardItem[], moves: DailyPuzzleMove[]): Set<number> {
@@ -64,11 +62,8 @@ async function main() {
     const args = process.argv.slice(2);
     const count = parseInt(args[0], 10) || 1;
 
-    console.log(`Generating ${count} daily puzzles with Resistance Layers...`);
+    console.log(`Generating ${count} daily puzzles with Constraint-Based Resistance Layers...`);
     const puzzles: DailyPuzzle[] = [];
-
-    // Import gradeLevel helper (workaround for pure write)
-    // I will assume explicit import in the file content below.
 
     let generatedCount = 0;
     while (generatedCount < count) {
@@ -86,7 +81,7 @@ async function main() {
 
         while (!validCandidateFound) {
             candidateAttempt++;
-            const level = generateLevel(LEVEL_LENGTH);
+            const level = generateLevel(LEVEL_LENGTH); // Note: seed is optional, random here
             const initialSequenceNumbers = level.map(c => c.val);
             const initialScore = calculateBatchScore(level);
 
@@ -96,33 +91,21 @@ async function main() {
             const analysis = solve(level, toolTypes, 'MAX');
 
             if (analysis.minSolutionDepth < MIN_SOLUTION_DEPTH) {
-                // Determine unused tools
-                const toolsUsed = analysis.bestSolution.map(move => move.tool);
-                // Create a copy of toolTypes to track available tools
-                const availableTools = [...toolTypes];
-
-                // Remove used tools from availableTools one by one to handle duplicates correctly
-                for (const usedTool of toolsUsed) {
-                    const index = availableTools.indexOf(usedTool);
-                    if (index !== -1) {
-                        availableTools.splice(index, 1);
-                    }
-                }
-
-                const unusedTools = availableTools;
-                console.log(`-> Discarded: Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH} (Too easy). Unused Tools: [${unusedTools.join(', ')}]`);
+                // Too easy
+                console.log(`-> Discarded: Depth ${analysis.minSolutionDepth} < ${MIN_SOLUTION_DEPTH}`);
                 continue;
             }
             if (analysis.distinctSolvedStates > 1) {
-                console.log(`-> Discarded: Distinct Solutions ${analysis.distinctSolvedStates} > 1`);
+                // Determine uniqueness logic if strict. Assuming distinct solutions means different end states (which is bad for puzzle purity usually, but here we just want unique max).
+                // Actually, distinct solutions usually means different optimal outcomes. If > 1, it's ambiguous.
+                console.log(`-> Discarded: Ambiguous Solutions (${analysis.distinctSolvedStates})`);
                 continue;
             }
 
-            console.log(`-> Base Valid. Searching for Resistance Layer...`);
+            console.log(`-> Base Valid (Max: ${analysis.maxYield}). Searching for Resistance Layer...`);
 
-            // Base Puzzle
+            // Base Puzzle Structure
             const minSol = findWorstSolution(level, toolTypes);
-
             const basePuzzle: DailyPuzzle = {
                 id: generatedCount - 1,
                 sequence: initialSequenceNumbers,
@@ -131,209 +114,117 @@ async function main() {
                 solution: analysis.bestSolution
             };
 
-            // 3. Search for Resistance Layer
-            // We need alternatives that yield > initialScore.
-            // We use findAll mode.
-            // Threshold: initialScore (strict >)
-            const altAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: initialScore });
+            // 3. Search for Resistance Layer (Constraint Optimization)
+            // We need to find a pair of indices (Resistance, State) such that:
+            // There exists a solution (valid move sequence) where Res is SAFE and State is ELIMINATED.
+            // And calculate the Max Yield under this constraint.
 
-            const standardKeptIndices = getKeptIndicesSet(level, analysis.bestSolution);
+            // First, get ALL potential solutions (not just optimal).
+            // We need a wide search. Using 'findAll' with a reasonable threshold.
+            // If we only look at optimal solutions for the base puzzle, we might limit our resistance design space.
+            // However, the player is trying to maximize score.
+            // The prompt says: "Find all valid solutions (move sequences) for this level."
+            // But usually "valid solutions" implies solving the sorting problem? Or just any valid moves?
+            // "Filter the solutions to find those where..."
+            // Usually, "solutions" means reaching a solved state (sorted).
+            // So we use existing solver with findAll.
+
+            // To ensure we have enough variety, we might set threshold slightly lower than maxYield?
+            // Or ideally, we simply want ANY sorted outcome.
+            // Let's use threshold = -Infinity to capture all sorted states the solver finds.
+            const allSolutionsAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: -Infinity });
+
+            if (!allSolutionsAnalysis.allSolutions || allSolutionsAnalysis.allSolutions.length === 0) {
+                console.log(`   -> No solutions found for analysis.`);
+                continue;
+            }
+
+            // We iterate through potential roles.
+            // A simpler approach:
+            // Iterate all solutions.
+            // For each solution, define Safe Set (S) and Eliminated Set (E).
+            // We need Res in S and State in E.
+            // We can pick any `r` in S and `s` in E.
+            // But we want a scenario that is interesting.
+            // The max yield under this constraint (TargetYield) should ideally be less than Global Max Yield?
+            // Or it could be the same.
+            // If TargetYield == Global Max Yield, then the resistance mission is "natural" (just play optimally).
+            // That's boring. We prefer if TargetYield < Global Max Yield?
+            // Or maybe TargetYield IS the Global Max Yield but forces a specific path?
+            // Prompt says: "The puzzle is no longer about guessing numbers; it is about sorting the list to ensure specific survival outcomes while maximizing the score."
+            // Implicitly, this might force suboptimal moves regarding abstract numbers, effectively creating a constraint optimization problem.
+
+            // Let's look for cases where `TargetYield` is high enough to be a puzzle.
+            // Ideally, we find a pair (r, s) such that we force a specific subset of solutions.
 
             let validResData = null;
 
-            if (altAnalysis.allSolutions) {
-                let altIndex = 0;
-                for (const alt of altAnalysis.allSolutions) {
-                    altIndex++;
-                    // Check: Kept Indices != Standard Kept Indices
-                    const altKeptIndices = getKeptIndicesSet(level, alt.moves);
+            // Randomly try pairs to avoid O(N^2) * Solutions
+            // Actually, we can just aggregate stats.
+            // Map (r, s) -> MaxYield.
+            // Then pick one with decent MaxYield (maybe >= 50% of possible?)
 
-                    // Helper: Sets equal?
-                    const areSetsEqual = (a: Set<number>, b: Set<number>) =>
-                        a.size === b.size && [...a].every(value => b.has(value));
+            const constraintMap = new Map<string, number>(); // "r,s" -> maxYield
 
-                    if (areSetsEqual(standardKeptIndices, altKeptIndices)) {
-                        console.log(`   -> Alt ${altIndex}: Discarded (Sets equal)`);
-                        continue;
-                    }
+            for (const sol of allSolutionsAnalysis.allSolutions) {
+                const keptIndices = getKeptIndicesSet(level, sol.moves);
+                const score = sol.score; // Use the score from the solution
 
-                    // Derive Roles
-                    // Resistance Agent: In Alt (ResSet), NOT in Standard (StateSet)
-                    // State Agent: In Standard (StateSet), NOT in Alt (ResSet)
-
-                    const resistanceAgents: number[] = [];
-                    const stateAgents: number[] = [];
-
-                    altKeptIndices.forEach(idx => {
-                        if (!standardKeptIndices.has(idx)) resistanceAgents.push(idx);
-                    });
-
-                    standardKeptIndices.forEach(idx => {
-                        if (!altKeptIndices.has(idx)) stateAgents.push(idx);
-                    });
-
-                    // Constraint: At least 1 of each
-                    if (resistanceAgents.length < 1 || stateAgents.length < 1) {
-                        console.log(`   -> Alt ${altIndex}: Discarded (Insufficient roles: R=${resistanceAgents.length}, S=${stateAgents.length})`);
-                        continue;
-                    }
-
-                    if (resistanceAgents.length >= 1 && stateAgents.length >= 1) {
-                        // FOUND ONE!
-
-                        // Randomly define scenario: 2 or 3 agents
-                        const scenarios: ('1v1' | '2v1' | '1v2')[] = [];
-                        if (resistanceAgents.length >= 1 && stateAgents.length >= 1) scenarios.push('1v1');
-                        if (resistanceAgents.length >= 2 && stateAgents.length >= 1) scenarios.push('2v1');
-                        if (resistanceAgents.length >= 1 && stateAgents.length >= 2) scenarios.push('1v2');
-
-                        if (scenarios.length === 0) continue;
-
-                        const distribution = scenarios[Math.floor(Math.random() * scenarios.length)];
-
-                        // Select Indices
-                        const shuffle = (arr: number[]) => [...arr].sort(() => Math.random() - 0.5);
-                        const shuffledRes = shuffle(resistanceAgents);
-                        const shuffledState = shuffle(stateAgents);
-
-                        let selectedResIndices: number[] = [];
-                        let selectedStateIndices: number[] = [];
-
-                        if (distribution === '1v1') {
-                            selectedResIndices = [shuffledRes[0]];
-                            selectedStateIndices = [shuffledState[0]];
-                        } else if (distribution === '2v1') {
-                            selectedResIndices = [shuffledRes[0], shuffledRes[1]];
-                            selectedStateIndices = [shuffledState[0]];
-                        } else { // 1v2
-                            selectedResIndices = [shuffledRes[0]];
-                            selectedStateIndices = [shuffledState[0], shuffledState[1]];
-                        }
-
-                        // Calculate Deltas (Zero-Sum)
-                        let validDeltasFound = false;
-                        let deltaAttempts = 0;
-                        const MAX_DELTA_ATTEMPTS = 50;
-                        const agentsMap: Record<number, { role: 'RESISTANCE' | 'STATE'; delta: number }> = {};
-
-                        while (!validDeltasFound && deltaAttempts < MAX_DELTA_ATTEMPTS) {
-                            deltaAttempts++;
-                            const tempMap: typeof agentsMap = {};
-                            let validRun = true;
-
-                            if (distribution === '1v1') {
-                                // 1v1: Res = -X, State = +X. X in [1..3]
-                                const mag = Math.floor(Math.random() * 3) + 1;
-                                tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: -mag };
-                                tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: mag };
-                            }
-                            else if (distribution === '2v1') {
-                                // 2 Res (Group A), 1 State (Group B)
-                                const r1 = -(Math.floor(Math.random() * 3) + 1);
-                                const r2 = -(Math.floor(Math.random() * 3) + 1);
-                                const stateNeeded = -(r1 + r2);
-
-                                if (stateNeeded > 5) validRun = false;
-                                else {
-                                    tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: r1 };
-                                    tempMap[selectedResIndices[1]] = { role: 'RESISTANCE', delta: r2 };
-                                    tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: stateNeeded };
-                                }
-                            }
-                            else { // 1v2: 1 Res (Group B), 2 State (Group A)
-                                const s1 = (Math.floor(Math.random() * 3) + 1);
-                                const s2 = (Math.floor(Math.random() * 3) + 1);
-                                const resNeeded = -(s1 + s2);
-
-                                if (resNeeded < -5) validRun = false;
-                                else {
-                                    tempMap[selectedStateIndices[0]] = { role: 'STATE', delta: s1 };
-                                    tempMap[selectedStateIndices[1]] = { role: 'STATE', delta: s2 };
-                                    tempMap[selectedResIndices[0]] = { role: 'RESISTANCE', delta: resNeeded };
-                                }
-                            }
-
-                            if (validRun) {
-                                Object.assign(agentsMap, tempMap);
-                                validDeltasFound = true;
-                            }
-                        }
-
-                        if (!validDeltasFound) {
-                            console.log(`   -> Alt ${altIndex}: Discarded (Could not balance deltas)`);
-                            continue;
-                        }
-
-                        // 1. Calculate Initial True Yield (Baseline)
-                        const trueLevel = level.map((item, originalIdx) => {
-                            let trueVal = item.val;
-                            const agentData = agentsMap[originalIdx];
-                            if (agentData) {
-                                trueVal = item.val + agentData.delta;
-                            }
-                            return { ...item, trueValue: trueVal, hiddenRole: agentData ? (agentData.role === 'RESISTANCE' ? HiddenRole.RESISTANCE : HiddenRole.STATE) : HiddenRole.NONE };
-                        });
-
-                        const gradedInitial = gradeLevel(trueLevel).gradedList;
-                        const initialTrueYield = gradedInitial.reduce((sum: number, item: any) =>
-                            item.status !== 'eliminated' ? sum + item.trueValue : sum, 0);
-
-                        // 2. Find MAX True Yield satisfying constraints among ALL valid solutions
-                        // Recalculate all solutions with a low threshold to get maximum coverage
-                        const validationAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: -Infinity });
-
-                        let maxValidTrueYield = -Infinity;
-                        let maxValidVisibleYield = -Infinity;
-                        let foundConstraintSatisfyingPath = false;
-
-                        if (validationAnalysis.allSolutions) {
-                            for (const sol of validationAnalysis.allSolutions) {
-                                const keptIndices = getKeptIndicesSet(level, sol.moves);
-
-                                // Constraint Check
-                                const allResistanceSurvive = selectedResIndices.every(idx => keptIndices.has(idx));
-                                const allStateEliminated = selectedStateIndices.every(idx => !keptIndices.has(idx));
-
-                                if (allResistanceSurvive && allStateEliminated) {
-                                    // Valid Path! Calculate True Yield.
-                                    let currentTrueYield = 0;
-                                    let currentVisibleYield = 0;
-
-                                    keptIndices.forEach(idx => {
-                                        currentTrueYield += trueLevel[idx].trueValue;
-                                        currentVisibleYield += trueLevel[idx].val;
-                                    });
-
-                                    if (currentTrueYield > maxValidTrueYield) {
-                                        maxValidTrueYield = currentTrueYield;
-                                        maxValidVisibleYield = currentVisibleYield;
-                                        foundConstraintSatisfyingPath = true;
-                                    }
-                                }
-                            }
-                        }
-
-                        if (foundConstraintSatisfyingPath && maxValidTrueYield > initialTrueYield) {
-                            // Valid!
-                            validResData = {
-                                agents: agentsMap,
-                                resistanceTarget: maxValidVisibleYield
-                            };
-                            break; // Stop looking for helpers, we found a max yield configuration.
-                        } else {
-                            console.log(`   -> Alt ${altIndex}: Discarded (Max Yield ${maxValidTrueYield} <= Initial ${initialTrueYield} or No Path)`);
-                        }
-                    }
+                // For every pair r in Kept, s in NotKept:
+                // Update max yield for this pair.
+                // keptIndices is a Set<number>
+                // We need the inverse set.
+                const eliminatedIndices: number[] = [];
+                for (let i = 0; i < LEVEL_LENGTH; i++) {
+                    if (!keptIndices.has(i)) eliminatedIndices.push(i);
                 }
+
+                keptIndices.forEach(r => {
+                    eliminatedIndices.forEach(s => {
+                        const key = `${r},${s}`;
+                        const currentMax = constraintMap.get(key) || -Infinity;
+                        if (score > currentMax) {
+                            constraintMap.set(key, score);
+                        }
+                    });
+                });
+            }
+
+            // Now we have a map of potential missions and their achievable yields.
+            // We filter for "Interesting" missions.
+            // Interesting = ?
+            // Maybe just random one that is possible?
+            // Let's just pick one with High Yield (close to Max, or reasonably high).
+
+            const possibleConstraints = Array.from(constraintMap.entries()).filter(([_, yieldVal]) => {
+                // Filter out very low yields?
+                // Ensure yield is at least > Initial Score?
+                return yieldVal > initialScore;
+            });
+
+            if (possibleConstraints.length > 0) {
+                // Pick random
+                const [key, targetYield] = possibleConstraints[Math.floor(Math.random() * possibleConstraints.length)];
+                const [rStr, sStr] = key.split(',');
+                const r = parseInt(rStr, 10);
+                const s = parseInt(sStr, 10);
+
+                validResData = {
+                    agents: {
+                        [r]: 'resistance',
+                        [s]: 'state'
+                    } as Record<number, 'resistance' | 'state'>,
+                    targetYield: targetYield
+                };
             }
 
             if (validResData) {
                 basePuzzle.resistanceData = validResData;
                 puzzle = basePuzzle;
                 validCandidateFound = true;
-                console.log(` -> Found Resistance Layer! (Standard: ${analysis.maxYield}, Res Path: ${validResData.trueYieldTarget})`);
+                console.log(` -> Found Constraint Layer! (R: ${Object.keys(validResData.agents).find(k => validResData.agents[Number(k)] === 'resistance')}, S: ${Object.keys(validResData.agents).find(k => validResData.agents[Number(k)] === 'state')}, Target: ${validResData.targetYield})`);
             } else {
-                console.log(`[Attempt ${candidateAttempt}] Failed: Resistance layer constraints not met.`);
+                console.log(`   -> Failed to find valid constraint pair.`);
             }
         }
 
@@ -348,3 +239,4 @@ async function main() {
 }
 
 main();
+

@@ -25,11 +25,9 @@ export interface UseDailyAuditResult {
     stats: DailyAuditStats;
 }
 
-const VALID_TOOLS: Set<string> = new Set([
-    'demote', 'swap', 'purge', 'promote', 'longswap',
-    'merge', 'sink', 'halve', 'shield', 'shrink',
-    'hop', 'mirror', 'cycle', 'equalize'
-]);
+import { ALL_TOOL_TYPES } from '../constants';
+
+const VALID_TOOLS: Set<string> = new Set(ALL_TOOL_TYPES);
 
 function isToolType(tool: string): tool is ToolType {
     return VALID_TOOLS.has(tool);

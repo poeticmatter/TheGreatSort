@@ -13,6 +13,7 @@ export interface InventoryGridProps {
   layout?: LayoutType; // Defaults to 'HORIZONTAL_STRIP'
   onItemClick?: (item: CardItem) => void;
   disabled?: boolean;
+  showRoles?: boolean;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({
@@ -20,6 +21,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   layout = 'HORIZONTAL_STRIP',
   onItemClick,
   disabled,
+  showRoles,
 }) => {
 
   // -- Container Styles --
@@ -82,6 +84,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                   isDisabled={card.isDisabled}
                   mirrorLabel={card.mirrorLabel}
                   variant={layout === 'VERTICAL_LIST' ? 'wide' : 'standard'}
+                  showRoles={showRoles}
                 />
               </div>
 

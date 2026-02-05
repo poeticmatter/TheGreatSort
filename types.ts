@@ -7,15 +7,8 @@ export interface ISortable {
 }
 
 
-export enum HiddenRole {
+export enum AgentRole {
   NONE = 'none',
-  RESISTANCE = 'resistance',
-  STATE = 'state',
-}
-
-export enum UserTag {
-  NONE = 'none',
-  SUSPICIOUS = 'suspicious',
   RESISTANCE = 'resistance',
   STATE = 'state',
 }
@@ -24,18 +17,18 @@ export enum ResistanceStatus {
   INACTIVE = 'inactive',
   ACTIVE = 'active',
   MIA = 'mia',
-  COMPROMISED = 'compromised',
+  COMPROMISED = 'compromised', // State agent survived
   SUCCESS = 'success',
-  CAREFUL = 'careful',
-  EXPOSED = 'exposed',
+  CAREFUL = 'careful', // Conditions met but low score? Or maybe just failed score.
+  EXPOSED = 'exposed', // Resistance agent eliminated
 }
 
 export interface CardItem extends ISortable {
   id: string;
   status: CardStatus;
-  hiddenRole: HiddenRole;
-  delta?: number;
-  userTag: UserTag;
+  role: AgentRole;
+  // delta removed
+  // userTag removed
 }
 
 export type ToolType = 'demote' | 'swap' | 'promote' | 'longswap' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize' | 'transfer';

@@ -1,5 +1,5 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus, HiddenRole, UserTag } from '../../types';
+import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 
 export const initialState: GameState = {
@@ -194,28 +194,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
 
-    case 'TOGGLE_TAG': {
-      const { index } = action.payload;
-      if (index < 0 || index >= state.list.length) return state;
 
-      const nextTag = (current: UserTag): UserTag => {
-        switch (current) {
-          case UserTag.NONE: return UserTag.SUSPICIOUS;
-          case UserTag.SUSPICIOUS: return UserTag.STATE;
-          case UserTag.STATE: return UserTag.RESISTANCE;
-          case UserTag.RESISTANCE: return UserTag.NONE;
-          default: return UserTag.NONE;
-        }
-      };
-
-      const newList = [...state.list];
-      newList[index] = { ...newList[index], userTag: nextTag(newList[index].userTag) };
-
-      return {
-        ...state,
-        list: newList
-      };
-    }
 
     default:
       return state;

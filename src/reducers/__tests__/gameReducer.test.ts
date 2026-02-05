@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gameReducer, initialState } from '../gameReducer';
 import { GameAction } from '../gameState';
-import { GamePhase, ToolInstance, CardItem, HiddenRole, UserTag, ResistanceStatus } from '../../../types';
+import { GamePhase, ToolInstance, CardItem, AgentRole, ResistanceStatus } from '../../../types';
 
 describe('gameReducer', () => {
 
@@ -12,7 +12,7 @@ describe('gameReducer', () => {
   });
 
   it('should handle START_LEVEL', () => {
-    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE }];
+    const mockList: CardItem[] = [{ id: '1', val: 10, status: 'pending', role: AgentRole.NONE }];
     const mockTools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
 
     const action: GameAction = {
@@ -56,9 +56,9 @@ describe('gameReducer', () => {
   describe('SELECT_TILE', () => {
     // Setup
     const list: CardItem[] = [
-      { id: 'a', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE },
-      { id: 'b', val: 20, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE },
-      { id: 'c', val: 30, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE }
+      { id: 'a', val: 10, status: 'pending', role: AgentRole.NONE },
+      { id: 'b', val: 20, status: 'pending', role: AgentRole.NONE },
+      { id: 'c', val: 30, status: 'pending', role: AgentRole.NONE }
     ];
     const tools: ToolInstance[] = [{ instanceId: 't1', type: 'swap', used: false }];
     const baseState = { ...initialState, list, toolsAvailable: tools, phase: GamePhase.PLANNING };
@@ -78,34 +78,4 @@ describe('gameReducer', () => {
   });
 
   // Friendly Fire Mechanics tests removed (Logic moved to Audit Phase)
-
-
-  describe('Tagging System', () => {
-    it('should toggle tag: NONE -> SUSPICIOUS -> STATE -> RESISTANCE -> NONE', () => {
-      const item: CardItem = { id: 't1', val: 10, status: 'pending', hiddenRole: HiddenRole.NONE, delta: 0, userTag: UserTag.NONE };
-      let state = { ...initialState, list: [item] };
-
-      // 1. NONE -> SUSPICIOUS
-      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
-      expect(state.list[0].userTag).toBe(UserTag.SUSPICIOUS);
-
-      // 2. SUSPICIOUS -> STATE
-      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
-      expect(state.list[0].userTag).toBe(UserTag.STATE);
-
-      // 3. STATE -> RESISTANCE
-      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
-      expect(state.list[0].userTag).toBe(UserTag.RESISTANCE);
-
-      // 4. RESISTANCE -> NONE
-      state = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
-      expect(state.list[0].userTag).toBe(UserTag.NONE);
-    });
-
-    it('should ignore invalid index', () => {
-      const state = { ...initialState, list: [] };
-      const newState = gameReducer(state, { type: 'TOGGLE_TAG', payload: { index: 0 } });
-      expect(newState).toEqual(state);
-    });
-  });
 });

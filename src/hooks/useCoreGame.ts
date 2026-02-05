@@ -73,9 +73,7 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         // Must have tool selected
         const toolInstanceId = state.selectedToolInstanceId;
 
-        // If no tool selected, toggle Deduction Tag
         if (!toolInstanceId) {
-            dispatch({ type: 'TOGGLE_TAG', payload: { index } });
             return;
         }
 
