@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
-import { GamePhase, CardItem, ToolInstance } from '../../types';
+import { GamePhase, CardItem, ToolInstance, Move } from '../../types';
 import { useGameLoop } from './useGameLoop';
 import { useAnalytics } from './useAnalytics';
 import { TOOL_REGISTRY } from '../tools';
@@ -8,9 +8,10 @@ import { applyMove } from '../utils/gameLogic';
 
 interface UseCoreGameProps {
     onGameComplete?: (score: number) => void;
+    onMoveApplied?: (newList: CardItem[], move: Move) => void;
 }
 
-export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
+export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps = {}) {
     const { state, dispatch } = useGameContext();
     const { trackToolInteraction } = useAnalytics(); // Core gameplay analytics
 
@@ -34,7 +35,7 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
             if (strategy.isValid(state.list, state.selection)) {
                 // Execute move immediately
                 const targetIndex = state.selection;
-                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, targetIndex);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, targetIndex) as { newList: CardItem[], impactedIndices: number[] };
 
                 dispatch({
                     type: 'APPLY_MOVE',
@@ -49,6 +50,15 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: targetIndex,
+                        description: `${toolInstance.type} at ${targetIndex}`
+                    });
+                }
                 return;
             }
         }
@@ -91,7 +101,7 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         // 1. One-Step Tool
         if (!strategy.requiresSelection) {
             if (strategy.isValid(state.list, index)) {
-                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index) as { newList: CardItem[], impactedIndices: number[] };
                 dispatch({
                     type: 'APPLY_MOVE',
                     payload: {
@@ -105,6 +115,15 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: index,
+                        description: `${toolInstance.type} at ${index}`
+                    });
+                }
             } else {
                 dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
             }
@@ -118,7 +137,7 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
         } else {
             // Second click -> Execute
             if (strategy.isValid(state.list, index, state.selection)) {
-                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index, state.selection);
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index, state.selection) as { newList: CardItem[], impactedIndices: number[] };
                 dispatch({
                     type: 'APPLY_MOVE',
                     payload: {
@@ -133,6 +152,16 @@ export function useCoreGame({ onGameComplete }: UseCoreGameProps = {}) {
                         }
                     }
                 });
+
+                if (onMoveApplied) {
+                    onMoveApplied(newList, {
+                        tool: toolInstance.type,
+                        toolInstanceId: toolInstanceId,
+                        index: index,
+                        targetIndex: state.selection,
+                        description: `${toolInstance.type} ${state.selection} and ${index}`
+                    });
+                }
             } else {
                 dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
             }

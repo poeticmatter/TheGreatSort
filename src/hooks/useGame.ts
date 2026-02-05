@@ -8,7 +8,7 @@ import { verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
-import { GamePhase, GameMode, ResistanceStatus } from '../../types';
+import { GamePhase, GameMode, ResistanceStatus, CardItem, Move } from '../../types';
 import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
 import { useGameInteractions } from './useGameInteractions';
 import { useResistanceSystem } from './useResistanceSystem';
@@ -17,7 +17,13 @@ import { PersistenceService } from '../services/persistence';
 export function useGame(sessionDate: string) {
 
   // 1. Core Game (Board, Reducer, Loop)
-  const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame();
+  const onMoveRef = useRef<((newList: CardItem[], move: Move) => void) | undefined>();
+
+  const onMoveWrapper = useCallback((newList: CardItem[], move: Move) => {
+    onMoveRef.current?.(newList, move);
+  }, []);
+
+  const { state: coreState, dispatch: coreDispatch, actions: coreActions } = useCoreGame({ onMoveApplied: onMoveWrapper });
 
   // 2. Meta Game (Mode, Audit, Resistance)
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
@@ -92,15 +98,27 @@ export function useGame(sessionDate: string) {
   }, [coreDispatch, metaActions]);
 
   // --- Resistance System ---
-  const { finalizeResistanceMission, closeResistanceAndReset } = useResistanceSystem({
+  // --- Resistance System ---
+  const { finalizeResistanceMission, closeResistanceAndReset, checkResistanceTrigger } = useResistanceSystem({
     coreState,
     coreDispatch,
     metaState,
     metaActions,
-    compliancePercentage,
     saveDailyResult,
     retryDaily,
     nextLevel
+  });
+
+  // Wiring: Update Interceptor
+  useEffect(() => {
+    onMoveRef.current = (newList, move) => {
+      checkResistanceTrigger(
+        newList,
+        coreState.optimalScore,
+        coreState.worstScore,
+        coreState.movesHistory.length + 1
+      );
+    };
   });
 
   // --- Initialization ---

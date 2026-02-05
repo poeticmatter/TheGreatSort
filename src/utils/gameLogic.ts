@@ -6,6 +6,26 @@ import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } fr
 
 export { calculateBatchScore, judgeStep };
 
+export const calculateCompliance = (
+  currentYield: number,
+  optimalYield: number | null,
+  worstYield: number | null
+): number => {
+  let compliancePercentage = 0;
+
+  if (optimalYield !== null && worstYield !== null && optimalYield > worstYield) {
+    const range = optimalYield - worstYield;
+    const currentProgress = currentYield - worstYield;
+    compliancePercentage = Math.round((currentProgress / range) * 100);
+  } else if (optimalYield && optimalYield > 0) {
+    // Fallback
+    compliancePercentage = Math.round((currentYield / optimalYield) * 100);
+  }
+
+  // Cap visually
+  return Math.min(100, Math.max(0, compliancePercentage));
+};
+
 
 
 export interface ResistanceTriggerContext {

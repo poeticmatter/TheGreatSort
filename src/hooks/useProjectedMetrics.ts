@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { CardItem } from '../../types';
-import { gradeLevel, calculateBatchScore } from '../utils/gameLogic';
+import { gradeLevel, calculateBatchScore, calculateCompliance } from '../utils/gameLogic';
 
 interface ProjectedMetrics {
     currentYield: number;
@@ -25,28 +25,12 @@ export const useProjectedMetrics = (
         const startingYield = calculateBatchScore(initialList);
 
         // 3. Compliance Percentage (Current vs Optimal/Worst)
-        let compliancePercentage = 0;
-        let startingCompliance = 0;
+        const compliancePercentage = calculateCompliance(currentYield, optimalYield, worstYield);
 
-        if (optimalYield !== null && worstYield !== null && optimalYield > worstYield) {
-            // Standard Range Calculation
-            const range = optimalYield - worstYield;
+        // Calculate start compliance
+        const startingCompliance = calculateCompliance(startingYield, optimalYield, worstYield);
 
-            const currentProgress = currentYield - worstYield;
-            compliancePercentage = Math.round((currentProgress / range) * 100);
 
-            const startProgress = startingYield - worstYield;
-            startingCompliance = Math.round((startProgress / range) * 100);
-
-        } else if (optimalYield && optimalYield > 0) {
-            // Fallback
-            compliancePercentage = Math.round((currentYield / optimalYield) * 100);
-            startingCompliance = Math.round((startingYield / optimalYield) * 100);
-        }
-
-        // Cap visually
-        compliancePercentage = Math.min(100, Math.max(0, compliancePercentage));
-        startingCompliance = Math.min(100, Math.max(0, startingCompliance));
 
         // 4. Yield Ratio (Current vs Starting)
         let yieldRatio = 0;
