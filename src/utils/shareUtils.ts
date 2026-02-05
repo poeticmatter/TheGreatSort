@@ -5,9 +5,7 @@
 
 export interface ShareResult {
     success: boolean;
-    method: 'share' | 'clipboard' | 'manual' | 'none';
-    error?: string;
-    debug: string[];
+    method: 'share' | 'clipboard' | 'manual';
     textForManualCopy?: string;
 }
 
@@ -18,48 +16,37 @@ const isMobileDevice = (): boolean => {
 };
 
 export const performShare = async (text: string): Promise<ShareResult> => {
-    const debug: string[] = [];
-
     const isMobile = isMobileDevice();
     const hasShareAPI = typeof navigator !== 'undefined' && !!navigator.share;
     const hasClipboardAPI = typeof navigator !== 'undefined' && !!navigator.clipboard;
 
-    debug.push(`Mobile: ${isMobile}`);
-    debug.push(`ShareAPI: ${hasShareAPI}`);
-    debug.push(`ClipboardAPI: ${hasClipboardAPI}`);
-    debug.push(`TextLen: ${text.length}`);
-
     // 1. Try Web Share API (Only on Mobile)
     if (isMobile && hasShareAPI) {
         try {
-            debug.push('Trying share...');
             await navigator.share({
                 title: 'The Great Sort Audit',
                 text: text,
             });
-            debug.push('Share OK');
-            return { success: true, method: 'share', debug };
+            return { success: true, method: 'share' };
         } catch (err: any) {
-            debug.push(`Share err: ${err?.name}`);
+            // User cancellation is expected behavior
             if (err?.name === 'AbortError') {
-                return { success: true, method: 'share', debug };
+                return { success: true, method: 'share' };
             }
+            // Fall through to clipboard
         }
     }
 
     // 2. Clipboard Fallback
     if (hasClipboardAPI) {
         try {
-            debug.push('Trying clipboard...');
             await navigator.clipboard.writeText(text);
-            debug.push('Clipboard OK');
-            return { success: true, method: 'clipboard', debug };
-        } catch (err: any) {
-            debug.push(`Clipboard err: ${err?.name}`);
+            return { success: true, method: 'clipboard' };
+        } catch {
+            // Fall through to manual
         }
     }
 
     // 3. Manual fallback - no APIs available (likely non-HTTPS)
-    debug.push('Fallback: manual copy');
-    return { success: true, method: 'manual', debug, textForManualCopy: text };
+    return { success: true, method: 'manual', textForManualCopy: text };
 };

@@ -24,8 +24,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
 
   // Share Feedback State
-  const [shareFeedback, setShareFeedback] = useState<'IDLE' | 'COPIED' | 'DEBUG' | 'MANUAL'>('IDLE');
-  const [shareDebug, setShareDebug] = useState<string[]>([]);
+  const [shareFeedback, setShareFeedback] = useState<'IDLE' | 'COPIED' | 'MANUAL'>('IDLE');
   const [manualCopyText, setManualCopyText] = useState<string>('');
 
   // Responsive Logic
@@ -58,11 +57,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const { generatePayload } = useShareResult();
 
   const handleShare = async () => {
-    if (!solution || !timeline || timeline.length === 0) {
-      setShareDebug(['No solution/timeline']);
-      setShareFeedback('DEBUG');
-      return;
-    }
+    if (!solution || !timeline || timeline.length === 0) return;
 
     // Use the user's final list (their actual submission state, not the initial puzzle or optimal solution)
     const { gradedList: finalItems } = gradeLevel(userFinalList);
@@ -75,7 +70,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     });
 
     const result = await performShare(text);
-    setShareDebug(result.debug);
 
     if (result.method === 'manual' && result.textForManualCopy) {
       setManualCopyText(result.textForManualCopy);
@@ -83,9 +77,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     } else if (result.success) {
       setShareFeedback('COPIED');
       setTimeout(() => setShareFeedback('IDLE'), 2500);
-    } else {
-      setShareFeedback('DEBUG');
-      setTimeout(() => setShareFeedback('IDLE'), 10000);
     }
   };
 
@@ -289,9 +280,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 className={`relative group px-12 py-4 border-4 transition-all duration-200 uppercase tracking-widest font-black text-xl flex items-center gap-3 overflow-hidden
                         ${shareFeedback === 'COPIED'
                     ? 'border-green-500 bg-green-900/20 text-green-500'
-                    : shareFeedback === 'DEBUG'
-                      ? 'border-red-500 bg-red-900/20 text-red-500'
-                      : 'border-stone-500 bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-stone-200 hover:border-stone-400'
+                    : 'border-stone-500 bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-stone-200 hover:border-stone-400'
                   }
                     `}
               >
@@ -303,8 +292,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                     <Clipboard className="w-6 h-6 animate-bounce" />
                     <span>COPIED TO CLIPBOARD</span>
                   </>
-                ) : shareFeedback === 'DEBUG' ? (
-                  <span>SHARE FAILED</span>
                 ) : (
                   <>
                     <Share2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -318,16 +305,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                 <div className="absolute bottom-0 left-0 w-2 h-2 bg-current"></div>
                 <div className="absolute bottom-0 right-0 w-2 h-2 bg-current"></div>
               </button>
-
-              {/* Debug Info Display */}
-              {shareFeedback === 'DEBUG' && shareDebug.length > 0 && (
-                <div className="bg-red-950/50 border border-red-500/30 p-3 rounded text-red-300 text-xs font-mono max-w-md">
-                  <div className="font-bold mb-1">Debug Info:</div>
-                  {shareDebug.map((line, i) => (
-                    <div key={i}>{line}</div>
-                  ))}
-                </div>
-              )}
             </>
           )}
         </div>
