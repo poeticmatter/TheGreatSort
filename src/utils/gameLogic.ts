@@ -8,6 +8,30 @@ export { calculateBatchScore, judgeStep };
 
 
 
+export interface ResistanceTriggerContext {
+  gameMode: string;
+  resistanceActive: boolean;
+  scoresCalculated: boolean;
+  compliancePercentage: number;
+  listLength: number;
+  hasJoined: boolean;
+  movesCount: number;
+  hasTriggeredLocal: boolean;
+}
+
+export const shouldTriggerResistance = (context: ResistanceTriggerContext): boolean => {
+  return (
+    context.gameMode === 'DAILY' &&
+    context.scoresCalculated &&
+    context.compliancePercentage === 0 &&
+    !context.resistanceActive &&
+    context.listLength > 0 &&
+    !context.hasJoined &&
+    context.movesCount > 0 &&
+    !context.hasTriggeredLocal
+  );
+};
+
 export interface DailyState {
   date: string;
   moves: Move[];

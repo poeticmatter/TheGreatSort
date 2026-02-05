@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { GameState, GameAction } from '../reducers/gameState';
 import { MetaState, MetaActions } from './useMetaGame';
 import { ResistanceStatus } from '../../types';
-import { verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
+import { PersistenceService } from '../services/persistence';
+import { verifyResistanceMission, gradeLevel, shouldTriggerResistance } from '../utils/gameLogic';
 
 interface UseResistanceSystemProps {
     coreState: GameState;
@@ -32,24 +33,21 @@ export function useResistanceSystem({
     // Zero-Yield Safety Net
     useEffect(() => {
         const scoresCalculated = coreState.optimalScore !== null && coreState.worstScore !== null;
-        const joined = localStorage.getItem('joinedResistance') === 'true';
+        const joined = PersistenceService.loadResistanceStatus();
 
-        // Guard: Only trigger resistance in DAILY mode
-        if (
-            metaState.gameMode === 'DAILY' &&
-            scoresCalculated &&
-            compliancePercentage === 0 &&
-            !metaState.resistanceActive &&
-            coreState.list.length > 0 &&
-            !joined &&
-            coreState.movesHistory.length > 0
-        ) {
-            if (localStorage.getItem('joinedResistance') !== 'true' && !hasTriggeredResistance.current) {
-                hasTriggeredResistance.current = true;
-
-                metaActions.triggerResistance();
-                coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
-            }
+        if (shouldTriggerResistance({
+            gameMode: metaState.gameMode,
+            resistanceActive: metaState.resistanceActive,
+            scoresCalculated,
+            compliancePercentage,
+            listLength: coreState.list.length,
+            hasJoined: joined,
+            movesCount: coreState.movesHistory.length,
+            hasTriggeredLocal: hasTriggeredResistance.current
+        })) {
+            hasTriggeredResistance.current = true;
+            metaActions.triggerResistance();
+            coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
         }
     }, [
         compliancePercentage,
@@ -104,7 +102,7 @@ export function useResistanceSystem({
 
     const closeResistanceAndReset = useCallback(() => {
         // 1. Commit the player to the resistance
-        localStorage.setItem('joinedResistance', 'true');
+        PersistenceService.saveResistanceStatus(true);
         // Ensure we don't re-trigger immediately (though reload will reset this, localstorage protects it then)
         hasTriggeredResistance.current = true;
 

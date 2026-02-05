@@ -12,6 +12,7 @@ import { GamePhase, GameMode, ResistanceStatus } from '../../types';
 import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
 import { useGameInteractions } from './useGameInteractions';
 import { useResistanceSystem } from './useResistanceSystem';
+import { PersistenceService } from '../services/persistence';
 
 export function useGame(sessionDate: string) {
 
@@ -75,8 +76,8 @@ export function useGame(sessionDate: string) {
     const [y, m, d] = sessionDate.split('-').map(Number);
     const puzzleDate = new Date(y, m - 1, d);
     const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
-    const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
-    const hasJoined = localStorage.getItem('joinedResistance') === 'true';
+    const { initialState } = GameHydrationService.hydrateDailyNew(puzzle); // 2. [CRITICAL] Inject Resistance Status if player has joined
+    const hasJoined = PersistenceService.loadResistanceStatus();
     if (hasJoined) {
       initialState.resistanceStatus = ResistanceStatus.ACTIVE;
     }
@@ -109,7 +110,7 @@ export function useGame(sessionDate: string) {
 
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
-        if (localStorage.getItem('joinedResistance') === 'true') {
+        if (PersistenceService.loadResistanceStatus()) {
           dailyConfig.resistanceStatus = ResistanceStatus.ACTIVE;
         }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
