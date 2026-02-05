@@ -25,8 +25,7 @@ export function useResistanceSystem({
     nextLevel
 }: UseResistanceSystemProps) {
 
-    // Guard to prevent re-triggering the letter in the same session before reload
-    const hasTriggeredResistance = useRef(false);
+
 
     // Intercept Model: Check Trigger Explicitly
     const checkResistanceTrigger = useCallback((
@@ -44,33 +43,32 @@ export function useResistanceSystem({
         // 2. Evaluate Rule
         if (shouldTriggerResistance({
             gameMode: metaState.gameMode,
-            resistanceActive: metaState.resistanceActive,
+            resistanceActive: coreState.resistance.isViewOpen || coreState.resistance.status !== ResistanceStatus.INACTIVE,
             scoresCalculated,
             compliancePercentage,
             listLength: currentList.length,
             hasJoined: joined,
             movesCount: movesCount,
-            hasTriggeredLocal: hasTriggeredResistance.current
+            hasTriggeredLocal: coreState.resistance.hasTriggered
         })) {
-            hasTriggeredResistance.current = true;
-            metaActions.triggerResistance();
+            // metaActions.triggerResistance(); // REMOVED: Now handled by reducer
             coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
         }
     }, [
         metaState.gameMode,
-        metaState.resistanceActive,
+        coreState.resistance, // Depend on resistance state object
         metaActions,
         coreDispatch
     ]);
 
     const finalizeResistanceMission = useCallback(() => {
         // Determine Final Resistance Status
-        let finalStatus = coreState.resistanceStatus;
+        let finalStatus = coreState.resistance.status;
 
-        if (coreState.resistanceStatus !== ResistanceStatus.INACTIVE) {
+        if (coreState.resistance.status !== ResistanceStatus.INACTIVE) {
             // Fetch Targets
             // We rely on state resistanceTarget or fallback to 0 (which shouldn't happen if mode active)
-            const targetYield = coreState.resistanceTarget || 0;
+            const targetYield = coreState.resistance.targetYield || 0;
 
             // Calculate Initial Yield (for floor check logic in verification if needed)
             const initialYield = coreState.initialList ? gradeLevel(coreState.initialList).score : 0;
@@ -78,7 +76,7 @@ export function useResistanceSystem({
             // Verify
             finalStatus = verifyResistanceMission(
                 coreState.list,
-                coreState.resistanceStatus,
+                coreState.resistance.status,
                 coreState.list.length,
                 initialYield,
                 targetYield
@@ -88,13 +86,13 @@ export function useResistanceSystem({
         // Composite action: Save Persist + Meta Update
         saveDailyResult(coreState.levelScore, finalStatus);
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-        metaActions.setResistancePending(true);
+        // metaActions.setResistancePending(true); // REPLACED
+        coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: true } });
         metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
     }, [
         saveDailyResult,
         coreState.levelScore,
-        coreState.resistanceStatus,
-        coreState.resistanceTarget,
+        coreState.resistance, // Updated dependency
         coreState.optimalScore,
         coreDispatch,
         metaActions,
@@ -106,10 +104,11 @@ export function useResistanceSystem({
         // 1. Commit the player to the resistance
         PersistenceService.saveResistanceStatus(true);
         // Ensure we don't re-trigger immediately (though reload will reset this, localstorage protects it then)
-        hasTriggeredResistance.current = true;
+        // hasTriggeredResistance.current = true; // Handled in Reducer now
 
         // 2. Close the UI overlay
-        metaActions.closeResistance();
+        // metaActions.closeResistance(); // REPLACED
+        coreDispatch({ type: 'CLOSE_RESISTANCE_VIEW' });
 
         // 3. Restart the level with the new status
         if (metaState.gameMode === 'DAILY') {

@@ -1,6 +1,7 @@
 import { GameState, GameAction } from './gameState';
 import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
 import { applyMove } from '../utils/gameLogic';
+import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
 export const initialState: GameState = {
   level: 1,
@@ -20,7 +21,7 @@ export const initialState: GameState = {
   shakeTools: 0,
   dailyCompleted: false,
   currentSeed: undefined,
-  resistanceStatus: ResistanceStatus.INACTIVE,
+  resistance: initialResistanceState,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -90,7 +91,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         movesHistory: [...state.movesHistory, move],
         selection: null,
         selectedToolInstanceId: null,
-        resistanceStatus: state.resistanceStatus,
+        resistance: state.resistance,
       };
     }
 
@@ -187,14 +188,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       };
     }
 
-    case 'ACTIVATE_RESISTANCE': {
+    case 'ACTIVATE_RESISTANCE':
+    case 'CLOSE_RESISTANCE_VIEW':
+    case 'SET_RESISTANCE_PENDING':
+    case 'SET_RESISTANCE_STATUS':
+    case 'RESISTANCE_MISSION_COMPLETE': {
       return {
         ...state,
-        resistanceStatus: ResistanceStatus.ACTIVE
+        resistance: resistanceReducer(state.resistance, action)
       };
     }
-
-
 
     default:
       return state;

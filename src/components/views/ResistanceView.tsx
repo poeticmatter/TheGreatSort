@@ -1,6 +1,8 @@
 import React from 'react';
 import { ResistanceLetter } from '../ResistanceLetter';
 
+// Ideally, text content or other state should be passed here or retrieved from context if needed.
+// For now, it just renders the letter which might have its own static content or props.
 interface ResistanceViewProps {
     onClose: () => void;
     onBackgroundClick: () => void;

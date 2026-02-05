@@ -7,16 +7,11 @@ export interface MetaState {
     gameMode: GameMode;
     isGameLoaded: boolean;
     auditState: { date: string; userScore: number } | null;
-    resistanceActive: boolean;
-    resistancePending: boolean;
 }
 
 export interface MetaActions {
     setGameMode: (mode: GameMode) => void;
     setIsGameLoaded: (loaded: boolean) => void;
-    setResistancePending: (pending: boolean) => void;
-    triggerResistance: () => void;
-    closeResistance: () => void;
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
     trackGameStart: (mode: GameMode | string, seed?: number) => void;
@@ -27,19 +22,8 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
     const [gameMode, setGameMode] = useState<GameMode>('DAILY');
     const [isGameLoaded, setIsGameLoaded] = useState(false);
     const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
-    const [resistanceActive, setResistanceActive] = useState(false);
-    const [resistancePending, setResistancePending] = useState(false);
 
     const { trackGameStart, trackGameComplete, trackDailyAuditViewed } = useAnalytics();
-
-    const triggerResistance = useCallback(() => {
-        setResistanceActive(true);
-        setAuditState(null);
-    }, []);
-
-    const closeResistance = useCallback(() => {
-        setResistanceActive(false);
-    }, []);
 
     const triggerCurrentAudit = useCallback(() => {
         setAuditState({ date: sessionDate, userScore: coreState.levelScore });
@@ -53,6 +37,8 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
     // --- Resistance Auto-Check (Effect) ---
     useEffect(() => {
         // Efficiency Check (Results Phase)
+        const resistancePending = coreState.resistance?.isPending;
+
         if (gameMode === 'DAILY' &&
             coreState.phase === GamePhase.RESULTS &&
             coreState.optimalScore !== null &&
@@ -67,15 +53,15 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
 
             if (efficiency === 0) {
                 const timer = setTimeout(() => {
-                    setResistanceActive(true);
-                    setResistancePending(false);
+                    coreDispatch({ type: 'ACTIVATE_RESISTANCE' }); // Auto trigger
+                    coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
                 }, 1000);
                 return () => clearTimeout(timer);
             } else {
-                setResistancePending(false);
+                coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
             }
         }
-    }, [gameMode, coreState.phase, coreState.optimalScore, coreState.worstScore, coreState.levelScore, resistancePending]);
+    }, [gameMode, coreState.phase, coreState.optimalScore, coreState.worstScore, coreState.levelScore, coreState.resistance, coreDispatch]);
 
 
 
@@ -85,15 +71,10 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             gameMode,
             isGameLoaded,
             auditState,
-            resistanceActive,
-            resistancePending,
         },
         metaActions: {
             setGameMode,
             setIsGameLoaded,
-            setResistancePending, // Needed by useGame saveDaily wrapper
-            triggerResistance,
-            closeResistance,
             triggerCurrentAudit,
             closeAudit,
             trackGameStart,
