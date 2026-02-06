@@ -14,6 +14,7 @@ interface DailyAuditStats {
     optimalScore: number;
     worstScore: number;
     resistanceStatus?: string;
+    resistanceTarget?: number;
 }
 
 export interface UseDailyAuditResult {
@@ -42,6 +43,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
     const [initialList, setInitialList] = useState<CardItem[]>([]);
     const [userFinalList, setUserFinalList] = useState<CardItem[]>([]);
     const [resistanceStatus, setResistanceStatus] = useState<string | undefined>(undefined);
+    const [resistanceTarget, setResistanceTarget] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         let mounted = true;
@@ -58,6 +60,9 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
                 const dateObj = new Date(y, m - 1, d);
 
                 const puzzle = PuzzleRepository.getDailyPuzzle(dateObj);
+                if (puzzle.resistanceData?.targetYield) {
+                    setResistanceTarget(puzzle.resistanceData.targetYield);
+                }
 
                 // Fetch Persisted Result for Resistance Status
                 const persistedResult = PersistenceService.getDailyResult(date);
@@ -163,7 +168,8 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
             userScore: userHighScore,
             optimalScore: solution ? solution.score : 0,
             worstScore,
-            resistanceStatus
+            resistanceStatus,
+            resistanceTarget
         }
     };
 };

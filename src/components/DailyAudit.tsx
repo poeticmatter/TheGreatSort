@@ -57,6 +57,24 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   // We pass 'false' for isDailyCompleted to get the graded mood (SOLVED/ADEQUATE/etc) instead of generic "DONE".
   const mood = useSystemMood(adherence, 100, false);
 
+  // Resistance Verification
+  // Checking `stats`:
+  const resistanceOutcome = React.useMemo(() => {
+    // Verify the USER'S final list logic
+    if (!userFinalList || userFinalList.length === 0) return ResistanceStatus.ACTIVE;
+
+    // We need the graded version to check survivors
+    const { gradedList } = gradeLevel(userFinalList);
+
+    return verifyResistanceMission(
+      gradedList,
+      ResistanceStatus.ACTIVE,
+      userFinalList.length,
+      stats.userScore, // using userScore as yield proxy if needed, though fn uses item values
+      stats.resistanceTarget || 0
+    );
+  }, [userFinalList, stats.resistanceTarget, stats.userScore]);
+
   // Resistance Status & Flavor Calculation
   const resistanceStatus = rawResistanceStatus as ResistanceStatus | undefined;
   const isResistanceActive = rawResistanceStatus !== undefined;
@@ -65,8 +83,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   let displayFlavorText = propFlavorText;
 
   // If we have resistance, override the generic "DONE" flavor with specific resistance outcome flavor
-  if (isResistanceActive && resistanceStatus) {
-    const flavorKey = getResistanceFlavor(adherence, resistanceStatus);
+  if (isResistanceActive && resistanceOutcome) {
+    const flavorKey = getResistanceFlavor(adherence, resistanceOutcome);
     if (flavorKey) {
       const entries = FLAVOR_DATABASE[flavorKey];
       if (entries && entries.length > 0) {
@@ -110,18 +128,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   // If user score is worse than the initial board state score
   const initialScore = initialList.length > 0 ? calculateBatchScore(initialList) : 0;
   const isInterrogation = userScore < initialScore;
-
-  // Resistance Verification
-  // Checking `stats`:
-  const resistanceOutcome = React.useMemo(() => {
-    // @ts-ignore - solution type missing list property in definition currently
-    const solutionList = solution?.list;
-
-    if (!solutionList) return ResistanceStatus.ACTIVE; // Fallback
-    // For the puzzle solution, we assume it meets all criteria (Success).
-    // Passing 0, 0 ensures trueYield >= max (0) -> SUCCESS.
-    return verifyResistanceMission(solutionList, ResistanceStatus.ACTIVE, solutionList.length, 0, 0);
-  }, [solution]);
 
   // Reuse logic for Badge? No, Badge uses resistanceOutcome (Solution).
   // We want to render the USER'S Status.
@@ -218,7 +224,9 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           {/* Resistance Mission Status */}
           {resistanceStatus && resistanceStatus !== ResistanceStatus.INACTIVE && (
             (() => {
-              const config = getStatusConfig(resistanceStatus);
+              // Use the calculated outcome (based on math) rather than the persisted status (which might be stale/buggy)
+              // to ensure the banner matches the badge and the actual score.
+              const config = getStatusConfig(resistanceOutcome);
               const StatusIcon = config.icon;
 
               // Map simple color names to Tailwind classes

@@ -16,7 +16,8 @@ export const useProjectedMetrics = (
     currentList: CardItem[],
     initialList: CardItem[],
     optimalYield: number | null,
-    worstYield: number | null
+    worstYield: number | null,
+    resistanceTarget: number = 0
 ): ProjectedMetrics => {
     return useMemo(() => {
         // 1. Calculate Current Yield (sum of survivor values)
@@ -46,16 +47,12 @@ export const useProjectedMetrics = (
         // 6. Projected Resistance Status
         // We optimistically assume ACTIVE to check for failure conditions.
         // If no agents are present, it will return INACTIVE.
-        // We use 0 as target yield for now (Resistance Mission Logic) or calculate typical target?
-        // In daily puzzles, target varies. But for flavor text, "Success" vs "Careful" is less critical 
-        // than "Exposed" vs "Compromised".
-        // Let's assume targetYield is 0 for generic "Constraint Satisfaction" check.
         const projectedResistanceStatus = verifyResistanceMission(
             gradedList,
             ResistanceStatus.ACTIVE,
             currentList.length,
             startingYield,
-            0
+            resistanceTarget
         );
 
         return {

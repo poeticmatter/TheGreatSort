@@ -62,7 +62,13 @@ export function useGame(sessionDate: string) {
     isZeroYield,
     yieldRatio,
     projectedResistanceStatus: projectResistanceStatus
-  } = useProjectedMetrics(coreState.list, coreState.initialList || [], targetScoreForMetrics, coreState.worstScore);
+  } = useProjectedMetrics(
+    coreState.list,
+    coreState.initialList || [],
+    targetScoreForMetrics,
+    coreState.worstScore,
+    coreState.resistance?.targetYield
+  );
 
   const mood = useSystemMood(compliancePercentage, startingCompliance, isLocked);
 

@@ -7,8 +7,7 @@ import { TrainingScoreDisplay } from '../TrainingScoreDisplay';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
-import { FLAVOR_DATABASE } from '../../config/flavorText';
-import { getResistanceFlavor } from '../../utils/resistanceFlavor';
+import { useNarrativeSystem } from '../../hooks/useNarrativeSystem';
 
 interface PuzzleBoardProps {
     state: any;
@@ -78,39 +77,15 @@ export function PuzzleBoard({
     const resistanceStatus = state.resistance?.status ?? ResistanceStatus.INACTIVE;
     const isResistanceActive = resistanceStatus !== ResistanceStatus.INACTIVE;
 
-    // Use LIVE projected status if available (from useProjectedMetrics), otherwise fall back to persistent status
-    // projectedResistanceStatus is undefined if not in resistance mode or not joined.
-    // If it is defined, it gives us the "What if I submitted now" status (e.g. EXPOSED if agent dead).
-    const effectiveStatus = state.projectedResistanceStatus ?? resistanceStatus;
-
-    // determine flavor
-    const resistanceFlavorKey = isResistanceActive ? getResistanceFlavor(state.compliancePercentage, effectiveStatus) : null;
-    const standardFlavor = state.flavorMap ? state.flavorMap[state.mood] : "";
-
-    // If we have a specific resistance flavor key, use it. Otherwise fall back to standard flavor.
-    // We need to fetch the text from FLAVOR_DATABASE if it's a resistance key not in the map? 
-    // Actually, FLAVOR_DATABASE is static config. state.flavorMap is generated at level start.
-    // Resistance flavor isn't "rolled" per level usually, it's deterministic based on state.
-    // So we should pick a random one from database on the fly or just display the first one?
-    // Let's use a stable hash or just random since it re-renders only on status change ideally.
-    // Better: use the daily seed to pick one deterministically if possible, or just index 0 for now.
-
-    // To properly support this, we need to import FLAVOR_DATABASE
-    let flavorText = standardFlavor;
-    let flavorMood = state.mood;
-
-    if (resistanceFlavorKey) {
-        const entries = FLAVOR_DATABASE[resistanceFlavorKey];
-        if (entries && entries.length > 0) {
-            // Simple deterministic pick based on date/seed if available, or random.
-            // Since this runs in render, it must be stable or memoized.
-            // Let's use the day + text length as a pseudo-seed to rotate.
-            const seed = (state.currentSeed || 0) + (resistanceFlavorKey.length);
-            const index = seed % entries.length;
-            flavorText = entries[index].text;
-            flavorMood = resistanceFlavorKey;
-        }
-    }
+    // Narrative System Hook
+    // Encapsulates all flavor text logic, including resistance overrides and determinism.
+    const { text: flavorText, mood: flavorMood } = useNarrativeSystem({
+        compliancePercentage: state.compliancePercentage,
+        resistanceStatus: resistanceStatus,
+        projectedResistanceStatus: state.projectedResistanceStatus,
+        mood: state.mood,
+        daySeed: state.currentSeed
+    });
 
     // Grid Content
     const gridContent = (
