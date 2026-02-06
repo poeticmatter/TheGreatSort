@@ -14,13 +14,14 @@
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
-
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "playwright": "^1.57.0",
+    "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
