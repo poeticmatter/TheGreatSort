@@ -11,11 +11,25 @@ import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
 import ResistanceLetter from './assets/ResistanceLetter.png';
 
-export default function TheGreatSort() {
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import BannersPage from './components/views/BannersPage';
+
+function GamePage() {
   return (
     <GameProvider>
       <TheGreatSortContent />
     </GameProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<GamePage />} />
+        <Route path="/banners" element={<BannersPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

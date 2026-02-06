@@ -10,7 +10,7 @@ export { ALL_TOOL_TYPES } from './toolDefinitions';
 export const TOOLS: Record<string, ToolDefinition> = {
   DEMOTE: { ...TOOL_META.DEMOTE, name: 'Demote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)' },
   SWAP: { ...TOOL_META.SWAP, name: 'Swap', icon: ArrowRightLeft, desc: 'Switch two adjacent items' },
-  PURGE: { ...TOOL_META.PURGE, name: 'Purge', icon: Trash2, desc: 'Eliminate one item' },
+
   PROMOTE: { ...TOOL_META.PROMOTE, name: 'Promote', icon: ArrowLeftToLine, desc: 'Move an item to the start (Left)' },
 
   LONGSWAP: { ...TOOL_META.LONGSWAP, name: 'Long Swap', icon: RefreshCcwDot, desc: 'Switch any two NON-adjacent items' },
