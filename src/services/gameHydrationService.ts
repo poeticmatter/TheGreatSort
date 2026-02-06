@@ -178,7 +178,6 @@ export class GameHydrationService {
      */
     private static applyResistanceData(list: CardItem[], puzzle: DailyPuzzleData): { list: CardItem[], resistanceStatus: ResistanceStatus, resistanceTarget?: number } {
         const resistanceData = puzzle.resistanceData;
-        console.log("Resistance Mode Initialized:", resistanceData ? "YES" : "NO");
 
         if (!resistanceData) {
             return {

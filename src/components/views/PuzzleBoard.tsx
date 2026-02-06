@@ -3,6 +3,7 @@ import { GamePhase, ResistanceStatus } from '../../../types';
 import InventoryGrid, { LayoutType } from '../InventoryGrid';
 import Tooltip from '../Tooltip';
 import { ComplianceMeter } from '../ComplianceMeter';
+import { TrainingScoreDisplay } from '../TrainingScoreDisplay';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
@@ -126,10 +127,14 @@ export function PuzzleBoard({
                 <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
                     <div className="w-20 flex-none h-full py-4 pl-2 flex flex-col justify-center items-center z-10 pointer-events-none">
                         <div className="pointer-events-auto h-full flex items-center">
-                            <ComplianceMeter
-                                compliancePercentage={state.compliancePercentage}
-                                layout={layout}
-                            />
+                            {state.gameMode === 'PRACTICE' ? (
+                                <TrainingScoreDisplay levelScore={state.currentYield ?? 0} optimalScore={state.optimalScore} layout={layout} />
+                            ) : (
+                                <ComplianceMeter
+                                    compliancePercentage={state.compliancePercentage}
+                                    layout={layout}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -179,10 +184,14 @@ export function PuzzleBoard({
 
             {gridContent}
 
-            <ComplianceMeter
-                compliancePercentage={state.compliancePercentage}
-                layout={layout}
-            />
+            {state.gameMode === 'PRACTICE' ? (
+                <TrainingScoreDisplay levelScore={state.currentYield ?? 0} optimalScore={state.optimalScore} layout={layout} />
+            ) : (
+                <ComplianceMeter
+                    compliancePercentage={state.compliancePercentage}
+                    layout={layout}
+                />
+            )}
 
             {/* Help / Rules Overlay */}
             <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">

@@ -339,7 +339,7 @@ export const generateTools = (seed?: number): ToolInstance[] => {
     }
 
     tools.push({
-      instanceId: `tool-${i}-${Math.random().toString(36).substr(2, 5)}`,
+      instanceId: `tool-${i}-${Math.floor(random() * 1000000).toString(36)}`,
       type: selectedType,
       used: false
     });

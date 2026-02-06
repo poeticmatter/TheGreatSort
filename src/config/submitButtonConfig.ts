@@ -34,6 +34,14 @@ export const getPrimaryButtonVisuals = (
     mood: SystemMood,
     isLocked: boolean
 ): ButtonVisualConfig => {
+    // Practice Mode: Override all narrative-based logic
+    if (gameMode === 'PRACTICE') {
+        if (phase === GamePhase.RESULTS) {
+            return { label: 'Continue Training', variant: 'warning', Icon: Play };
+        }
+        return { label: 'Inspect', variant: 'neutral', Icon: Play };
+    }
+
     if (gameMode === 'DAILY' && isLocked) {
         return { label: 'Training', variant: 'destructive', Icon: Play };
     }

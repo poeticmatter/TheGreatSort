@@ -66,7 +66,8 @@ export function useSolverService(
     // Trigger Calculation
     const triggerCalculation = useCallback(() => {
         // Optimization: If scores are already provided (e.g. from static Daily data), skip calculation
-        if (existingOptimal !== null && existingWorst !== null) {
+        // BUT: For Practice mode, always recalculate since we can't trust cached scores
+        if (gameMode !== 'PRACTICE' && existingOptimal !== null && existingWorst !== null) {
             setSolverState({
                 optimalScore: existingOptimal,
                 worstScore: existingWorst,
@@ -77,7 +78,7 @@ export function useSolverService(
 
         if (list.length > 0 && solverState.optimalScore === null && workerRef.current) {
 
-            // Cache Check
+            // Cache Check (Daily mode only)
             if (currentSeed !== undefined && gameMode === 'DAILY') {
                 const cached = PersistenceService.getSolution(currentSeed);
                 if (cached) {
@@ -93,17 +94,7 @@ export function useSolverService(
             const mode = (gameMode === 'DAILY' || gameMode === 'RESULTS') ? 'BOTH' : 'OPTIMAL';
             setSolverState(prev => ({ ...prev, isCalculating: true }));
 
-            // Logic to regenerate clean level if we need to pass strict params?
-            // useGame passed state.list. If list is mutated, solver might need original. 
-            // But solver generates its own level from seed usually? 
-            // useGame.ts: 385: if (state.currentSeed !== undefined) { listToSolve = generateLevel... }
-            // So we should pass seed if available.
-
-            // We'll pass the list/tools as props to this hook, but purely rely on seed for reconstruction if possible.
-            // But wait, the hook props `list` and `tools` might be the modified ones?
-            // useGame logic: 
-            // if (state.currentSeed !== undefined) { listToSolve = generateLevel... } else { listToSolve = state.list }
-
+            // Regenerate clean initial state from seed for solver
             let listToSolve = list;
             let toolsToSolve = tools;
 

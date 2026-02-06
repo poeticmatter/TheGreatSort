@@ -56,6 +56,7 @@ export function useGame(sessionDate: string) {
   const targetScoreForMetrics = coreState.optimalScore;
 
   const {
+    currentYield,
     compliancePercentage,
     startingCompliance,
     isZeroYield,
@@ -256,6 +257,7 @@ export function useGame(sessionDate: string) {
       startingCompliance,
       isZeroYield,
       yieldRatio,
+      currentYield, // Live-calculated yield for Training mode
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
       selectedTool: coreState.selectedToolInstanceId,
       // trueYield/visibleYield removed
