@@ -27,47 +27,17 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
             return;
         }
 
-        const strategy = TOOL_REGISTRY[toolInstance.type]; // Need TOOL_REGISTRY interaction
-        if (!strategy) return;
-
-        // Immediate Execution Logic (Card already selected + 1-step tool)
-        if (state.selection !== null && !strategy.requiresSelection) {
-            if (strategy.isValid(state.list, state.selection)) {
-                // Execute move immediately
-                const targetIndex = state.selection;
-                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, targetIndex) as { newList: CardItem[], impactedIndices: number[] };
-
-                dispatch({
-                    type: 'APPLY_MOVE',
-                    payload: {
-                        list: newList,
-                        impactedIndices,
-                        move: {
-                            tool: toolInstance.type,
-                            toolInstanceId: toolInstanceId,
-                            index: targetIndex,
-                            description: `${toolInstance.type} at ${targetIndex}`
-                        }
-                    }
-                });
-
-                if (onMoveApplied) {
-                    onMoveApplied(newList, {
-                        tool: toolInstance.type,
-                        toolInstanceId: toolInstanceId,
-                        index: targetIndex,
-                        description: `${toolInstance.type} at ${targetIndex}`
-                    });
-                }
-                return;
-            }
+        // Switching to a different tool: Clear any existing selection first
+        // This prevents confusion where a selection for a previous tool persists to the new one
+        if (state.selection !== null) {
+            dispatch({ type: 'CANCEL_SELECTION' });
         }
 
-        // Default: Select Tool
+        // Select Tool
         dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
         trackToolInteraction(toolInstance.type, 'select');
 
-    }, [dispatch, state.toolsAvailable, state.selection, state.list, state.selectedToolInstanceId, trackToolInteraction]);
+    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction]);
 
     const handleUndo = useCallback(() => {
         if (state.movesHistory.length > 0) {
