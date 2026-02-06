@@ -60,7 +60,8 @@ export function useGame(sessionDate: string) {
     compliancePercentage,
     startingCompliance,
     isZeroYield,
-    yieldRatio
+    yieldRatio,
+    projectedResistanceStatus: projectResistanceStatus
   } = useProjectedMetrics(coreState.list, coreState.initialList || [], targetScoreForMetrics, coreState.worstScore);
 
   const mood = useSystemMood(compliancePercentage, startingCompliance, isLocked);
@@ -258,6 +259,10 @@ export function useGame(sessionDate: string) {
       isZeroYield,
       yieldRatio,
       currentYield, // Live-calculated yield for Training mode
+      projectedResistanceStatus: (metaState.gameMode === 'PRACTICE' || !hasJoinedResistance)
+        ? undefined
+        : projectResistanceStatus, // Expose live resistance status
+
       // Alias for convenience if needed, though idiomatic to use data.toolsAvailable etc.
       selectedTool: coreState.selectedToolInstanceId,
       // trueYield/visibleYield removed

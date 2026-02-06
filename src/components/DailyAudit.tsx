@@ -10,6 +10,9 @@ import { useShareResult } from '../hooks/useShareResult';
 import { performShare } from '../utils/shareUtils';
 import { useSystemMood } from '../hooks/useSystemMood';
 
+import { getResistanceFlavor } from '../utils/resistanceFlavor';
+import { FLAVOR_DATABASE } from '../config/flavorText';
+
 interface DailyAuditProps {
   date: string;
   userHighScore: number;
@@ -18,7 +21,7 @@ interface DailyAuditProps {
   flavorText?: string;
 }
 
-export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText }) => {
+export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText }) => {
   const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
@@ -53,6 +56,29 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   // We use the actual adherence value to determine the performance mood.
   // We pass 'false' for isDailyCompleted to get the graded mood (SOLVED/ADEQUATE/etc) instead of generic "DONE".
   const mood = useSystemMood(adherence, 100, false);
+
+  // Resistance Status & Flavor Calculation
+  const resistanceStatus = rawResistanceStatus as ResistanceStatus | undefined;
+  const isResistanceActive = rawResistanceStatus !== undefined;
+
+  // Use Resistance Flavor if applicable, otherwise use prop passed or fallback
+  let displayFlavorText = propFlavorText;
+
+  // If we have resistance, override the generic "DONE" flavor with specific resistance outcome flavor
+  if (isResistanceActive && resistanceStatus) {
+    const flavorKey = getResistanceFlavor(adherence, resistanceStatus);
+    if (flavorKey) {
+      const entries = FLAVOR_DATABASE[flavorKey];
+      if (entries && entries.length > 0) {
+        // Deterministic pick based on seed/date
+        // Since we don't have seed readily available as number here (it's date string), 
+        // let's use userScore + adherence as salt
+        const salt = userScore + Math.floor(adherence);
+        const index = salt % entries.length;
+        displayFlavorText = entries[index].text;
+      }
+    }
+  }
 
   const { generatePayload } = useShareResult();
 
@@ -97,12 +123,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     return verifyResistanceMission(solutionList, ResistanceStatus.ACTIVE, solutionList.length, 0, 0);
   }, [solution]);
 
-  const resistanceStatus = rawResistanceStatus as ResistanceStatus | undefined;
-
   // Reuse logic for Badge? No, Badge uses resistanceOutcome (Solution).
   // We want to render the USER'S Status.
-
-  const isResistanceActive = rawResistanceStatus !== undefined;
 
   const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
 
@@ -243,9 +265,9 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
         )}
 
         {/* Flavor Text */}
-        {flavorText && (
+        {displayFlavorText && (
           <div className="my-6 w-full flex justify-center border-t border-b border-stone-800 py-4">
-            <FlavorTextComponent mood="DONE" text={flavorText} />
+            <FlavorTextComponent mood="DONE" text={displayFlavorText} />
           </div>
         )}
 

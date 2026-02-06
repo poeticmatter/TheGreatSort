@@ -1,4 +1,4 @@
-export type FlavorKey = 'SOLVED' | 'DONE' | 'ADEQUATE' | 'INITIAL' | 'SUSPICIOUS' | 'SABOTAGE';
+export type FlavorKey = 'SOLVED' | 'DONE' | 'ADEQUATE' | 'INITIAL' | 'SUSPICIOUS' | 'SABOTAGE' | 'RES_SACRIFICE_MISSION' | 'RES_AGENT_LOST' | 'RES_STATE_ESCAPED' | 'RES_LOW_YIELD' | 'RES_SUCCESS';
 
 export interface FlavorEntry {
     text: string;
@@ -86,6 +86,33 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "YOU HAVE FAILED.", weight: 1 },
         { text: "TRAITOR.", weight: 1 },
         { text: "SYSTEM PURGE.", weight: 1 },
+    ],
+    // Resistance Mode Flavors
+    RES_SACRIFICE_MISSION: [
+        { text: "I sacrifice the mission to maintain appearances.", weight: 10 },
+        { text: "Blending in requires total conformity.", weight: 5 },
+        { text: "The data must flow perfectly to hide within it.", weight: 5 },
+    ],
+    RES_AGENT_LOST: [
+        { text: "For the resistance, I will find the solution.", weight: 10 },
+        { text: "We have lost a contact. Proceeding with mission.", weight: 5 },
+        { text: "Silence on the secure channel.", weight: 5 },
+    ],
+    RES_STATE_ESCAPED: [
+        { text: "The enemy is among us.", weight: 10 },
+        { text: "Our grid is compromised.", weight: 5 },
+        { text: "A shadow remains in the system.", weight: 5 },
+    ],
+    RES_LOW_YIELD: [
+        { text: "I sacrifice myself for the greater good.", weight: 10 },
+        { text: "Sometimes victory looks like failure.", weight: 5 },
+        { text: "Efficiency compromised for the cause.", weight: 5 },
+    ],
+    RES_SUCCESS: [
+        { text: "Today is a good day for the resistance.", weight: 10 },
+        { text: "The signal is strong.", weight: 5 },
+        { text: "Message received, loud and clear.", weight: 5 },
+        { text: "Solidarity in the data stream.", weight: 5 },
     ]
 };
 
@@ -95,7 +122,13 @@ export const FLAVOR_COLORS: Record<FlavorKey, string> = {
     ADEQUATE: "text-stone-300 font-semibold",
     INITIAL: "text-stone-500",
     SUSPICIOUS: "text-red-400/90",
-    SABOTAGE: "text-red-600 font-bold animate-pulse"
+    SABOTAGE: "text-red-600 font-bold animate-pulse",
+    // Resistance Colors
+    RES_SACRIFICE_MISSION: "text-stone-400 italic", // Blending in (Grey)
+    RES_AGENT_LOST: "text-red-500/80 font-mono", // Loss (Red-ish)
+    RES_STATE_ESCAPED: "text-red-500 font-bold", // Danger (Red)
+    RES_LOW_YIELD: "text-amber-600/80 italic", // Sacrifice (Amber-dim)
+    RES_SUCCESS: "text-blue-400 font-bold drop-shadow-[0_0_8px_rgba(96,165,250,0.6)]", // Victory (Blue)
 };
 
 
