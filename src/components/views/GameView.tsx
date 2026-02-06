@@ -7,6 +7,7 @@ import { LayoutType } from '../InventoryGrid';
 import { PuzzleBoard } from './PuzzleBoard';
 import { AuditBoard } from './AuditBoard';
 import { UserInterfaceState } from '../../hooks/useGameInteractions';
+import RulesModal from '../RulesModal';
 
 import { GameViewModel } from '../../types/GameViewModel';
 
@@ -20,6 +21,24 @@ interface GameViewProps {
 
 export function GameView({ data, interaction, actions, layout }: GameViewProps) {
     const { primaryAction, secondaryAction, feedback } = interaction;
+    const [isRulesOpen, setIsRulesOpen] = useState(false);
+
+    // Initial check for rules
+    useEffect(() => {
+        const seen = localStorage.getItem('tgs_seen_rules');
+        if (!seen) {
+            setIsRulesOpen(true);
+        }
+    }, []);
+
+    const handleCloseRules = useCallback(() => {
+        setIsRulesOpen(false);
+        localStorage.setItem('tgs_seen_rules', 'true');
+    }, []);
+
+    const handleOpenRules = useCallback(() => {
+        setIsRulesOpen(true);
+    }, []);
 
     // --- Visual Feedback ---
     const [isShaking, setIsShaking] = useState(false);
@@ -77,7 +96,10 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
                 onChangeMode={actions.changeMode}
                 onShareResult={actions.shareResult}
                 onRetryPractice={actions.retryPractice}
+                onOpenRules={handleOpenRules}
             />
+
+            <RulesModal isOpen={isRulesOpen} onClose={handleCloseRules} />
 
             <div className="flex-1 flex flex-col min-h-0 content-area relative">
                 {feedback.showAuditBoard ? (

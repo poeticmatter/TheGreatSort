@@ -216,18 +216,6 @@ export function PuzzleBoard({
                 />
             )}
 
-            {/* Help / Rules Overlay */}
-            <div className="fixed bottom-32 right-6 hidden xl:block pointer-events-none opacity-80">
-                <div className="bg-stone-950/90 p-4 rounded-sm border border-stone-700 shadow-2xl backdrop-blur-sm max-w-[200px]">
-                    <p className="mb-2 text-amber-600 font-[Cinzel] uppercase tracking-wider text-xs border-b border-stone-800 pb-1">Scoring Protocol</p>
-                    <ul className="text-xs text-stone-400 space-y-2 font-[Courier_Prime]">
-                        <li><span className="text-amber-500 font-bold">1.</span> First item survives.</li>
-                        <li><span className="text-amber-500 font-bold">2.</span> Second item sets Mode (Ascending/Descending).</li>
-                        <li><span className="text-amber-500 font-bold">3.</span> Violators are purged.</li>
-                        <li><span className="text-amber-500 font-bold">4.</span> Score = Sum of Survivors.</li>
-                    </ul>
-                </div>
-            </div>
         </main>
     );
 }

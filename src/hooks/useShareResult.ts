@@ -47,7 +47,9 @@ export const formatSharePayload = (
         ``,
         `"${flavorText}"`,
         ``,
-        emojiGrid
+        emojiGrid,
+        ``,
+        `Play at stalinsort.fun`
     ].join('\n');
 };
 

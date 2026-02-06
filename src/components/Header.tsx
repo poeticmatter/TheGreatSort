@@ -16,12 +16,13 @@ interface HeaderProps {
   onChangeMode: (mode: GameMode) => void;
   onShareResult: () => void;
   onRetryPractice: () => void;
+  onOpenRules: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
   phase, optimalScore, detectedMode,
-  onChangeMode, onShareResult, onRetryPractice,
+  onChangeMode, onShareResult, onRetryPractice, onOpenRules
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -43,38 +44,45 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-6 mt-2 ml-1 z-50">
-           {/* Mode Selector */}
-           <div className="relative">
-             <button
-               onClick={() => setShowModeMenu(!showModeMenu)}
-               disabled={phase === GamePhase.INSPECTING}
-               className={`flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${
-                 phase === GamePhase.INSPECTING
-                   ? 'text-stone-600 cursor-not-allowed opacity-50'
-                   : 'text-stone-400 hover:text-amber-500'
-               }`}
-             >
-               Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
-             </button>
+          {/* Manual Button */}
+          <button
+            onClick={onOpenRules}
+            className="flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] text-stone-400 hover:text-amber-500 transition-colors"
+          >
+            Manual <span className="text-amber-500 font-bold">?</span>
+          </button>
 
-             {showModeMenu && (
-               <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
-                 {(['DAILY', 'PRACTICE'] as GameMode[]).map(m => (
-                   <button
-                     key={m}
-                     onClick={() => {
-                       onChangeMode(m);
-                       setShowModeMenu(false);
-                     }}
-                     className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
-                   >
-                     {m === 'PRACTICE' ? 'TRAINING' : m}
-                   </button>
-                 ))}
+          {/* Mode Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowModeMenu(!showModeMenu)}
+              disabled={phase === GamePhase.INSPECTING}
+              className={`flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${phase === GamePhase.INSPECTING
+                  ? 'text-stone-600 cursor-not-allowed opacity-50'
+                  : 'text-stone-400 hover:text-amber-500'
+                }`}
+            >
+              Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
+            </button>
 
-                 </div>
-             )}
-           </div>
+            {showModeMenu && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
+                {(['DAILY', 'PRACTICE'] as GameMode[]).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      onChangeMode(m);
+                      setShowModeMenu(false);
+                    }}
+                    className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                  >
+                    {m === 'PRACTICE' ? 'TRAINING' : m}
+                  </button>
+                ))}
+
+              </div>
+            )}
+          </div>
 
 
 
