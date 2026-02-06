@@ -376,7 +376,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                                     return `Index ${step.move.index} & ${step.move.index + 1}`;
                                   }
                                   if (step.move.targetIndex !== undefined) {
-                                    return `${step.move.index} ↔ ${step.move.targetIndex}`;
+                                    return `${step.move.targetIndex} ↔ ${step.move.index}`;
                                   }
                                   return `Index ${step.move.index}`;
                                 })()}
