@@ -8,7 +8,7 @@ import { useDailyAudit } from '../hooks/useDailyAudit';
 import { FlavorText as FlavorTextComponent } from './FlavorText';
 import { useShareResult } from '../hooks/useShareResult';
 import { performShare } from '../utils/shareUtils';
-import { useSystemMood } from '../hooks/useSystemMood';
+import { useSystemMood, SystemMood } from '../hooks/useSystemMood';
 
 import { getResistanceFlavor } from '../utils/resistanceFlavor';
 import { FLAVOR_DATABASE } from '../config/flavorText';
@@ -81,11 +81,14 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
   // Use Resistance Flavor if applicable, otherwise use prop passed or fallback
   let displayFlavorText = propFlavorText;
+  let shareMood = mood;
 
   // If we have resistance, override the generic "DONE" flavor with specific resistance outcome flavor
   if (isResistanceActive && resistanceOutcome) {
     const flavorKey = getResistanceFlavor(adherence, resistanceOutcome);
     if (flavorKey) {
+      shareMood = flavorKey as SystemMood;
+
       const entries = FLAVOR_DATABASE[flavorKey];
       if (entries && entries.length > 0) {
         // Deterministic pick based on seed/date
@@ -109,7 +112,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     const text = generatePayload({
       userScore,
       compliancePercentage: adherence,
-      mood,
+      mood: shareMood,
       items: finalItems
     });
 
