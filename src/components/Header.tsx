@@ -31,8 +31,8 @@ const Header: React.FC<HeaderProps> = ({
     : 0;
 
   return (
-    <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 z-50 sticky top-0">
-      <div className="flex flex-col items-center md:items-start">
+    <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-center items-center gap-6 md:gap-12 z-50 sticky top-0">
+      <div className="flex flex-col items-center">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Star className="text-amber-500 fill-amber-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" size={32} />
@@ -58,8 +58,8 @@ const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowModeMenu(!showModeMenu)}
               disabled={phase === GamePhase.INSPECTING}
               className={`flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] transition-colors ${phase === GamePhase.INSPECTING
-                  ? 'text-stone-600 cursor-not-allowed opacity-50'
-                  : 'text-stone-400 hover:text-amber-500'
+                ? 'text-stone-600 cursor-not-allowed opacity-50'
+                : 'text-stone-400 hover:text-amber-500'
                 }`}
             >
               Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
