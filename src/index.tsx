@@ -9,6 +9,11 @@ import { AnalyticsService } from './services/analytics';
 // Initialize Analytics
 AnalyticsService.initialize('G-C4M4139WJ3');
 
+// System Winks
+if (import.meta.env.PROD) {
+  console.log("%cUnauthorized access detected in System Logic. We see you.", "color: red; font-weight: bold;");
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
