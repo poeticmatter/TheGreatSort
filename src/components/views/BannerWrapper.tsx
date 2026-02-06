@@ -6,9 +6,17 @@ interface BannerWrapperProps {
     children: React.ReactNode;
     title: string;
     filename: string;
+    width?: number;
+    height?: number;
 }
 
-const BannerWrapper: React.FC<BannerWrapperProps> = ({ children, title, filename }) => {
+const BannerWrapper: React.FC<BannerWrapperProps> = ({
+    children,
+    title,
+    filename,
+    width = 1280,
+    height = 720
+}) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isExporting, setIsExporting] = useState(false);
 
@@ -22,7 +30,7 @@ const BannerWrapper: React.FC<BannerWrapperProps> = ({ children, title, filename
         try {
             // Small delay to ensure styles are fully calculated/fonts loaded
             // though usually not strictly necessary if already rendered.
-            const dataUrl = await toPng(ref.current, { cacheBust: true, width: 1280, height: 720 });
+            const dataUrl = await toPng(ref.current, { cacheBust: true, width, height });
 
             const link = document.createElement('a');
             link.download = `${filename}.png`;
@@ -38,7 +46,7 @@ const BannerWrapper: React.FC<BannerWrapperProps> = ({ children, title, filename
     return (
         <section className="space-y-2">
             <div className="flex justify-between items-end">
-                <h2 className="text-stone-400 font-mono text-sm uppercase">{title}</h2>
+                <h2 className="text-stone-400 font-mono text-sm uppercase">{title} ({width}x{height})</h2>
                 <button
                     onClick={handleExport}
                     disabled={isExporting}
@@ -52,7 +60,11 @@ const BannerWrapper: React.FC<BannerWrapperProps> = ({ children, title, filename
             {/* Container to center the banner preview */}
             <div className="flex justify-center mx-auto overflow-hidden border border-stone-800 bg-stone-950 p-4 rounded">
                 {/* The actual banner element to export */}
-                <div ref={ref} className="w-[1280px] h-[720px] aspect-video flex-shrink-0 relative overflow-hidden bg-stone-900 shadow-2xl">
+                <div
+                    ref={ref}
+                    className="flex-shrink-0 relative overflow-hidden bg-stone-900 shadow-2xl"
+                    style={{ width: `${width}px`, height: `${height}px` }}
+                >
                     {children}
                 </div>
             </div>

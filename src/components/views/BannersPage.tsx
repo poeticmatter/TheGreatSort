@@ -149,9 +149,53 @@ const BannersPage: React.FC = () => {
                     </div>
                 </div>
             </BannerWrapper>
+
+
+            <h1 className="text-3xl text-stone-200 font-[Cinzel] text-center mt-16 mb-8 pt-8 border-t border-stone-800">Favicons (256x256)</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {/* Favicon 1: The Star */}
+                <BannerWrapper title="Icon: Star" filename="icon_star" width={256} height={256}>
+                    <div className="w-full h-full bg-stone-900 flex items-center justify-center relative border-4 border-amber-900/30">
+                        <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-stone-950"></div>
+                        <div className="relative z-10">
+                            <Star className="text-amber-500 fill-amber-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" size={160} />
+                            <div className="absolute inset-0 blur-xl bg-amber-500/20 rounded-full"></div>
+                        </div>
+                    </div>
+                </BannerWrapper>
+
+                {/* Favicon 2: Void Stamp */}
+                <BannerWrapper title="Icon: Void" filename="icon_void" width={256} height={256}>
+                    <div className="w-full h-full bg-[#f0e6d2] flex items-center justify-center relative border-4 border-stone-400">
+                        <div className="border-8 border-red-900 text-red-900 px-2 py-4 font-black uppercase text-5xl transform rotate-[-15deg] opacity-90 shadow-sm">
+                            VOID
+                        </div>
+                    </div>
+                </BannerWrapper>
+
+                {/* Favicon 3: Monogram */}
+                <BannerWrapper title="Icon: Monogram" filename="icon_monogram" width={256} height={256}>
+                    <div className="w-full h-full bg-stone-950 flex flex-col items-center justify-center relative border-4 border-stone-800">
+                        <h1 className="text-9xl font-[Cinzel] font-bold text-stone-300 tracking-tighter leading-none">
+                            GS
+                        </h1>
+                        <div className="w-32 h-1 bg-amber-900 mt-2"></div>
+                    </div>
+                </BannerWrapper>
+
+                {/* Favicon 4: State Asset */}
+                <BannerWrapper title="Icon: Asset" filename="icon_asset" width={256} height={256}>
+                    <div className="w-full h-full bg-amber-700 flex flex-col items-center justify-center relative border-8 border-amber-500 shadow-inner">
+                        <div className="text-amber-100 font-serif font-bold text-8xl drop-shadow-md">
+                            42
+                        </div>
+                    </div>
+                </BannerWrapper>
+            </div>
+
         </div>
     );
 };
 
 export default BannersPage;
-
