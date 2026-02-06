@@ -17,7 +17,7 @@ export const useProjectedMetrics = (
     initialList: CardItem[],
     optimalYield: number | null,
     worstYield: number | null,
-    resistanceTarget: number = 0
+    resistanceTarget: number | undefined = undefined
 ): ProjectedMetrics => {
     return useMemo(() => {
         // 1. Calculate Current Yield (sum of survivor values)
@@ -45,14 +45,21 @@ export const useProjectedMetrics = (
         const isZeroYield = currentYield === 0 && currentList.length > 0;
 
         // 6. Projected Resistance Status
-        // We optimistically assume ACTIVE to check for failure conditions.
-        // If no agents are present, it will return INACTIVE.
+        // We must define what "Success" means in terms of yield. 
+        // Previously, 0 was used, which made CAREFUL (Low Yield) impossible.
+        // We now use resistanceTarget (if explicit) or optimalYield (if known) or startingYield as the target.
+        // This ensures if you survive but tank your score, you get the "Low Yield" flavor.
+        // NOTE: User requested using optimalYield, but we should respect the explicit target if defined (e.g. 45 vs 52).
+        const effectiveTarget = (resistanceTarget !== undefined && resistanceTarget > 0)
+            ? resistanceTarget
+            : (optimalYield !== null ? optimalYield : startingYield);
+
         const projectedResistanceStatus = verifyResistanceMission(
             gradedList,
             ResistanceStatus.ACTIVE,
             currentList.length,
             startingYield,
-            resistanceTarget
+            effectiveTarget
         );
 
         return {
