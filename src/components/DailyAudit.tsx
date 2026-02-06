@@ -233,9 +233,9 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
               const StatusIcon = config.icon;
 
               // Map simple color names to Tailwind classes
-              const borderColor = config.color === 'blue' ? 'border-blue-500/50' : config.color === 'amber' ? 'border-amber-500/50' : config.color === 'game' ? 'border-stone-500/50' : 'border-red-500/50';
-              const bgColor = config.color === 'blue' ? 'bg-blue-900/20' : config.color === 'amber' ? 'bg-amber-900/20' : 'bg-red-900/20';
-              const textColor = config.color === 'blue' ? 'text-blue-400' : config.color === 'amber' ? 'text-amber-400' : 'text-red-400';
+              const borderColor = 'border-blue-500/50';
+              const bgColor = 'bg-blue-900/20';
+              const textColor = 'text-blue-400';
 
               return (
                 <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
@@ -254,26 +254,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           )}
 
         </div>
-
-        {/* RESISTANCE BADGE (Overlay/Extra) */}
-        {joinedResistance && (
-          <div className="w-full flex justify-center mb-6">
-            {resistanceOutcome === ResistanceStatus.SUCCESS ? (
-              <div className="border-4 border-blue-500/50 p-4 rounded-lg transform -rotate-2 bg-blue-950/20 backdrop-blur-sm">
-                <h2 className="text-2xl font-black text-blue-500 tracking-widest uppercase flex items-center gap-2">
-                  <CheckCircle className="w-8 h-8" /> CONTACT ESTABLISHED
-                </h2>
-              </div>
-            ) : (
-              <div className="border-4 border-red-500/50 p-4 rounded-lg transform rotate-2 bg-red-950/20 backdrop-blur-sm">
-                <h2 className="text-2xl font-black text-red-500 tracking-widest uppercase flex items-center gap-2">
-                  <AlertTriangle className="w-8 h-8" />
-                  {resistanceOutcome === ResistanceStatus.MIA ? "ASSET LOST" : "SIGNAL JAMMED"}
-                </h2>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Flavor Text */}
         {displayFlavorText && (
