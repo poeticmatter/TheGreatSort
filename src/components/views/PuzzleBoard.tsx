@@ -8,6 +8,7 @@ import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
 import { TOOL_REGISTRY } from '../../tools';
 import { useNarrativeSystem } from '../../hooks/useNarrativeSystem';
+import { calculateCompliance } from '../../utils/gameLogic';
 
 interface PuzzleBoardProps {
     state: any;
@@ -87,6 +88,17 @@ export function PuzzleBoard({
         daySeed: state.currentSeed
     });
 
+    // Calculate Target Percentage for Resistance Mode
+    const targetPercentage = useMemo(() => {
+        if (!isResistanceActive || !state.resistance?.targetYield) return undefined;
+
+        return calculateCompliance(
+            state.resistance.targetYield,
+            state.optimalScore,
+            state.worstScore
+        );
+    }, [isResistanceActive, state.resistance?.targetYield, state.optimalScore, state.worstScore]);
+
     // Grid Content
     const gridContent = (
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
@@ -141,6 +153,7 @@ export function PuzzleBoard({
                             ) : (
                                 <ComplianceMeter
                                     compliancePercentage={state.compliancePercentage}
+                                    targetPercentage={targetPercentage}
                                     layout={layout}
                                 />
                             )}
@@ -198,6 +211,7 @@ export function PuzzleBoard({
             ) : (
                 <ComplianceMeter
                     compliancePercentage={state.compliancePercentage}
+                    targetPercentage={targetPercentage}
                     layout={layout}
                 />
             )}

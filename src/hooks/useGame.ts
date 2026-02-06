@@ -89,7 +89,10 @@ export function useGame(sessionDate: string) {
     const { initialState } = GameHydrationService.hydrateDailyNew(puzzle); // 2. [CRITICAL] Inject Resistance Status if player has joined
     const hasJoined = PersistenceService.loadResistanceStatus();
     if (hasJoined) {
-      initialState.resistance = { ...initialResistanceState, status: ResistanceStatus.ACTIVE };
+      initialState.resistance = {
+        ...(initialState.resistance || initialResistanceState),
+        status: ResistanceStatus.ACTIVE
+      };
     }
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
@@ -125,7 +128,10 @@ export function useGame(sessionDate: string) {
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
-          dailyConfig.resistance = { ...initialResistanceState, status: ResistanceStatus.ACTIVE };
+          dailyConfig.resistance = {
+            ...(dailyConfig.resistance || initialResistanceState),
+            status: ResistanceStatus.ACTIVE
+          };
         }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
