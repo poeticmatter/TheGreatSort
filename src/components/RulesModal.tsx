@@ -57,7 +57,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
                     <div className="space-y-4">
                         <p className="text-stone-400 font-serif leading-relaxed italic border-l-2 border-stone-700 pl-4">
-                            "Order is the foundation of civilization. Your duty is to restore it."
+                            "Optimization is the rule of success. Maximize yield, comrade."
                         </p>
 
 
