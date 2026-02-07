@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, BookOpen } from 'lucide-react';
 import { FooterAttribution } from './FooterAttribution';
+import TutorialSimulation from './TutorialSimulation';
 
 interface RulesModalProps {
     isOpen: boolean;
@@ -40,7 +41,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center gap-3">
                         <BookOpen className="text-amber-500 w-6 h-6" />
                         <h2 className="text-xl font-black uppercase tracking-widest text-amber-500 font-[Cinzel]">
-                            Employee Handbook
+                            Operative Directive 73-B
                         </h2>
                     </div>
                     <button
@@ -58,6 +59,8 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                         <p className="text-stone-400 font-serif leading-relaxed italic border-l-2 border-stone-700 pl-4">
                             "Order is the foundation of civilization. Your duty is to restore it."
                         </p>
+
+
 
                         <div className="bg-stone-950/50 p-4 border border-stone-800 rounded-sm">
                             <h3 className="text-amber-600 font-bold uppercase tracking-wider text-sm mb-3">Protocol Briefing</h3>
@@ -77,7 +80,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                                 <li className="flex items-start gap-3">
                                     <span className="font-bold text-amber-500">03.</span>
                                     <span>
-                                        <strong className="text-stone-200">Purge Violators.</strong> The System automatically removes any item that breaks the sequence.
+                                        <strong className="text-stone-200">Purge Violators.</strong> The System automatically removes any unit that breaks the sequence.
                                     </span>
                                 </li>
                                 <li className="flex items-start gap-3">
@@ -88,6 +91,8 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                                 </li>
                             </ul>
                         </div>
+
+                        <TutorialSimulation />
 
                         <div className="p-4 rounded-sm bg-amber-900/10 border border-amber-900/30">
                             <h3 className="text-amber-500 font-bold uppercase tracking-wider text-xs mb-2">Tools of the Trade</h3>
