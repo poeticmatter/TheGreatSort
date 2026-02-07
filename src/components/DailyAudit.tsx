@@ -352,7 +352,19 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                   {timeline.map((step, idx) => {
                     // Determine highlights based on the NEXT move (if current step has a move)
                     const highlightIndices = step.move
-                      ? [step.move.index, step.move.targetIndex].filter(x => x !== undefined) as number[]
+                      ? (() => {
+                        const { tool, index, targetIndex } = step.move;
+                        const t = tool.toUpperCase();
+                        const indices = [index];
+
+                        if (targetIndex !== undefined) {
+                          indices.push(targetIndex);
+                        } else if (['SINK', 'SWAP', 'MERGE'].includes(t)) {
+                          // Implicit adjacent operation
+                          indices.push(index + 1);
+                        }
+                        return indices;
+                      })()
                       : [];
 
                     return (
