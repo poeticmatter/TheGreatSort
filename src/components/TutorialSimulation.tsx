@@ -17,6 +17,13 @@ type SimulationPhase =
 
 const TutorialSimulation: React.FC = () => {
     const [phase, setPhase] = useState<SimulationPhase>('IDLE');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Base items: 3, 7, 4
     const [items, setItems] = useState<CardItem[]>([
@@ -169,17 +176,17 @@ const TutorialSimulation: React.FC = () => {
                 Sim_Mode: Training_Loop_V0.4
             </div>
 
-            <div className="relative mt-6">
+            <div className="relative mt-6 w-full flex justify-center">
                 <InventoryGrid
                     cards={renderableCards}
-                    layout="HORIZONTAL_STRIP"
+                    layout={isMobile ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP'}
                     disabled={true} // Disable interactions
                 />
 
                 {/* Swap Overlay */}
                 {phase === 'TOOL_ACTIVATE' && (
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                        <div className="flex items-center justify-center gap-14">
+                        <div className="flex items-center justify-center">
                             {/* Positioning hack: We want the arrow between index 1 and 2 */}
                             {/* 
                    Cards are roughly w-20 (80px) + gap.
@@ -187,7 +194,10 @@ const TutorialSimulation: React.FC = () => {
                    We want arrow between card 1 (7) and card 2 (4).
                    That's roughly to the right of the center.
                 */}
-                            <div className="bg-amber-500 text-stone-900 p-2 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.6)] animate-bounce ml-20">
+                            <div className={`
+                                bg-amber-500 text-stone-900 p-2 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.6)] animate-bounce 
+                                ${isMobile ? 'mt-10 rotate-90' : 'ml-20'}
+                            `}>
                                 <ArrowLeftRight size={24} strokeWidth={3} />
                             </div>
                         </div>
