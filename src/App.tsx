@@ -12,7 +12,7 @@ import { ResistanceView } from './components/views/ResistanceView';
 import ResistanceLetter from './assets/ResistanceLetter.png';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import BannersPage from './components/views/BannersPage';
+const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
 function GamePage() {
   return (
@@ -27,7 +27,16 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<GamePage />} />
-        <Route path="/banners" element={<BannersPage />} />
+        {import.meta.env.DEV && (
+          <Route
+            path="/banners"
+            element={
+              <React.Suspense fallback={<div className="p-8 text-stone-400">Loading Banners...</div>}>
+                <BannersPage />
+              </React.Suspense>
+            }
+          />
+        )}
       </Routes>
     </BrowserRouter>
   );

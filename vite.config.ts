@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),
-          solver: resolve(__dirname, 'solver.html')
+          ...(mode === 'development' || mode === 'analyze' ? { solver: resolve(__dirname, 'solver.html') } : {})
         }
       }
     }

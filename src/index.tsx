@@ -7,7 +7,7 @@ import App from './App';
 import { AnalyticsService } from './services/analytics';
 
 // Initialize Analytics
-AnalyticsService.initialize('G-C4M4139WJ3');
+AnalyticsService.initialize();
 
 // System Winks
 if (import.meta.env.PROD) {

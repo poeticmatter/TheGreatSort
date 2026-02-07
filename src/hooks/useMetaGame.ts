@@ -15,7 +15,7 @@ export interface MetaActions {
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
     trackGameStart: (mode: GameMode | string, seed?: number) => void;
-    trackGameComplete: (mode: GameMode | string, score: number, optimalScore?: number | null) => void;
+    trackGameComplete: (mode: GameMode | string, score: number, optimalScore: number | null | undefined, efficiency: number) => void;
 }
 
 export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {

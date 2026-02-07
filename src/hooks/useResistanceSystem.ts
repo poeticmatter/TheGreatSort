@@ -71,7 +71,10 @@ export function useResistanceSystem({
         saveDailyResult(coreState.levelScore, finalStatus);
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
         coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: true } });
-        metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore);
+        const efficiency = coreState.optimalScore
+            ? Math.round((coreState.levelScore / coreState.optimalScore) * 100)
+            : 0;
+        metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore, efficiency);
     }, [
         saveDailyResult,
         coreState.levelScore,

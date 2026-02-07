@@ -15,13 +15,7 @@ export function useAnalytics() {
     });
   }, []);
 
-  const trackGameComplete = useCallback((mode: 'DAILY' | 'PRACTICE', score: number, optimal: number | null) => {
-    // Calculate efficiency if optimal is available
-    let efficiency = 0;
-    if (optimal) {
-        efficiency = Math.round((score / optimal) * 100);
-    }
-
+  const trackGameComplete = useCallback((mode: 'DAILY' | 'PRACTICE', score: number, optimal: number | null, efficiency: number) => {
     AnalyticsService.track('game_complete', {
       event_category: 'Game',
       event_label: mode,
