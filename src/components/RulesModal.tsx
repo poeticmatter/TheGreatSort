@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, BookOpen } from 'lucide-react';
+import { FooterAttribution } from './FooterAttribution';
 
 interface RulesModalProps {
     isOpen: boolean;
@@ -111,17 +112,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                         <p className="text-stone-600 text-xs font-mono uppercase tracking-widest">
                             System maintained by
                         </p>
-                        <a
-                            href="https://timeshapers.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
-                        >
-                            <img src="/TimeshapersLogo.svg" alt="Timeshapers" className="h-6 w-auto invert opacity-70 group-hover:opacity-100" />
-                            <span className="text-[10px] text-stone-500 group-hover:text-amber-500 transition-colors">
-                                Designed by Aurore Inara
-                            </span>
-                        </a>
+                        <FooterAttribution vertical />
                     </div>
 
                 </div>

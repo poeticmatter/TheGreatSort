@@ -9,6 +9,7 @@ import { FlavorText as FlavorTextComponent } from './FlavorText';
 import { useShareResult } from '../hooks/useShareResult';
 import { performShare } from '../utils/shareUtils';
 import { useSystemMood, SystemMood } from '../hooks/useSystemMood';
+import { FooterAttribution } from './FooterAttribution';
 
 import { getResistanceFlavor } from '../utils/resistanceFlavor';
 import { FLAVOR_DATABASE } from '../config/flavorText';
@@ -409,18 +410,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
         )}
 
         {/* Attribution */}
-        <div className="w-full flex justify-center mt-12 mb-4 opacity-30 hover:opacity-100 transition-opacity">
-          <a
-            href="https://timeshapers.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 group"
-          >
-            <span className="text-[10px] text-stone-500 font-mono uppercase tracking-widest group-hover:text-amber-500 transition-colors">
-              Designed by Aurore Inara
-            </span>
-            <img src="/TimeshapersLogo.svg" alt="Timeshapers" className="h-4 w-auto invert opacity-50 group-hover:opacity-100 transition-opacity" />
-          </a>
+        <div className="w-full flex justify-center mt-12 mb-4 hover:opacity-100 transition-opacity">
+          <FooterAttribution />
         </div>
 
       </div>

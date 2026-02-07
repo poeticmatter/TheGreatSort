@@ -4,6 +4,7 @@ import { ButtonVariant } from '../config/submitButtonConfig';
 import SubmitButton from './SubmitButton';
 import { LayoutType } from './InventoryGrid';
 
+
 interface FooterProps {
   layout: LayoutType;
   submitConfig: {
@@ -29,20 +30,7 @@ const Footer: React.FC<FooterProps> = ({
           {layout === 'HORIZONTAL_STRIP' && toolBelt}
         </div>
 
-        {/* Attribution */}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-2 text-center opacity-40 hover:opacity-100 transition-opacity">
-          <a
-            href="https://timeshapers.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 group"
-          >
-            <span className="text-[10px] text-stone-500 font-mono uppercase tracking-widest group-hover:text-amber-500 transition-colors">
-              Designed by Aurore Inara
-            </span>
-            <img src="/TimeshapersLogo.svg" alt="Timeshapers" className="h-4 w-auto invert opacity-50 group-hover:opacity-100 transition-opacity" />
-          </a>
-        </div>
+
 
         {/* Action Buttons */}
         <div className="flex gap-4 items-center">
