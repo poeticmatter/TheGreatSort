@@ -16,8 +16,12 @@ export interface AnalyticsEvent {
   [key: string]: any;
 }
 
+let initialized = false;
+
 export const AnalyticsService = {
   initialize: () => {
+    if (initialized) return;
+
     if (!GA_ID) {
       if (isDev) console.warn('[Analytics] No VITE_GA_ID found, skipping initialization.');
       return;
@@ -25,8 +29,14 @@ export const AnalyticsService = {
 
     if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
       window.gtag('config', GA_ID);
-    } else if (isDev) {
-      console.log(`[Analytics] Initialize: ${GA_ID}`);
+      initialized = true;
+    } else {
+      if (isDev) {
+        console.log(`[Analytics] Initialize (Dev/Dry Run): ${GA_ID}`);
+        initialized = true;
+      } else {
+        console.warn('[Analytics] window.gtag is missing in production. Ensure the Gtag script is included in index.html.');
+      }
     }
   },
 

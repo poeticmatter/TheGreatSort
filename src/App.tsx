@@ -12,6 +12,7 @@ import { ResistanceView } from './components/views/ResistanceView';
 import ResistanceLetter from './assets/ResistanceLetter.png';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
 const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
 function GamePage() {
@@ -25,6 +26,7 @@ function GamePage() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AnalyticsTracker />
       <Routes>
         <Route path="/" element={<GamePage />} />
         {import.meta.env.DEV && (
@@ -54,11 +56,10 @@ function TheGreatSortContent() {
   const [layout, setLayout] = useState<LayoutType>(getResponsiveLayout());
 
   useEffect(() => {
-    trackPageView('/');
     const handleResize = () => setLayout(getResponsiveLayout());
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [trackPageView]);
+  }, []);
 
   // --- Asset Preloading (Deferred) ---
   useAssetPreloader([ResistanceLetter]);
