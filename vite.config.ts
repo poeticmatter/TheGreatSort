@@ -15,6 +15,12 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'html-transform',
+        transformIndexHtml(html) {
+          return html.replace(/%VITE_GA_ID%/g, env.VITE_GA_ID || '');
+        },
+      },
     ],
     resolve: {
       alias: {
