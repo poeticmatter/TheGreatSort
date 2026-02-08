@@ -50,7 +50,7 @@ const BannersPage: React.FC = () => {
             {/* Variation 3: Split Layout (Left/Right) */}
             <BannerWrapper title="Variation 3: Split Layout" filename="header_split">
                 <div className="w-full h-full bg-stone-950 relative flex items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-950/50 via-transparent to-stone-900/50"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-950 via-red-950/40 via-[75%] to-stone-950"></div>
 
                     <div className="flex items-center gap-16 relative z-10">
                         <div className="relative">
