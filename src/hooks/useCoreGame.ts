@@ -27,17 +27,63 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
             return;
         }
 
-        // Switching to a different tool: Clear any existing selection first
-        // This prevents confusion where a selection for a previous tool persists to the new one
+        // Switching to a different tool (or Tile-First Interaction)
+
         if (state.selection !== null) {
-            dispatch({ type: 'CANCEL_SELECTION' });
+            const toolStrategy = TOOL_REGISTRY[toolInstance.type];
+
+            // If the tool is single-target (e.g. Promote, Demote, Sink), execute immediately on the selected tile!
+            if (!toolStrategy.requiresSelection) {
+
+                if (toolStrategy.isValid(state.list, state.selection)) {
+                    // Type assertion for tool result
+                    const result = applyMove(state.list, toolInstance.type, state.selection) as unknown as { newList: CardItem[], impactedIndices: number[] };
+                    const { newList, impactedIndices } = result;
+
+                    dispatch({
+                        type: 'APPLY_MOVE',
+                        payload: {
+                            list: newList,
+                            impactedIndices,
+                            move: {
+                                tool: toolInstance.type,
+                                toolInstanceId: toolInstanceId,
+                                index: state.selection,
+                                description: `${toolInstance.type} at ${state.selection}`
+                            }
+                        }
+                    });
+
+                    if (onMoveApplied) {
+                        onMoveApplied(newList, {
+                            tool: toolInstance.type,
+                            toolInstanceId: toolInstanceId,
+                            index: state.selection,
+                            description: `${toolInstance.type} at ${state.selection}`
+                        });
+                    }
+
+                    // Reset selection after immediate use
+                    dispatch({ type: 'CANCEL_SELECTION' });
+                    dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+
+                    // Exit early only if we successfully executed
+                    return;
+                }
+                // If invalid, fall through to standard selection (equip tool)
+            }
         }
 
-        // Select Tool
+
+        // If the tool is multi-target (Swap), just equip it.
+        // The existing selection will serve as the "first target".
+
+
+        // Standard Selection (No Tile, or Multi-Target Tile-First)
         dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
         trackToolInteraction(toolInstance.type, 'select');
 
-    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction]);
+    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction, onMoveApplied, state.list]);
 
     const handleUndo = useCallback(() => {
         if (state.movesHistory.length > 0) {
@@ -54,6 +100,8 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
         const toolInstanceId = state.selectedToolInstanceId;
 
         if (!toolInstanceId) {
+            // Allow selecting a tile without a tool (Tile-First Workflow)
+            dispatch({ type: 'SELECT_TILE', payload: { index } });
             return;
         }
 

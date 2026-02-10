@@ -56,10 +56,7 @@ export function PuzzleBoard({
     const disabledIndices = isShieldSelected ? [0] : [];
 
     const handleCardClickWrapper = (item: any) => {
-        if (!state.selectedTool) {
-            triggerShake();
-            return;
-        }
+        // Delegate all click logic to the core handler (supports Tile-First)
         actions.handleCardClick(item);
     };
 
