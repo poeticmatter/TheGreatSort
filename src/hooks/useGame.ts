@@ -39,11 +39,17 @@ export function useGame(sessionDate: string) {
   );
 
   // 4. Solver Service
+  // Construct a clean set of tools (unused) for the solver to ensure it solves from scratch
+  const initialToolsForSolver = useMemo(() =>
+    coreState.toolsAvailable.map(t => ({ ...t, used: false })),
+    [coreState.toolsAvailable]
+  );
+
   const solverState = useSolverService(
     coreState.currentSeed,
     metaState.gameMode,
-    coreState.list,
-    coreState.toolsAvailable,
+    coreState.initialList || coreState.list, // Use initial list if available
+    initialToolsForSolver, // Use clean tools
     coreState.optimalScore,
     coreState.worstScore,
     coreDispatch
