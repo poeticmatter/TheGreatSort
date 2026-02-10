@@ -138,6 +138,7 @@ export function PuzzleBoard({
                         onViewAudit={onRequestAudit}
                         isLocked={isLocked}
                         isResistanceActive={isResistanceActive}
+                        mood={flavorMood}
                     />
                     {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
                 </div>
@@ -197,6 +198,7 @@ export function PuzzleBoard({
                     onViewAudit={onRequestAudit}
                     isLocked={isLocked}
                     isResistanceActive={isResistanceActive}
+                    mood={flavorMood}
                 />
                 {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
             </div>
