@@ -5,8 +5,6 @@ import { FlavorKey } from '../config/flavorText';
 export interface ResistanceState {
   status: ResistanceStatus;
   isViewOpen: boolean;
-  isPending: boolean;
-  hasTriggered: boolean;
   targetYield?: number;
 }
 
@@ -79,6 +77,6 @@ export type GameAction =
   | { type: 'UNDO_MOVE' }
   | { type: 'ACTIVATE_RESISTANCE' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
-  | { type: 'SET_RESISTANCE_PENDING'; payload: { pending: boolean } }
+  | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }
   | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }; // Composite action logic maybe?

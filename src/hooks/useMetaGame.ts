@@ -35,33 +35,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
     }, []);
 
     // --- Resistance Auto-Check (Effect) ---
-    useEffect(() => {
-        // Efficiency Check (Results Phase)
-        const resistancePending = coreState.resistance?.isPending;
 
-        if (gameMode === 'DAILY' &&
-            coreState.phase === GamePhase.RESULTS &&
-            coreState.optimalScore !== null &&
-            coreState.worstScore !== null &&
-            resistancePending) {
-
-            const efficiency = calculateRelativeEfficiency(
-                coreState.levelScore,
-                coreState.optimalScore,
-                coreState.worstScore
-            );
-
-            if (efficiency === 0) {
-                const timer = setTimeout(() => {
-                    coreDispatch({ type: 'ACTIVATE_RESISTANCE' }); // Auto trigger
-                    coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
-                }, 1000);
-                return () => clearTimeout(timer);
-            } else {
-                coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
-            }
-        }
-    }, [gameMode, coreState.phase, coreState.optimalScore, coreState.worstScore, coreState.levelScore, coreState.resistance, coreDispatch]);
 
 
 
