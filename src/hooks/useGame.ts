@@ -89,10 +89,7 @@ export function useGame(sessionDate: string) {
     const { initialState } = GameHydrationService.hydrateDailyNew(puzzle); // 2. [CRITICAL] Inject Resistance Status if player has joined
     const hasJoined = PersistenceService.loadResistanceStatus();
     if (hasJoined) {
-      initialState.resistance = {
-        ...(initialState.resistance || initialResistanceState),
-        status: ResistanceStatus.ACTIVE
-      };
+      initialState.resistance!.status = ResistanceStatus.ACTIVE;
     }
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
@@ -128,10 +125,7 @@ export function useGame(sessionDate: string) {
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
-          dailyConfig.resistance = {
-            ...(dailyConfig.resistance || initialResistanceState),
-            status: ResistanceStatus.ACTIVE
-          };
+          dailyConfig.resistance!.status = ResistanceStatus.ACTIVE;
         }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
@@ -265,7 +259,7 @@ export function useGame(sessionDate: string) {
       sessionDate,
       dailyResult,
       isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked,
-      resistanceActive: metaState.gameMode === 'PRACTICE' ? false : (coreState.resistance?.isViewOpen ?? false),
+      isResistanceModalOpen: metaState.gameMode === 'PRACTICE' ? false : (coreState.resistance?.isViewOpen ?? false),
       persistenceLoaded: dailyStatus === 'READY',
       startingCompliance,
       isZeroYield,
