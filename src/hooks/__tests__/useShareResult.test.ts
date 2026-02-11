@@ -23,10 +23,10 @@ describe('Smart Share Logic', () => {
     });
 
     test('formatSharePayload constructs correct format', () => {
-        const output = formatSharePayload(1000, 95, "Test Flavor", "😐💀");
+        const output = formatSharePayload(1000, 95, "Test Flavor", "😐💀", "2024-01-01");
         const lines = output.split('\n');
 
-        expect(lines[0]).toBe('THE GREAT SORT');
+        expect(lines[0]).toBe('THE GREAT SORT 2024-01-01');
         expect(lines[1]).toBe('Citizen Yield: 1000');
         expect(lines[2]).toBe('Compliance: 95%');
         expect(lines[4]).toBe('"Test Flavor"');

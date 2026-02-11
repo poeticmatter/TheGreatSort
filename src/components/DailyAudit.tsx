@@ -114,7 +114,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       userScore,
       compliancePercentage: adherence,
       mood: shareMood,
-      items: finalItems
+      items: finalItems,
+      date: date
     });
 
     const result = await performShare(text);

@@ -38,10 +38,11 @@ export const formatSharePayload = (
     userScore: number,
     compliancePercentage: number,
     flavorText: string,
-    emojiGrid: string
+    emojiGrid: string,
+    date: string
 ): string => {
     return [
-        `THE GREAT SORT`,
+        `THE GREAT SORT ${date}`,
         `Citizen Yield: ${userScore}`,
         `Compliance: ${compliancePercentage}%`,
         ``,
@@ -54,10 +55,10 @@ export const formatSharePayload = (
 };
 
 export const useShareResult = () => {
-    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items }: UseShareResultProps) => {
+    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items, date }: UseShareResultProps & { date: string }) => {
         const flavorText = getWeightedFlavor(mood);
         const emojiGrid = generateEmojiGrid(items);
-        return formatSharePayload(userScore, compliancePercentage, flavorText, emojiGrid);
+        return formatSharePayload(userScore, compliancePercentage, flavorText, emojiGrid, date);
     }, []);
 
     return { generatePayload };
