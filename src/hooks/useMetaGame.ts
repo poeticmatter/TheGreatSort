@@ -14,7 +14,7 @@ export interface MetaActions {
     setIsGameLoaded: (loaded: boolean) => void;
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
-    trackLevelStart: (mode: GameMode | 'DAILY' | 'PRACTICE' | 'RESISTANCE' | string) => void;
+    trackLevelStart: (mode: GameMode) => void;
 }
 
 export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {

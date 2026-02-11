@@ -29,6 +29,7 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
             result = 'SOLVED';
         }
 
+        // We know effectiveMode is "DAILY" | "PRACTICE" | "RESISTANCE"
         trackAuditViewed(effectiveMode as any, levelScore, result);
     }, []); // Run on mount
 

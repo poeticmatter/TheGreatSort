@@ -9,19 +9,103 @@ declare global {
 
 const GA_ID = import.meta.env.VITE_GA_ID;
 const isDev = import.meta.env.DEV;
+const MAX_QUEUE_DEPTH = 50;
+const INIT_RETRY_delay = 1000;
+const MAX_INIT_RETRIES = 5;
 
-export interface AnalyticsEvent {
-  event_category: string;
-  event_label?: string;
-  value?: number;
+let isInitialized = false;
+let initRetries = 0;
+const eventQueue: Array<() => void> = [];
+
+// --- Event Schemas ---
+
+export type GameMode = 'DAILY' | 'PRACTICE' | 'RESISTANCE';
+
+export interface BaseEventParams {
   [key: string]: any;
 }
 
-// Event Queue for the Command Pattern
-const eventQueue: Array<() => void> = [];
-let isInitialized = false;
+// Strict Factory Methods replace loose tracking
+export const AnalyticsFactory = {
+  levelStart: (mode: GameMode) => ({
+    name: 'level_start',
+    params: {
+      event_category: 'Lifecycle',
+      game_mode: mode
+    }
+  }),
 
-// Helper to handle queue flushing
+  levelComplete: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
+    name: 'level_complete', // Standard GA4 event or close mapping
+    params: {
+      event_category: 'Gameplay',
+      game_mode: mode,
+      score,
+      result
+    }
+  }),
+
+  // Mapping 'inspector_run' to a custom event
+  inspectorRun: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
+    name: 'inspector_run',
+    params: {
+      event_category: 'Gameplay',
+      game_mode: mode,
+      score,
+      result
+    }
+  }),
+
+  auditViewed: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
+    name: 'audit_viewed',
+    params: {
+      event_category: 'Engagement',
+      game_mode: mode,
+      score,
+      result
+    }
+  }),
+
+  levelAction: (action: 'retry' | 'next_level', mode: GameMode) => ({
+    name: 'level_action',
+    params: {
+      event_category: 'Interaction',
+      action_type: action,
+      game_mode: mode
+    }
+  }),
+
+  resistanceJoined: () => ({
+    name: 'resistance_joined',
+    params: {
+      event_category: 'Conversion'
+    }
+  }),
+
+  share: (context: string, mode: GameMode) => ({
+    name: 'share',
+    params: {
+      event_category: 'Engagement',
+      context,
+      game_mode: mode
+    }
+  }),
+
+  toolInteraction: (tool: string, action: 'select' | 'use', mode: GameMode) => ({
+    name: 'tool_interaction',
+    params: {
+      event_category: 'Gameplay',
+      event_label: `${tool}_${action}`, // Keeping label for backward compat if needed, or removing?
+      tool_name: tool,
+      action_type: action,
+      game_mode: mode
+    }
+  })
+};
+
+
+// --- Internal Logic ---
+
 const flushQueue = () => {
   while (eventQueue.length > 0) {
     const command = eventQueue.shift();
@@ -39,13 +123,18 @@ const safelyCallGtag = (callback: () => void) => {
   if (isInitialized) {
     callback();
   } else {
-    eventQueue.push(callback);
+    if (eventQueue.length < MAX_QUEUE_DEPTH) {
+      eventQueue.push(callback);
+    } else {
+      if (isDev) console.warn('[Analytics] Queue full, dropping event.');
+    }
   }
 };
 
+// --- Service ---
+
 export const AnalyticsService = {
   initialize: () => {
-    // Idempotent check
     if (isInitialized) return;
 
     if (!GA_ID) {
@@ -53,58 +142,67 @@ export const AnalyticsService = {
       return;
     }
 
-    // Check availability of the global object
-    // Note: We check typical GTM/GA4 signature where window.gtag is defined
-    const hasGtag = typeof window !== 'undefined' && typeof window.gtag === 'function';
-
-    if (hasGtag) {
-      // Configure GA4
-      window.gtag('config', GA_ID, {
-        send_page_view: false // Manual page view tracking
-      });
-
-      isInitialized = true;
-      flushQueue();
-
-      if (isDev) {
-        console.log(`[Analytics] Initialized for ${GA_ID}`);
-      }
-    } else {
-      // Fallback or dry-run in Dev
-      if (isDev) {
-        console.log(`[Analytics] Initialize (Dev/Dry Run): ${GA_ID}`);
-        isInitialized = true; // Mark initialized to flush queue to console
+    const checkGtag = () => {
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        // Success
+        window.gtag('config', GA_ID, {
+          send_page_view: false,
+          anonymize_ip: true
+        });
+        isInitialized = true;
         flushQueue();
+        if (isDev) console.log(`[Analytics] Initialized for ${GA_ID}`);
       } else {
-        // In Prod, if gtag is missing, we DO NOT initialize.
-        // Events remain safely queued until script loads or manual retry.
-        console.warn('[Analytics] window.gtag is missing in production. Events are buffered.');
+        // Failure / Retry Logic
+        if (initRetries < MAX_INIT_RETRIES) {
+          initRetries++;
+          setTimeout(checkGtag, INIT_RETRY_delay * Math.pow(1.5, initRetries)); // Exponential backoff
+        } else {
+          // Circuit Breaker: Stop trying, but maybe allow dev mode to "fake" init
+          if (isDev) {
+            console.log(`[Analytics] Dev Mode: Mocking Initialization after timeout.`);
+            isInitialized = true;
+            flushQueue();
+          } else {
+            console.warn('[Analytics] Failed to detect window.gtag after retries. Analytics disabled.');
+            // Optionally clear queue to free memory
+            eventQueue.length = 0;
+          }
+        }
       }
-    }
+    };
+
+    checkGtag();
   },
 
-  track: (eventName: string, params: AnalyticsEvent) => {
+  track: (eventData: { name: string; params: BaseEventParams }) => {
     safelyCallGtag(() => {
-      if (!GA_ID && !isDev) return;
-
+      // Double check availability at runtime
       if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-        window.gtag('event', eventName, params);
+        window.gtag('event', eventData.name, eventData.params);
       } else if (isDev) {
-        console.log(`[Analytics] Event: ${eventName}`, params);
+        console.log(`[Analytics] Event: ${eventData.name}`, eventData.params);
       }
     });
   },
 
   pageView: (path: string) => {
-    safelyCallGtag(() => {
-      if (!GA_ID && !isDev) return;
+    // Sanitize Path: Remove query parameters? The Prompt asks to avoid "state-heavy query parameters".
+    // For a game, queries often hold state or share IDs.
+    // Let's strip standard UTMs and maybe keep relevant game IDs if non-sensitive.
+    // For safety, let's strip ALL query params unless whitelisted.
+    // Or just log the pathname.
 
+    // Safest approach: Log pathname only.
+    const [cleanPath] = path.split('?');
+
+    safelyCallGtag(() => {
       if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
         window.gtag('event', 'page_view', {
-          page_path: path
+          page_path: cleanPath
         });
       } else if (isDev) {
-        console.log(`[Analytics] Page View: ${path}`);
+        console.log(`[Analytics] Page View: ${cleanPath}`);
       }
     });
   }

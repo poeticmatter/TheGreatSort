@@ -12,9 +12,9 @@ export const AnalyticsTracker = () => {
     const { trackPageView } = useAnalytics();
 
     useEffect(() => {
-        // Track the current path whenever it changes
-        trackPageView(location.pathname + location.search);
-    }, [location, trackPageView]);
+        // Track the current path whenever it changes (Pathname only to avoid PII in query)
+        trackPageView(location.pathname);
+    }, [location.pathname, trackPageView]);
 
     return null;
 };

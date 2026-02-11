@@ -48,7 +48,6 @@ function TheGreatSortContent() {
   const sessionDate = state.sessionDate;
 
   const { data, interaction, actions } = useGame(sessionDate);
-  const { trackPageView } = useAnalytics();
 
   // --- Layout Management ---
   const getResponsiveLayout = (): LayoutType => window.innerWidth < 1024 ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';

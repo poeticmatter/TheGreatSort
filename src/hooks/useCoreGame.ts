@@ -81,9 +81,9 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
 
         // Standard Selection (No Tile, or Multi-Target Tile-First)
         dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
-        trackToolInteraction(toolInstance.type, 'select');
+        trackToolInteraction(toolInstance.type, 'select', state.gameMode);
 
-    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction, onMoveApplied, state.list]);
+    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction, onMoveApplied, state.list, state.gameMode]);
 
     const handleUndo = useCallback(() => {
         if (state.movesHistory.length > 0) {
@@ -211,10 +211,10 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
     useEffect(() => {
         if (state.movesHistory.length > prevMovesLength.current) {
             const lastMove = state.movesHistory[state.movesHistory.length - 1];
-            trackToolInteraction(lastMove.tool, 'use');
+            trackToolInteraction(lastMove.tool, 'use', state.gameMode);
         }
         prevMovesLength.current = state.movesHistory.length;
-    }, [state.movesHistory, trackToolInteraction]);
+    }, [state.movesHistory, trackToolInteraction, state.gameMode]);
 
 
     // --- Game Loop Integration ---
