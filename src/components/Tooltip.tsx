@@ -1,5 +1,6 @@
 import React from 'react';
 import { GamePhase, ToolType, GameMode } from '../../types';
+import { FlavorKey } from '../config/flavorText';
 
 interface TooltipProps {
   phase: GamePhase;
@@ -15,7 +16,9 @@ interface TooltipProps {
   onViewAudit?: () => void;
   isLocked?: boolean;
   isResistanceActive?: boolean;
+  mood?: FlavorKey;
 }
+
 
 import { TOOLS } from '../constants';
 import { Siren, Shield } from 'lucide-react';
@@ -26,7 +29,8 @@ const Tooltip: React.FC<TooltipProps> = ({
   selection,
   gameMode,
   isLocked,
-  isResistanceActive
+  isResistanceActive,
+  mood
 }) => {
 
   const getInstruction = (): React.ReactNode => {
@@ -39,6 +43,13 @@ const Tooltip: React.FC<TooltipProps> = ({
           The <span className="text-red-500 font-bold not-italic">state <Siren className="inline w-3 h-3 mb-0.5" /></span> agent must be eliminated. The <span className="text-blue-500 font-bold not-italic">resistance <Shield className="inline w-3 h-3 mb-0.5" /></span> agent must survive.
         </span>
       );
+    }
+
+    if (!selectedTool) {
+      if (mood === 'ADEQUATE') return "All items surviving may not be possible. 100% compliance is the optimal solution.";
+      if (mood === 'SUSPICIOUS') return "Warning: Non-compliance will be met with severe punishment.";
+      if (mood === 'SABOTAGE') return "ERROR! ERROR! ERROR!";
+      if (mood === 'SOLVED') return "Report to audit, comrade.";
     }
 
     if (gameMode === 'DAILY' && isLocked) return "Quota Locked. Training Mode Active.";

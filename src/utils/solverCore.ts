@@ -1,5 +1,5 @@
-import { ToolType, ISortable } from '../../types';
-import { TOOL_REGISTRY } from '../tools';
+import { ToolType, ISortable } from '../../types.ts';
+import { TOOL_REGISTRY } from '../tools/index.ts';
 
 export interface SolverItem extends ISortable { }
 
@@ -134,12 +134,14 @@ export function solve(
         nodesVisited++;
 
         // Pruning Rule: Discard branch if negative (unless game allows)
-        if (currentSeq.some(s => s.val < 0)) {
-            return;
-        }
+        // REMOVED: Pruning negative values prevents valid strategies involving temporary sacrifices (e.g. Transfer -> Equalize)
+        // if (currentSeq.some(s => s.val < 0)) {
+        //    return;
+        // }
 
         const score = calculateBatchScore(currentSeq);
-        const stateValString = JSON.stringify(currentSeq.map(s => s.val));
+        // Include hasShield in state key as it dramatically affects future scoring potential
+        const stateValString = JSON.stringify(currentSeq.map(s => `${s.val}:${s.hasShield ? 1 : 0}`));
 
         // Logic: Update globalBestScore and Map
         const isImprovement = objective === 'MAX' ? score > globalBestScore : score < globalBestScore;

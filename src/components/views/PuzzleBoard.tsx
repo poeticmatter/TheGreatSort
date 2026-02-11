@@ -56,10 +56,7 @@ export function PuzzleBoard({
     const disabledIndices = isShieldSelected ? [0] : [];
 
     const handleCardClickWrapper = (item: any) => {
-        if (!state.selectedTool) {
-            triggerShake();
-            return;
-        }
+        // Delegate all click logic to the core handler (supports Tile-First)
         actions.handleCardClick(item);
     };
 
@@ -141,6 +138,7 @@ export function PuzzleBoard({
                         onViewAudit={onRequestAudit}
                         isLocked={isLocked}
                         isResistanceActive={isResistanceActive}
+                        mood={flavorMood}
                     />
                     {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
                 </div>
@@ -200,6 +198,7 @@ export function PuzzleBoard({
                     onViewAudit={onRequestAudit}
                     isLocked={isLocked}
                     isResistanceActive={isResistanceActive}
+                    mood={flavorMood}
                 />
                 {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
             </div>

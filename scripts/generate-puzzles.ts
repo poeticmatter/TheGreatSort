@@ -1,3 +1,4 @@
+
 import fs from 'fs';
 import path from 'path';
 import {
@@ -6,10 +7,10 @@ import {
     calculateBatchScore,
     findWorstSolution,
     gradeLevel
-} from '../src/utils/gameLogic';
-import { TOOL_REGISTRY } from '../src/tools/index';
-import { ToolType, CardItem, AgentRole } from '../types';
-import { solve, DailyPuzzleMove } from '../src/utils/solverCore';
+} from '../src/utils/gameLogic.ts';
+import { TOOL_REGISTRY } from '../src/tools/index.ts';
+import { ToolType, CardItem, AgentRole } from '../types.ts';
+import { solve, DailyPuzzleMove } from '../src/utils/solverCore.ts';
 
 const OUTPUT_FILE_PATH = path.join(process.cwd(), 'src/data/daily_puzzles.json');
 const LEVEL_LENGTH = 9;
@@ -115,90 +116,65 @@ async function main() {
             };
 
             // 3. Search for Resistance Layer (Constraint Optimization)
-            // We need to find a pair of indices (Resistance, State) such that:
-            // There exists a solution (valid move sequence) where Res is SAFE and State is ELIMINATED.
-            // And calculate the Max Yield under this constraint.
+            // Modified Requirement:
+            // Resistance Agent: Must be ELIMINATED in Optimal Solution (but Survives in Alt)
+            // State Agent: Must be SAFE in Optimal Solution (but Eliminated in Alt)
+            // Alt Solution Yield > Initial Yield
 
-            // First, get ALL potential solutions (not just optimal).
-            // We need a wide search. Using 'findAll' with a reasonable threshold.
-            // If we only look at optimal solutions for the base puzzle, we might limit our resistance design space.
-            // However, the player is trying to maximize score.
-            // The prompt says: "Find all valid solutions (move sequences) for this level."
-            // But usually "valid solutions" implies solving the sorting problem? Or just any valid moves?
-            // "Filter the solutions to find those where..."
-            // Usually, "solutions" means reaching a solved state (sorted).
-            // So we use existing solver with findAll.
+            // First, Determine Optimal Status Mapping
+            const optimalKept = getKeptIndicesSet(level, analysis.bestSolution);
 
-            // To ensure we have enough variety, we might set threshold slightly lower than maxYield?
-            // Or ideally, we simply want ANY sorted outcome.
-            // Let's use threshold = -Infinity to capture all sorted states the solver finds.
-            const allSolutionsAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: -Infinity });
+            // We use 'findAll' to get all potential outcomes
+            const allSolutionsAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: initialScore });
 
             if (!allSolutionsAnalysis.allSolutions || allSolutionsAnalysis.allSolutions.length === 0) {
                 console.log(`   -> No solutions found for analysis.`);
                 continue;
             }
 
-            // We iterate through potential roles.
-            // A simpler approach:
-            // Iterate all solutions.
-            // For each solution, define Safe Set (S) and Eliminated Set (E).
-            // We need Res in S and State in E.
-            // We can pick any `r` in S and `s` in E.
-            // But we want a scenario that is interesting.
-            // The max yield under this constraint (TargetYield) should ideally be less than Global Max Yield?
-            // Or it could be the same.
-            // If TargetYield == Global Max Yield, then the resistance mission is "natural" (just play optimally).
-            // That's boring. We prefer if TargetYield < Global Max Yield?
-            // Or maybe TargetYield IS the Global Max Yield but forces a specific path?
-            // Prompt says: "The puzzle is no longer about guessing numbers; it is about sorting the list to ensure specific survival outcomes while maximizing the score."
-            // Implicitly, this might force suboptimal moves regarding abstract numbers, effectively creating a constraint optimization problem.
-
-            // Let's look for cases where `TargetYield` is high enough to be a puzzle.
-            // Ideally, we find a pair (r, s) such that we force a specific subset of solutions.
-
-            let validResData = null;
-
-            // Randomly try pairs to avoid O(N^2) * Solutions
-            // Actually, we can just aggregate stats.
-            // Map (r, s) -> MaxYield.
-            // Then pick one with decent MaxYield (maybe >= 50% of possible?)
-
+            let validResData: { agents: Record<number, 'resistance' | 'state'>; targetYield: number } | null = null;
             const constraintMap = new Map<string, number>(); // "r,s" -> maxYield
 
             for (const sol of allSolutionsAnalysis.allSolutions) {
-                const keptIndices = getKeptIndicesSet(level, sol.moves);
-                const score = sol.score; // Use the score from the solution
+                // Requirement: Score > Initial
+                if (sol.score <= initialScore) continue;
 
-                // For every pair r in Kept, s in NotKept:
-                // Update max yield for this pair.
-                // keptIndices is a Set<number>
-                // We need the inverse set.
-                const eliminatedIndices: number[] = [];
+                const altKept = getKeptIndicesSet(level, sol.moves);
+
+                // Find Valid Resistance Agents (Eliminated in Optimal, Kept Here)
+                const validResAgents: number[] = [];
+                altKept.forEach(idx => {
+                    if (!optimalKept.has(idx)) { // It was NOT kept in optimal
+                        validResAgents.push(idx);
+                    }
+                });
+
+                // Find Valid State Agents (Kept in Optimal, Eliminated Here)
+                const validStateAgents: number[] = [];
                 for (let i = 0; i < LEVEL_LENGTH; i++) {
-                    if (!keptIndices.has(i)) eliminatedIndices.push(i);
+                    if (!altKept.has(i)) { // Eliminated Here
+                        if (optimalKept.has(i)) { // But Was Kept in Optimal
+                            validStateAgents.push(i);
+                        }
+                    }
                 }
 
-                keptIndices.forEach(r => {
-                    eliminatedIndices.forEach(s => {
+                // Register Pairs
+                for (const r of validResAgents) {
+                    for (const s of validStateAgents) {
                         const key = `${r},${s}`;
                         const currentMax = constraintMap.get(key) || -Infinity;
-                        if (score > currentMax) {
-                            constraintMap.set(key, score);
+                        if (sol.score > currentMax) {
+                            constraintMap.set(key, sol.score);
                         }
-                    });
-                });
+                    }
+                }
             }
 
             // Now we have a map of potential missions and their achievable yields.
-            // We filter for "Interesting" missions.
-            // Interesting = ?
-            // Maybe just random one that is possible?
-            // Let's just pick one with High Yield (close to Max, or reasonably high).
+            // We filter for distinct missions where targetYield is defined.
 
             const possibleConstraints = Array.from(constraintMap.entries()).filter(([_, yieldVal]) => {
-                // Filter out very low yields?
-                // Ensure yield is at least > Initial Score?
                 return yieldVal > initialScore;
             });
 
@@ -239,4 +215,3 @@ async function main() {
 }
 
 main();
-

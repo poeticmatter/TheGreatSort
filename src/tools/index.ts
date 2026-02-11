@@ -1,11 +1,11 @@
-import { ToolType } from '../../types';
-import { ToolStrategy } from './types';
+import { ToolType } from '../../types.ts';
+import { ToolStrategy } from './types.ts';
 import {
     DemoteTool, SwapTool, PromoteTool,
     LongSwapTool, TransferTool, SinkTool,
     HalveTool, ShieldTool, ShrinkTool,
     HopTool, MirrorTool, CycleTool, EqualizeTool
-} from './implementations';
+} from './implementations.ts';
 
 export const TOOL_REGISTRY: Record<ToolType, ToolStrategy> = {
     demote: new DemoteTool(),

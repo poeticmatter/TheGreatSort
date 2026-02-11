@@ -110,6 +110,8 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
                         onClose={actions.closeAudit}
                         onDetectResistance={primaryAction.onClick}
                         flavorText={data.flavorMap?.['DONE']}
+                        optimalScore={data.optimalScore}
+                        gameMode={data.gameMode}
                     />
                 ) : (
                     <PuzzleBoard

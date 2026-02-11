@@ -19,14 +19,7 @@ const ALLOWED_TRANSITIONS: Record<ResistanceStatus, ResistanceStatus[]> = {
 };
 
 // --- Payload Validators ---
-function isValidPendingPayload(payload: unknown): payload is { pending: boolean } {
-    return (
-        typeof payload === 'object' &&
-        payload !== null &&
-        'pending' in payload &&
-        typeof (payload as { pending: unknown }).pending === 'boolean'
-    );
-}
+
 
 function isValidStatusPayload(payload: unknown): payload is { status: ResistanceStatus } {
     if (typeof payload !== 'object' || payload === null || !('status' in payload)) {
@@ -43,8 +36,6 @@ function isValidTransition(from: ResistanceStatus, to: ResistanceStatus): boolea
 export const initialResistanceState: ResistanceState = {
     status: ResistanceStatus.INACTIVE,
     isViewOpen: false,
-    isPending: false,
-    hasTriggered: false,
 };
 
 export const resistanceReducer = (state: ResistanceState, action: GameAction): ResistanceState => {
@@ -62,7 +53,6 @@ export const resistanceReducer = (state: ResistanceState, action: GameAction): R
             return {
                 ...state,
                 isViewOpen: true,
-                hasTriggered: true,
                 status: ResistanceStatus.ACTIVE
             };
         }
@@ -73,21 +63,7 @@ export const resistanceReducer = (state: ResistanceState, action: GameAction): R
                 isViewOpen: false
             };
 
-        case 'SET_RESISTANCE_PENDING': {
-            if (!isValidPendingPayload(action.payload)) {
-                if (process.env.NODE_ENV !== 'production') {
-                    console.warn(
-                        `[resistanceReducer] Invalid payload for SET_RESISTANCE_PENDING:`,
-                        action.payload
-                    );
-                }
-                return state;
-            }
-            return {
-                ...state,
-                isPending: action.payload.pending
-            };
-        }
+
 
         case 'SET_RESISTANCE_STATUS': {
             if (!isValidStatusPayload(action.payload)) {

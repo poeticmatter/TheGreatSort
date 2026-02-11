@@ -8,6 +8,7 @@ interface SolverState {
     optimalScore: number | null;
     worstScore: number | null;
     isCalculating: boolean;
+    solvedSeed?: number;
 }
 
 export function useSolverService(
@@ -23,6 +24,7 @@ export function useSolverService(
         optimalScore: null,
         worstScore: null,
         isCalculating: false,
+        solvedSeed: undefined
     });
 
     // Reset state when seed or mode changes to ensure we don't stick to old results
@@ -31,6 +33,7 @@ export function useSolverService(
             optimalScore: null,
             worstScore: null,
             isCalculating: false,
+            solvedSeed: undefined
         });
     }, [currentSeed, gameMode]);
 
@@ -48,7 +51,8 @@ export function useSolverService(
                 setSolverState({
                     optimalScore,
                     worstScore: worstScore ?? null,
-                    isCalculating: false
+                    isCalculating: false,
+                    solvedSeed: id
                 });
 
                 // Cache solution (optimization)
@@ -71,7 +75,8 @@ export function useSolverService(
             setSolverState({
                 optimalScore: existingOptimal,
                 worstScore: existingWorst,
-                isCalculating: false
+                isCalculating: false,
+                solvedSeed: currentSeed
             });
             return;
         }
@@ -85,7 +90,8 @@ export function useSolverService(
                     setSolverState({
                         optimalScore: cached.optimalScore,
                         worstScore: cached.worstScore ?? null,
-                        isCalculating: false
+                        isCalculating: false,
+                        solvedSeed: currentSeed
                     });
                     return;
                 }
@@ -98,10 +104,8 @@ export function useSolverService(
             let listToSolve = list;
             let toolsToSolve = tools;
 
-            if (currentSeed !== undefined) {
-                listToSolve = generateLevel(9, currentSeed);
-                toolsToSolve = generateTools(currentSeed);
-            }
+            // Do not regenerate from seed - rely on the passed list and tools from props.
+            // This ensures we solve the exact state the user is seeing.
 
             workerRef.current.postMessage({
                 mode,
@@ -120,6 +124,11 @@ export function useSolverService(
     // Sync Scores Logic (moved from useGame)
     useEffect(() => {
         if (gameMode === 'PRACTICE' && dispatch) {
+            // Guard: Ensure we only dispatch if the solver state matches the current seed
+            // This prevents stale solver results (from previous level) from overwriting
+            // the reset state of the new level before the reset effect kicks in.
+            if (solverState.solvedSeed !== currentSeed) return;
+
             if (solverState.optimalScore !== null && existingOptimal === null) {
                 dispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: solverState.optimalScore } });
             }
@@ -127,7 +136,7 @@ export function useSolverService(
                 dispatch({ type: 'SET_WORST_SCORE', payload: { score: solverState.worstScore } });
             }
         }
-    }, [solverState.optimalScore, solverState.worstScore, existingOptimal, existingWorst, dispatch, gameMode]);
+    }, [solverState.optimalScore, solverState.worstScore, solverState.solvedSeed, existingOptimal, existingWorst, dispatch, gameMode, currentSeed]);
 
     return solverState;
 }
