@@ -31,10 +31,6 @@ export function useAnalytics() {
     AnalyticsService.track(AnalyticsFactory.share(context, mode));
   }, []);
 
-  const trackToolInteraction = useCallback((tool: string, action: 'select' | 'use', mode: GameMode) => {
-    AnalyticsService.track(AnalyticsFactory.toolInteraction(tool, action, mode));
-  }, []);
-
   return {
     trackPageView,
     trackLevelStart,
@@ -42,7 +38,6 @@ export function useAnalytics() {
     trackAuditViewed,
     trackLevelAction,
     trackResistanceJoined,
-    trackShare,
-    trackToolInteraction
+    trackShare
   };
 }

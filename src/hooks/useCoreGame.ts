@@ -13,8 +13,6 @@ interface UseCoreGameProps {
 
 export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps = {}) {
     const { state, dispatch } = useGameContext();
-    const { trackToolInteraction } = useAnalytics(); // Core gameplay analytics
-
     // --- Handlers ---
     const handleToolClick = useCallback((toolInstanceId: string) => {
         // Validation
@@ -81,9 +79,18 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
 
         // Standard Selection (No Tile, or Multi-Target Tile-First)
         dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId } });
-        trackToolInteraction(toolInstance.type, 'select', state.gameMode);
 
-    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, trackToolInteraction, onMoveApplied, state.list, state.gameMode]);
+    }, [dispatch, state.toolsAvailable, state.selectedToolInstanceId, state.selection, onMoveApplied, state.list, state.gameMode]);
+
+
+    // [Lines 88-193 unchanged, skipped in replacement block for brevity but instructed replaced here strictly if contiguous? 
+    // Wait, replace_file_content requires contiguous. I'll split this.]
+    // I will replace only impacted blocks.
+
+    // 1. Remove from destructuring
+    // 2. Remove from handleToolClick deps and call
+    // 3. Remove useEffect tracking usage
+
 
     const handleUndo = useCallback(() => {
         if (state.movesHistory.length > 0) {
@@ -206,15 +213,7 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
         });
     }, [dispatch]);
 
-    // --- Side Effect: Track Move Usage ---
-    const prevMovesLength = useRef(state.movesHistory.length);
-    useEffect(() => {
-        if (state.movesHistory.length > prevMovesLength.current) {
-            const lastMove = state.movesHistory[state.movesHistory.length - 1];
-            trackToolInteraction(lastMove.tool, 'use', state.gameMode);
-        }
-        prevMovesLength.current = state.movesHistory.length;
-    }, [state.movesHistory, trackToolInteraction, state.gameMode]);
+
 
 
     // --- Game Loop Integration ---

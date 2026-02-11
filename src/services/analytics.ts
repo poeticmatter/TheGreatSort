@@ -89,17 +89,6 @@ export const AnalyticsFactory = {
       context,
       game_mode: mode
     }
-  }),
-
-  toolInteraction: (tool: string, action: 'select' | 'use', mode: GameMode) => ({
-    name: 'tool_interaction',
-    params: {
-      event_category: 'Gameplay',
-      event_label: `${tool}_${action}`, // Keeping label for backward compat if needed, or removing?
-      tool_name: tool,
-      action_type: action,
-      game_mode: mode
-    }
   })
 };
 
