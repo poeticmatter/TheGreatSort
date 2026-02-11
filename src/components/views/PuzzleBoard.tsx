@@ -133,7 +133,7 @@ export function PuzzleBoard({
                         optimalScore={state.optimalScore}
                         worstScore={state.worstScore}
                         gameMode={state.gameMode}
-                        onShareResult={actions.shareResult}
+
                         onRetryPractice={actions.retryPractice}
                         onViewAudit={onRequestAudit}
                         isLocked={isLocked}
@@ -193,7 +193,7 @@ export function PuzzleBoard({
                     optimalScore={state.optimalScore}
                     worstScore={state.worstScore}
                     gameMode={state.gameMode}
-                    onShareResult={actions.shareResult}
+
                     onRetryPractice={actions.retryPractice}
                     onViewAudit={onRequestAudit}
                     isLocked={isLocked}
