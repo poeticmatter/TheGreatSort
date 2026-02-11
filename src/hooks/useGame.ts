@@ -202,18 +202,7 @@ export function useGame(sessionDate: string) {
   }, [metaState.gameMode, coreState.currentSeed, coreDispatch, changeMode, trackLevelStart]);
 
 
-  const shareResult = async () => {
-    if (metaState.gameMode === 'DAILY') {
-      const entry = getDailyEntry(sessionDate);
-      const attempts = entry ? entry.attempts : 1;
-      const text = `The Great Sort Daily ${sessionDate}\nScore: ${coreState.levelScore}\nAttempts: ${attempts}`;
-      try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
-      return;
-    }
-    const efficiency = !coreState.optimalScore ? 0 : Math.min(100, Math.round((coreState.levelScore / coreState.optimalScore) * 100));
-    const text = `The Great Sort\nScore: ${coreState.levelScore}\nEfficiency: ${efficiency}%`;
-    try { await navigator.clipboard.writeText(text); alert('Result copied to clipboard!'); } catch (err) { alert(text); }
-  };
+
 
 
   // ... (keep previous code until return)
@@ -269,7 +258,7 @@ export function useGame(sessionDate: string) {
       if (metaState.gameMode === 'DAILY') retryDaily();
       else retryPractice();
     },
-    shareResult,
+
     closeAudit: metaActions.closeAudit,
     triggerCurrentAudit: metaActions.triggerCurrentAudit,
     triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
@@ -282,7 +271,7 @@ export function useGame(sessionDate: string) {
     retryPractice,
     retryDaily,
     metaState.gameMode,
-    shareResult,
+
     metaActions,
     closeResistanceAndReset,
     finalizeResistanceMission

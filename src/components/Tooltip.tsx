@@ -11,7 +11,7 @@ interface TooltipProps {
   optimalScore: number | null;
   worstScore: number | null; // For calculating relative efficiency if needed
   gameMode: GameMode;
-  onShareResult: () => void;
+
   onRetryPractice?: () => void;
   onViewAudit?: () => void;
   isLocked?: boolean;

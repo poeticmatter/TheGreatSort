@@ -94,8 +94,8 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
                 optimalScore={data.optimalScore}
                 detectedMode={data.detectedMode}
                 onChangeMode={actions.changeMode}
-                onShareResult={actions.shareResult}
-                onRetryPractice={actions.retryPractice}
+
+
                 onOpenRules={handleOpenRules}
             />
 
