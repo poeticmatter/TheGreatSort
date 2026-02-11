@@ -14,57 +14,37 @@ export interface MetaActions {
     setIsGameLoaded: (loaded: boolean) => void;
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
-    trackGameStart: (mode: GameMode | string, seed?: number) => void;
-    trackGameComplete: (mode: GameMode | string, score: number, optimalScore: number | null | undefined, efficiency: number) => void;
+    trackLevelStart: (mode: GameMode) => void;
 }
 
 export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {
-    const [gameMode, setGameMode] = useState<GameMode>('DAILY');
-    const [isGameLoaded, setIsGameLoaded] = useState(false);
-    const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
+    // Derive gameMode from coreState, default to DAILY if undefined (during init)
+    const gameMode: GameMode = coreState.gameMode || 'DAILY';
 
-    const { trackGameStart, trackGameComplete, trackDailyAuditViewed } = useAnalytics();
+    const [isGameLoaded, setIsGameLoaded] = useState(false);
+    const [auditState, setAuditState] = useState<{ date: string; userScore: number } | null>(null);
+
+    const { trackLevelStart, trackAuditViewed } = useAnalytics();
+
+    // Sync sessionDate to store if needed, or just rely on initial state match.
+    // Ideally we dispatch SET_SESSION_DATE on mount if they differ?
+    useEffect(() => {
+        if (coreState.sessionDate !== sessionDate) {
+            coreDispatch({ type: 'SET_SESSION_DATE', payload: { date: sessionDate } });
+        }
+    }, [sessionDate, coreState.sessionDate, coreDispatch]);
+
+    const setGameMode = useCallback((mode: GameMode) => {
+        coreDispatch({ type: 'SET_GAME_MODE', payload: { mode } });
+    }, [coreDispatch]);
 
     const triggerCurrentAudit = useCallback(() => {
         setAuditState({ date: sessionDate, userScore: coreState.levelScore });
-        trackDailyAuditViewed(sessionDate, 'passed');
-    }, [coreState.levelScore, trackDailyAuditViewed, sessionDate]);
+    }, [coreState.levelScore, sessionDate]);
 
     const closeAudit = useCallback(() => {
         setAuditState(null);
     }, []);
-
-    // --- Resistance Auto-Check (Effect) ---
-    useEffect(() => {
-        // Efficiency Check (Results Phase)
-        const resistancePending = coreState.resistance?.isPending;
-
-        if (gameMode === 'DAILY' &&
-            coreState.phase === GamePhase.RESULTS &&
-            coreState.optimalScore !== null &&
-            coreState.worstScore !== null &&
-            resistancePending) {
-
-            const efficiency = calculateRelativeEfficiency(
-                coreState.levelScore,
-                coreState.optimalScore,
-                coreState.worstScore
-            );
-
-            if (efficiency === 0) {
-                const timer = setTimeout(() => {
-                    coreDispatch({ type: 'ACTIVATE_RESISTANCE' }); // Auto trigger
-                    coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
-                }, 1000);
-                return () => clearTimeout(timer);
-            } else {
-                coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: false } });
-            }
-        }
-    }, [gameMode, coreState.phase, coreState.optimalScore, coreState.worstScore, coreState.levelScore, coreState.resistance, coreDispatch]);
-
-
-
 
     return {
         metaState: {
@@ -77,8 +57,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             setIsGameLoaded,
             triggerCurrentAudit,
             closeAudit,
-            trackGameStart,
-            trackGameComplete // Needed by useGame
+            trackLevelStart,
         }
     };
 }

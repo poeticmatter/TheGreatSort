@@ -1,7 +1,7 @@
 // Explicit import to ensure TOOL_REGISTRY is populated in worker bundle
 import { TOOL_REGISTRY } from '../tools';
-import { findOptimalScore, findWorstScore, generateLevel, generateTools } from '../utils/gameLogic';
-import { CardItem, ToolInstance, ToolType } from '../../types';
+import { findOptimalScore, findWorstScore } from '../utils/gameLogic';
+import { CardItem, ToolInstance } from '../../types';
 
 // Verify registry is populated (prevents tree-shaking)
 if (Object.keys(TOOL_REGISTRY).length === 0) {

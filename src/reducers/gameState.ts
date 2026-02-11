@@ -5,8 +5,6 @@ import { FlavorKey } from '../config/flavorText';
 export interface ResistanceState {
   status: ResistanceStatus;
   isViewOpen: boolean;
-  isPending: boolean;
-  hasTriggered: boolean;
   targetYield?: number;
 }
 
@@ -30,6 +28,8 @@ export interface GameState {
   currentSeed: number | undefined;
   flavorMap?: Record<FlavorKey, string>;
   resistance: ResistanceState;
+  gameMode: 'DAILY' | 'PRACTICE' | 'RESISTANCE'; // Explicitly typing or reusing GameMode if imported
+  sessionDate: string;
 }
 
 export type GameAction =
@@ -79,6 +79,8 @@ export type GameAction =
   | { type: 'UNDO_MOVE' }
   | { type: 'ACTIVATE_RESISTANCE' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
-  | { type: 'SET_RESISTANCE_PENDING'; payload: { pending: boolean } }
+  | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }
-  | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }; // Composite action logic maybe?
+  | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }
+  | { type: 'SET_GAME_MODE'; payload: { mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE' } }
+  | { type: 'SET_SESSION_DATE'; payload: { date: string } };

@@ -26,6 +26,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
+  const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
 
   // Share Feedback State
   const [shareFeedback, setShareFeedback] = useState<'IDLE' | 'COPIED' | 'MANUAL'>('IDLE');
@@ -85,7 +86,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   let shareMood = mood;
 
   // If we have resistance, override the generic "DONE" flavor with specific resistance outcome flavor
-  if (isResistanceActive && resistanceOutcome) {
+  if (joinedResistance && isResistanceActive && resistanceOutcome) {
     const flavorKey = getResistanceFlavor(adherence, resistanceOutcome);
     if (flavorKey) {
       shareMood = flavorKey as SystemMood;
@@ -137,7 +138,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   // Reuse logic for Badge? No, Badge uses resistanceOutcome (Solution).
   // We want to render the USER'S Status.
 
-  const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
 
   if (loading || !solution) {
     return (

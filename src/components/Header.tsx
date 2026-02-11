@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown, ClipboardCheck } from 'lucide-react';
+import { Star, ChevronDown, Share2, RotateCcw } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
-// Removed LayoutType import as it is no longer used in props
-// import { LayoutType } from './InventoryGrid';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface HeaderProps {
   level: number;
@@ -25,6 +24,17 @@ const Header: React.FC<HeaderProps> = ({
   onChangeMode, onShareResult, onRetryPractice, onOpenRules
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const { trackLevelAction, trackShare } = useAnalytics();
+
+  const handleRetry = () => {
+    trackLevelAction('retry', gameMode === 'PRACTICE' ? 'PRACTICE' : 'DAILY');
+    onRetryPractice();
+  };
+
+  const handleShare = () => {
+    trackShare('header');
+    onShareResult();
+  };
 
   const totalEfficiency = totalOptimalScore > 0
     ? Math.round((totalScore / totalOptimalScore) * 100)
@@ -84,13 +94,28 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          {/* Share Button */}
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] text-stone-400 hover:text-amber-500 transition-colors"
+            title="Share Result"
+          >
+            <Share2 size={16} />
+          </button>
 
-
+          {/* Retry Button (Practice Only) */}
+          {gameMode === 'PRACTICE' && (
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1 text-[12px] font-[Courier] uppercase tracking-[0.2em] text-stone-400 hover:text-amber-500 transition-colors"
+              title="Reset"
+            >
+              <RotateCcw size={16} />
+            </button>
+          )}
 
         </div>
       </div>
-
-
     </header>
   );
 };

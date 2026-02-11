@@ -1,8 +1,8 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types';
-import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
-import { TOOL_REGISTRY } from '../tools';
-import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
-import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types.ts';
+import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions.ts';
+import { TOOL_REGISTRY } from '../tools/index.ts';
+import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText.ts';
+import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore.ts';
 
 export { calculateBatchScore, judgeStep };
 
@@ -38,7 +38,7 @@ export interface ResistanceTriggerContext {
   listLength: number;
   hasJoined: boolean;
   movesCount: number;
-  hasTriggeredLocal: boolean;
+
 }
 
 export const shouldTriggerResistance = (context: ResistanceTriggerContext): boolean => {
@@ -52,8 +52,7 @@ export const shouldTriggerResistance = (context: ResistanceTriggerContext): bool
     !context.resistanceActive &&
     context.listLength > 0 &&
     !context.hasJoined &&
-    context.movesCount > 0 &&
-    !context.hasTriggeredLocal
+    context.movesCount > 0
   );
 };
 
@@ -65,7 +64,6 @@ export interface ResistanceTriggerStateInput {
   movesHistory: Move[];
   resistance: {
     isViewOpen: boolean;
-    hasTriggered: boolean;
     status: ResistanceStatus;
   };
 }
@@ -96,7 +94,6 @@ export const selectResistanceTriggerContext = (
     listLength: coreState.list.length,
     hasJoined,
     movesCount: coreState.movesHistory.length,
-    hasTriggeredLocal: coreState.resistance.hasTriggered,
   };
 };
 

@@ -70,11 +70,22 @@ export function useResistanceSystem({
         // Composite action: Save Persist + Meta Update
         saveDailyResult(coreState.levelScore, finalStatus);
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
-        coreDispatch({ type: 'SET_RESISTANCE_PENDING', payload: { pending: true } });
-        const efficiency = coreState.optimalScore
-            ? Math.round((coreState.levelScore / coreState.optimalScore) * 100)
-            : 0;
-        metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore, efficiency);
+
+        // Efficiency Check (Results Phase - Trigger Resistance if needed)
+        // If player has not joined (INACTIVE) and gets 0% efficiency, trigger it.
+        // We use finalStatus here which would be INACTIVE if they haven't joined yet.
+        if (finalStatus === ResistanceStatus.INACTIVE && coreState.optimalScore && coreState.worstScore) {
+            const efficiency = coreState.optimalScore
+                ? Math.round((coreState.levelScore / coreState.optimalScore) * 100)
+                : 0;
+
+            if (efficiency === 0) {
+                setTimeout(() => {
+                    coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
+                }, 1000);
+            }
+        }
+
     }, [
         saveDailyResult,
         coreState.levelScore,

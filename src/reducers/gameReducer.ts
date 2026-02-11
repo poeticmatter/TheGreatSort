@@ -3,6 +3,8 @@ import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../..
 import { applyMove } from '../utils/gameLogic';
 import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
+import { getTodayDateString } from '../utils/dateUtils';
+
 export const initialState: GameState = {
   level: 1,
   levelScore: 0,
@@ -22,6 +24,8 @@ export const initialState: GameState = {
   dailyCompleted: false,
   currentSeed: undefined,
   resistance: initialResistanceState,
+  gameMode: 'DAILY',
+  sessionDate: getTodayDateString(),
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -29,8 +33,19 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'INITIALIZE_GAME': {
       return {
         ...initialState,
+        // Preserve mode and date from current state unless explicitly overwritten by payload
+        gameMode: state.gameMode,
+        sessionDate: state.sessionDate,
         ...action.payload.state,
       };
+    }
+
+    case 'SET_GAME_MODE': {
+      return { ...state, gameMode: action.payload.mode };
+    }
+
+    case 'SET_SESSION_DATE': {
+      return { ...state, sessionDate: action.payload.date };
     }
 
     case 'START_LEVEL': {
@@ -52,6 +67,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         flavorMap: action.payload.flavorMap,
       };
     }
+
 
     case 'SELECT_TOOL': {
       if (state.phase !== GamePhase.PLANNING) return state;
@@ -185,7 +201,18 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
     case 'ACTIVATE_RESISTANCE':
     case 'CLOSE_RESISTANCE_VIEW':
-    case 'SET_RESISTANCE_PENDING':
+    case 'SET_RESISTANCE_PENDING': // Wait, SET_RESISTANCE_PENDING was likely removed or merged?
+    // Checking previous file content... It was 'SET_RESISTANCE_STATUS' and 'RESISTANCE_MISSION_COMPLETE'
+    // I see 'SET_RESISTANCE_PENDING' in the case list I'm generating. It might be in resistanceReducer actions.
+    // The previous file content had:
+    // case 'ACTIVATE_RESISTANCE':
+    // case 'CLOSE_RESISTANCE_VIEW':
+    // case 'SET_RESISTANCE_PENDING':
+    // case 'SET_RESISTANCE_STATUS':
+    // case 'RESISTANCE_MISSION_COMPLETE': {
+    // Wait, the previous file content I "viewed" showed:
+    // 188:     case 'SET_RESISTANCE_PENDING':
+    // Yes, it was there.
     case 'SET_RESISTANCE_STATUS':
     case 'RESISTANCE_MISSION_COMPLETE': {
       return {
