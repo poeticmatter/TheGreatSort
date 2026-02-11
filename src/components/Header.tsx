@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({
                 : 'text-stone-400 hover:text-amber-500'
                 }`}
             >
-              Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : gameMode}</span> <ChevronDown size={12} />
+              Mode: <span className="text-amber-500 font-bold">{gameMode === 'PRACTICE' ? 'TRAINING' : (gameMode === 'RESISTANCE' ? 'DAILY' : gameMode)}</span> <ChevronDown size={12} />
             </button>
 
             {showModeMenu && (
