@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DailyAudit } from '../DailyAudit';
+import { useAnalytics } from '../../hooks/useAnalytics';
+import { PersistenceService } from '../../services/persistence';
 
 interface AuditBoardProps {
     sessionDate: string;
@@ -8,9 +10,28 @@ interface AuditBoardProps {
     onClose: () => void;
     onDetectResistance: () => void;
     flavorText: string;
+    optimalScore: number | null;
+    gameMode: string;
 }
 
-export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText }: AuditBoardProps) {
+export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText, optimalScore, gameMode }: AuditBoardProps) {
+    const { trackAuditViewed } = useAnalytics();
+
+    useEffect(() => {
+        const hasJoined = PersistenceService.loadResistanceStatus();
+        const effectiveMode = (gameMode === 'DAILY' && hasJoined) ? 'RESISTANCE' : gameMode;
+
+        // Determine result
+        let result: 'SOLVED' | 'UNSOLVED' = 'UNSOLVED';
+        if (optimalScore !== null && levelScore >= optimalScore) {
+            result = 'SOLVED';
+        } else if (dailyResult?.passed) {
+            result = 'SOLVED';
+        }
+
+        trackAuditViewed(effectiveMode as any, levelScore, result);
+    }, []); // Run on mount
+
     return (
         <div className="flex-1 flex items-center justify-center w-full min-h-0 p-6">
             <DailyAudit

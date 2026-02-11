@@ -6,24 +6,49 @@ export function useAnalytics() {
     AnalyticsService.pageView(path);
   }, []);
 
-  const trackGameStart = useCallback((mode: 'DAILY' | 'PRACTICE', seed?: number) => {
-    AnalyticsService.track('game_start', {
-      event_category: 'Game',
-      event_label: mode,
-      value: seed,
+  const trackLevelStart = useCallback((mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE') => {
+    AnalyticsService.track('level_start', {
+      event_category: 'Lifecycle',
       mode: mode
     });
   }, []);
 
-  const trackGameComplete = useCallback((mode: 'DAILY' | 'PRACTICE', score: number, optimal: number | null, efficiency: number) => {
-    AnalyticsService.track('game_complete', {
-      event_category: 'Game',
-      event_label: mode,
-      value: score,
+  const trackInspectorRun = useCallback((mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE', score: number, result: 'SOLVED' | 'UNSOLVED') => {
+    AnalyticsService.track('inspector_run', {
+      event_category: 'Gameplay',
       mode: mode,
       score: score,
-      optimal_score: optimal,
-      efficiency: efficiency
+      result: result
+    });
+  }, []);
+
+  const trackAuditViewed = useCallback((mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE', score: number, result: 'SOLVED' | 'UNSOLVED') => {
+    AnalyticsService.track('audit_viewed', {
+      event_category: 'Engagement',
+      mode: mode,
+      score: score,
+      result: result
+    });
+  }, []);
+
+  const trackLevelAction = useCallback((action: 'retry' | 'next_level', mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE') => {
+    AnalyticsService.track('level_action', {
+      event_category: 'Interaction',
+      action_type: action,
+      mode: mode
+    });
+  }, []);
+
+  const trackResistanceJoined = useCallback(() => {
+    AnalyticsService.track('resistance_joined', {
+      event_category: 'Conversion'
+    });
+  }, []);
+
+  const trackShare = useCallback((context: string) => {
+    AnalyticsService.track('share', {
+      event_category: 'Engagement',
+      context: context
     });
   }, []);
 
@@ -36,19 +61,14 @@ export function useAnalytics() {
     });
   }, []);
 
-  const trackDailyAuditViewed = useCallback((date: string, outcome: 'passed' | 'failed') => {
-    AnalyticsService.track('daily_audit_viewed', {
-      event_category: 'Engagement',
-      event_label: date,
-      outcome: outcome
-    });
-  }, []);
-
   return {
     trackPageView,
-    trackGameStart,
-    trackGameComplete,
-    trackToolInteraction,
-    trackDailyAuditViewed
+    trackLevelStart,
+    trackInspectorRun,
+    trackAuditViewed,
+    trackLevelAction,
+    trackResistanceJoined,
+    trackShare,
+    trackToolInteraction
   };
 }

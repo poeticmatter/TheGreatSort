@@ -3,13 +3,15 @@ import letterBg from '../assets/ResistanceLetter.png';
 
 interface ResistanceLetterProps {
   onClose: () => void;
+  onJoin?: () => void;
 }
 
-export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose }) => {
+export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJoin }) => {
   const [closing, setClosing] = useState(false);
 
   const handleJoin = () => {
     localStorage.setItem('joinedResistance', 'true');
+    if (onJoin) onJoin();
     setClosing(true);
     setTimeout(onClose, 300);
   };

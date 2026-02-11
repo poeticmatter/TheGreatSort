@@ -14,8 +14,7 @@ export interface MetaActions {
     setIsGameLoaded: (loaded: boolean) => void;
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
-    trackGameStart: (mode: GameMode | string, seed?: number) => void;
-    trackGameComplete: (mode: GameMode | string, score: number, optimalScore: number | null | undefined, efficiency: number) => void;
+    trackLevelStart: (mode: GameMode | 'DAILY' | 'PRACTICE' | 'RESISTANCE' | string) => void;
 }
 
 export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {
@@ -23,12 +22,16 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
     const [isGameLoaded, setIsGameLoaded] = useState(false);
     const [auditState, setAuditState] = useState<{ date: string, userScore: number } | null>(null);
 
-    const { trackGameStart, trackGameComplete, trackDailyAuditViewed } = useAnalytics();
+    const { trackLevelStart, trackAuditViewed } = useAnalytics();
 
     const triggerCurrentAudit = useCallback(() => {
         setAuditState({ date: sessionDate, userScore: coreState.levelScore });
-        trackDailyAuditViewed(sessionDate, 'passed');
-    }, [coreState.levelScore, trackDailyAuditViewed, sessionDate]);
+        // trackAuditViewed should be termed "AuditViewed" but the prompt says Daily/Resistance must fire trackAuditViewed when AuditBoard mounts.
+        // triggerCurrentAudit shows the board.
+        // We can track here OR in the component mount.
+        // Prompt says: "src/components/views/AuditBoard.tsx: Inject trackAuditViewed into a useEffect on mount."
+        // So we do NOT track here.
+    }, [coreState.levelScore, sessionDate]);
 
     const closeAudit = useCallback(() => {
         setAuditState(null);
@@ -51,8 +54,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             setIsGameLoaded,
             triggerCurrentAudit,
             closeAudit,
-            trackGameStart,
-            trackGameComplete // Needed by useGame
+            trackLevelStart,
         }
     };
 }

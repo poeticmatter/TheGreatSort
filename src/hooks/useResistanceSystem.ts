@@ -86,10 +86,6 @@ export function useResistanceSystem({
             }
         }
 
-        const efficiency = coreState.optimalScore
-            ? Math.round((coreState.levelScore / coreState.optimalScore) * 100)
-            : 0;
-        metaActions.trackGameComplete('DAILY', coreState.levelScore, coreState.optimalScore, efficiency);
     }, [
         saveDailyResult,
         coreState.levelScore,
