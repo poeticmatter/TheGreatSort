@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
 import { useAnalytics } from './hooks/useAnalytics';
-import { useDailyLock } from './hooks/useDailyLock';
 import { useAssetPreloader } from './hooks/useAssetPreloader';
-import { getTodayDateString } from './utils/dateUtils';
 import { LayoutType } from './components/InventoryGrid';
-import { GameProvider } from './context/GameContext';
+import { GameProvider, useGameContext } from './context/GameContext';
 
 import { GameView } from './components/views/GameView';
 import { ResistanceView } from './components/views/ResistanceView';
@@ -17,36 +15,37 @@ const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
 function GamePage() {
   return (
-    <GameProvider>
-      <TheGreatSortContent />
-    </GameProvider>
+    <TheGreatSortContent />
   );
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AnalyticsTracker />
-      <Routes>
-        <Route path="/" element={<GamePage />} />
-        {import.meta.env.DEV && (
-          <Route
-            path="/banners"
-            element={
-              <React.Suspense fallback={<div className="p-8 text-stone-400">Loading Banners...</div>}>
-                <BannersPage />
-              </React.Suspense>
-            }
-          />
-        )}
-      </Routes>
-    </BrowserRouter>
+    <GameProvider>
+      <BrowserRouter>
+        <AnalyticsTracker />
+        <Routes>
+          <Route path="/" element={<GamePage />} />
+          {import.meta.env.DEV && (
+            <Route
+              path="/banners"
+              element={
+                <React.Suspense fallback={<div className="p-8 text-stone-400">Loading Banners...</div>}>
+                  <BannersPage />
+                </React.Suspense>
+              }
+            />
+          )}
+        </Routes>
+      </BrowserRouter>
+    </GameProvider>
   );
 }
 
 function TheGreatSortContent() {
-  // Capture session date once on mount
-  const [sessionDate] = useState(() => getTodayDateString());
+  // Get session date from Context instead of local state
+  const { state } = useGameContext();
+  const sessionDate = state.sessionDate;
 
   const { data, interaction, actions } = useGame(sessionDate);
   const { trackPageView } = useAnalytics();

@@ -3,6 +3,7 @@
 declare global {
   interface Window {
     gtag: (...args: any[]) => void;
+    dataLayer: any[];
   }
 }
 
@@ -16,49 +17,95 @@ export interface AnalyticsEvent {
   [key: string]: any;
 }
 
-let initialized = false;
+// Event Queue for the Command Pattern
+const eventQueue: Array<() => void> = [];
+let isInitialized = false;
+
+// Helper to handle queue flushing
+const flushQueue = () => {
+  while (eventQueue.length > 0) {
+    const command = eventQueue.shift();
+    if (command) {
+      try {
+        command();
+      } catch (err) {
+        console.error('[Analytics] Error processing queued event:', err);
+      }
+    }
+  }
+};
+
+const safelyCallGtag = (callback: () => void) => {
+  if (isInitialized) {
+    callback();
+  } else {
+    eventQueue.push(callback);
+  }
+};
 
 export const AnalyticsService = {
   initialize: () => {
-    if (initialized) return;
+    // Idempotent check
+    if (isInitialized) return;
 
     if (!GA_ID) {
       if (isDev) console.warn('[Analytics] No VITE_GA_ID found, skipping initialization.');
       return;
     }
 
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('config', GA_ID);
-      initialized = true;
+    // Check availability of the global object
+    // Note: We check typical GTM/GA4 signature where window.gtag is defined
+    const hasGtag = typeof window !== 'undefined' && typeof window.gtag === 'function';
+
+    if (hasGtag) {
+      // Configure GA4
+      window.gtag('config', GA_ID, {
+        send_page_view: false // Manual page view tracking
+      });
+
+      isInitialized = true;
+      flushQueue();
+
+      if (isDev) {
+        console.log(`[Analytics] Initialized for ${GA_ID}`);
+      }
     } else {
+      // Fallback or dry-run in Dev
       if (isDev) {
         console.log(`[Analytics] Initialize (Dev/Dry Run): ${GA_ID}`);
-        initialized = true;
+        isInitialized = true; // Mark initialized to flush queue to console
+        flushQueue();
       } else {
-        console.warn('[Analytics] window.gtag is missing in production. Ensure the Gtag script is included in index.html.');
+        // In Prod, if gtag is missing, we DO NOT initialize.
+        // Events remain safely queued until script loads or manual retry.
+        console.warn('[Analytics] window.gtag is missing in production. Events are buffered.');
       }
     }
   },
 
   track: (eventName: string, params: AnalyticsEvent) => {
-    if (!GA_ID) return;
+    safelyCallGtag(() => {
+      if (!GA_ID && !isDev) return;
 
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', eventName, params);
-    } else if (isDev) {
-      console.log(`[Analytics] Event: ${eventName}`, params);
-    }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', eventName, params);
+      } else if (isDev) {
+        console.log(`[Analytics] Event: ${eventName}`, params);
+      }
+    });
   },
 
   pageView: (path: string) => {
-    if (!GA_ID) return;
+    safelyCallGtag(() => {
+      if (!GA_ID && !isDev) return;
 
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', 'page_view', {
-        page_path: path
-      });
-    } else if (isDev) {
-      console.log(`[Analytics] Page View: ${path}`);
-    }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'page_view', {
+          page_path: path
+        });
+      } else if (isDev) {
+        console.log(`[Analytics] Page View: ${path}`);
+      }
+    });
   }
 };

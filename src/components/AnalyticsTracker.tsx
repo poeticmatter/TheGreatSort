@@ -1,19 +1,20 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AnalyticsService } from '../services/analytics';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 /**
  * AnalyticsTracker component listens for route changes using useLocation
- * and automatically triggers a page view event in AnalyticsService.
- * Must be rendered as a child of a Router component.
+ * and automatically triggers a page view event via useAnalytics.
+ * Must be rendered as a child of a Router component and GameProvider.
  */
 export const AnalyticsTracker = () => {
     const location = useLocation();
+    const { trackPageView } = useAnalytics();
 
     useEffect(() => {
         // Track the current path whenever it changes
-        AnalyticsService.pageView(location.pathname + location.search);
-    }, [location]);
+        trackPageView(location.pathname + location.search);
+    }, [location, trackPageView]);
 
     return null;
 };

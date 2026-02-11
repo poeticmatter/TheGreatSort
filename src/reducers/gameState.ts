@@ -28,6 +28,8 @@ export interface GameState {
   currentSeed: number | undefined;
   flavorMap?: Record<FlavorKey, string>;
   resistance: ResistanceState;
+  gameMode: 'DAILY' | 'PRACTICE' | 'RESISTANCE'; // Explicitly typing or reusing GameMode if imported
+  sessionDate: string;
 }
 
 export type GameAction =
@@ -79,4 +81,6 @@ export type GameAction =
   | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }
-  | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }; // Composite action logic maybe?
+  | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }
+  | { type: 'SET_GAME_MODE'; payload: { mode: 'DAILY' | 'PRACTICE' | 'RESISTANCE' } }
+  | { type: 'SET_SESSION_DATE'; payload: { date: string } };

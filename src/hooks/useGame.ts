@@ -103,14 +103,14 @@ export function useGame(sessionDate: string) {
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
     // Dailies usually start immediately? No, user sees intro maybe? 
     // If it initializes, we track start.
-    trackLevelStart('DAILY');
+    trackLevelStart();
   }, [sessionDate, coreDispatch, trackLevelStart]);
 
   const nextLevel = useCallback(() => {
-    trackLevelAction('next_level', 'PRACTICE');
+    trackLevelAction('next_level');
     const { initialState } = GameHydrationService.hydratePractice();
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
-    trackLevelStart('PRACTICE');
+    trackLevelStart();
   }, [coreDispatch, trackLevelStart, trackLevelAction]);
 
   // --- Resistance System ---
@@ -140,13 +140,12 @@ export function useGame(sessionDate: string) {
       const optimal = coreState.optimalScore || 0;
       const isSolved = score >= optimal;
 
-      const effectiveMode = metaState.gameMode === 'DAILY' && hasJoinedResistance ? 'RESISTANCE' : metaState.gameMode;
       const result = isSolved ? 'SOLVED' : 'UNSOLVED';
 
-      trackInspectorRun(effectiveMode as any, score, result);
+      trackInspectorRun(score, result);
     }
     prevPhase.current = coreState.phase;
-  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun, hasJoinedResistance]);
+  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun]);
 
 
   // --- Initialization ---
@@ -158,6 +157,7 @@ export function useGame(sessionDate: string) {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
           dailyConfig.resistance!.status = ResistanceStatus.ACTIVE;
+          dailyConfig.gameMode = 'RESISTANCE';
         }
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
@@ -166,15 +166,14 @@ export function useGame(sessionDate: string) {
         if (dailyConfig.dailyCompleted) coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
 
         // Initial Game Start Logic for Daily
-        const effectiveMode = PersistenceService.loadResistanceStatus() ? 'RESISTANCE' : 'DAILY';
-        trackLevelStart(effectiveMode as any);
+        trackLevelStart();
       }
     }
     else if (metaState.gameMode === 'PRACTICE') {
       const result = GameHydrationService.hydratePractice();
       coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: result.initialState } });
       metaActions.setIsGameLoaded(true);
-      trackLevelStart('PRACTICE');
+      trackLevelStart();
     }
   }, [
     metaState.isGameLoaded,
@@ -193,7 +192,7 @@ export function useGame(sessionDate: string) {
     if (metaState.gameMode === 'PRACTICE' && coreState.currentSeed !== undefined) {
       const { initialState } = GameHydrationService.hydratePractice(coreState.currentSeed);
       coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
-      trackLevelStart('PRACTICE');
+      trackLevelStart();
     } else {
       changeMode('PRACTICE');
     }
