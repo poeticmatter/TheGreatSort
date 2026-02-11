@@ -1,4 +1,4 @@
-import { ToolType } from '../types';
+import { ToolType } from '../types.ts';
 
 export interface ToolMetadata {
     id: ToolType;

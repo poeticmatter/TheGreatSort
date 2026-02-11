@@ -1,5 +1,5 @@
-import { ToolType, ISortable } from '../../types';
-import { TOOL_REGISTRY } from '../tools';
+import { ToolType, ISortable } from '../../types.ts';
+import { TOOL_REGISTRY } from '../tools/index.ts';
 
 export interface SolverItem extends ISortable { }
 

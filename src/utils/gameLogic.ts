@@ -1,8 +1,8 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types';
-import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions';
-import { TOOL_REGISTRY } from '../tools';
-import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText';
-import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore';
+import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types.ts';
+import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions.ts';
+import { TOOL_REGISTRY } from '../tools/index.ts';
+import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText.ts';
+import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore.ts';
 
 export { calculateBatchScore, judgeStep };
 
