@@ -45,24 +45,15 @@ const STEPS: Record<string, TutorialStep> = {
     },
     'B_INIT': {
         id: 'B_INIT',
-        initialList: [10, 2, 12, 13, 14],
-        allowedTool: 'sink',
-        targetYield: 43, // Placeholder, need to calc
-        // 10,2,12,13,14. 
-        // 10->2 (Desc). 10,2 accepted (12). 12<2 NO. 13<2 NO. 14<2 NO. Yield = 12?
-        // Wait, 10->2 is DESC? 10 > 2.
-        // If 10->2, mode is DESC.
-        // Next: 12. 12 > 2 (Fail for DESC).
-        // If we sink 2 -> 10? Min is 2. [10, 2] -> [2, 2]? 
-        // [2, 2, 12, 13, 14].
-        // 2->2 (Flat). 2->12 (ASC). 12->13 (ASC). 13->14 (ASC).
-        // Yield: 2+2+12+13+14 = 43.
+        initialList: [6, 5, 12, 3, 14, 2],
+        allowedTool: 'swap',
+        targetYield: 23,
         description: 'The Pivot',
         instruction: (c, t, isSuccess) => {
-            if (isSuccess) return "Correct. You fixed the sort direction.";
-            return "The 10 -> 2 transition sets a DESCENDING expectation. Sink the 2/10 pair to reset the flow.";
+            if (isSuccess) return "Well done. By switching to Ascending, you saved the 12.";
+            return "The inspector protocol is locked to DESCENDING because 6 > 5. Swap the 6 and 5 to force ASCENDING mode.";
         },
-        successCondition: (c, t) => c >= 43, // 43 is likely optimal
+        successCondition: (c, t) => c >= 23,
         nextStepId: 'COMPLETE'
     },
     'COMPLETE': {
@@ -312,7 +303,7 @@ export function useTutorialEngine() {
             variant: 'neutral', // Better color matched to standard Undo
             Icon: RotateCcw,
             onClick: handleUndo,
-            disabled: gameState.history.length === 0
+            disabled: gameState.history.length === 0 || gameState.phase === GamePhase.INSPECTING
         },
         feedback: {
             showAuditBoard: false,
