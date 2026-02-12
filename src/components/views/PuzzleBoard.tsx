@@ -69,6 +69,14 @@ export function PuzzleBoard({
         highlightIndices: []
     });
 
+    const tutorialGridCards = useMemo(() => {
+        if (!state.allowedIndices) return gridCards;
+        return gridCards.map((card, idx) => ({
+            ...card,
+            isDisabled: card.isDisabled || !state.allowedIndices.includes(idx)
+        }));
+    }, [gridCards, state.allowedIndices]);
+
     // [ARCHITECTURAL FIX]
     // The UI must respond to the Core Status (Persistent), not the Meta Active flag (Transient Letter).
     // Access nested state safely, as resistance object was refactored.
@@ -101,7 +109,7 @@ export function PuzzleBoard({
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
             {state.list.length > 0 ? (
                 <InventoryGrid
-                    cards={gridCards}
+                    cards={tutorialGridCards}
                     onItemClick={handleCardClickWrapper}
                     disabled={isLocked}
                     layout={layout}
@@ -139,6 +147,7 @@ export function PuzzleBoard({
                         isLocked={isLocked}
                         isResistanceActive={isResistanceActive}
                         mood={flavorMood}
+                        tutorialMessage={state.tutorialMessage}
                     />
                     {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
                 </div>
@@ -163,7 +172,26 @@ export function PuzzleBoard({
                         onClick={onBackgroundClick}
                     >
                         <div className="flex-1 w-full flex items-center justify-center py-4 min-h-0">
-                            {gridContent}
+                            <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                                {state.list.length > 0 ? (
+                                    <InventoryGrid
+                                        cards={tutorialGridCards}
+                                        onItemClick={handleCardClickWrapper}
+                                        disabled={isLocked}
+                                        layout={layout}
+                                        showRoles={isResistanceActive}
+                                    />
+                                ) : (
+                                    state.gameMode === 'DAILY' && state.phase === GamePhase.RESULTS && (
+                                        <div className="text-stone-600 italic font-serif opacity-50">
+                                            Daily Quota Fulfilled.
+                                        </div>
+                                    )
+                                )}
+                                {state.list.length === 0 && state.phase === GamePhase.PLANNING && (
+                                    <div className="text-stone-600 italic font-serif animate-pulse">Initializing Sequence...</div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -199,6 +227,7 @@ export function PuzzleBoard({
                     isLocked={isLocked}
                     isResistanceActive={isResistanceActive}
                     mood={flavorMood}
+                    tutorialMessage={state.tutorialMessage}
                 />
                 {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
             </div>

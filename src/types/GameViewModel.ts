@@ -22,4 +22,8 @@ export interface GameViewModel extends GameState {
     startingCompliance: number;
     isZeroYield: boolean;
     yieldRatio: number;
+
+    // Tutorial specific
+    allowedIndices?: number[];
+    tutorialMessage?: string;
 }

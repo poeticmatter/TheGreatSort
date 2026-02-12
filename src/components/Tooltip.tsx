@@ -17,6 +17,7 @@ interface TooltipProps {
   isLocked?: boolean;
   isResistanceActive?: boolean;
   mood?: FlavorKey;
+  tutorialMessage?: string;
 }
 
 
@@ -30,10 +31,12 @@ const Tooltip: React.FC<TooltipProps> = ({
   gameMode,
   isLocked,
   isResistanceActive,
-  mood
+  mood,
+  tutorialMessage
 }) => {
 
   const getInstruction = (): React.ReactNode => {
+    if (tutorialMessage) return tutorialMessage;
     if (phase === GamePhase.RESULTS) return "Sequence Complete. Review results.";
     if (phase === GamePhase.INSPECTING) return "Processing sequence...";
 
