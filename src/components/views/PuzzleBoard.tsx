@@ -149,7 +149,7 @@ export function PuzzleBoard({
                         mood={flavorMood}
                         tutorialMessage={state.tutorialMessage}
                     />
-                    {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
+                    {state.gameMode !== 'PRACTICE' && state.sessionDate !== 'TUTORIAL' && <FlavorText mood={flavorMood} text={flavorText} />}
                 </div>
 
                 <div className="flex-1 flex flex-row items-stretch justify-center min-h-0 relative">
@@ -229,7 +229,7 @@ export function PuzzleBoard({
                     mood={flavorMood}
                     tutorialMessage={state.tutorialMessage}
                 />
-                {state.gameMode !== 'PRACTICE' && <FlavorText mood={flavorMood} text={flavorText} />}
+                {state.gameMode !== 'PRACTICE' && state.sessionDate !== 'TUTORIAL' && <FlavorText mood={flavorMood} text={flavorText} />}
             </div>
 
             {gridContent}
