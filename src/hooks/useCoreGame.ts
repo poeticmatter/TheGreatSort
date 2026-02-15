@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
 import { GamePhase, CardItem, ToolInstance, Move } from '../../types';
-import { useGameLoop } from './useGameLoop';
+import { useInspectionLoop } from './useInspectionLoop';
 import { useAnalytics } from './useAnalytics';
 import { TOOL_REGISTRY } from '../tools';
 import { applyMove } from '../utils/gameLogic';
@@ -238,7 +238,7 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
         }
     }, [dispatch, state.levelScore, state.totalScore, state.totalOptimalScore, state.optimalScore, onGameComplete]);
 
-    const loop = useGameLoop(state.list, dispatch, handleLoopCompletion);
+    const loop = useInspectionLoop(state.list, dispatch, handleLoopCompletion);
 
     return {
         state, // Expose full context state (read-only mostly)

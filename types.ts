@@ -53,7 +53,7 @@ export enum GamePhase {
   RESULTS = 'results',
 }
 
-export type GameMode = 'DAILY' | 'PRACTICE';
+export type GameMode = 'DAILY' | 'PRACTICE' | 'TUTORIAL';
 
 export interface Move {
   tool: ToolType;
