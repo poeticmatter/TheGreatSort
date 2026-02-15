@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Star, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Star, ChevronDown, Lock, GraduationCap, ShieldAlert } from 'lucide-react';
 import { GameMode, GamePhase } from '../../types';
-import { useAnalytics } from '../hooks/useAnalytics';
+import { PersistenceService } from '../services/persistence';
 
 interface HeaderProps {
   level: number;
@@ -23,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   onChangeMode, onOpenRules
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
-  const { trackLevelAction } = useAnalytics();
+  const navigate = useNavigate();
 
 
 
@@ -67,19 +68,59 @@ const Header: React.FC<HeaderProps> = ({
             </button>
 
             {showModeMenu && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
-                {(['DAILY', 'PRACTICE'] as GameMode[]).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      onChangeMode(m);
-                      setShowModeMenu(false);
-                    }}
-                    className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === m ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
-                  >
-                    {m === 'PRACTICE' ? 'TRAINING' : m}
-                  </button>
-                ))}
+              <div className="absolute top-full left-0 mt-1 w-56 bg-stone-900 border border-stone-700 shadow-xl rounded-sm flex flex-col p-1 z-50">
+                {/* Standard Modes */}
+                <button
+                  onClick={() => { onChangeMode('DAILY'); setShowModeMenu(false); }}
+                  className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === 'DAILY' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                >
+                  Daily Challenge
+                </button>
+
+                <button
+                  onClick={() => { onChangeMode('PRACTICE'); setShowModeMenu(false); }}
+                  className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 ${gameMode === 'PRACTICE' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                >
+                  Training
+                </button>
+
+                <div className="h-px bg-stone-700 my-1 opacity-50" />
+
+                {/* Tutorial */}
+                <button
+                  onClick={() => {
+                    navigate('/tutorial');
+                    setShowModeMenu(false);
+                  }}
+                  className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 ${gameMode === 'TUTORIAL' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                >
+                  <GraduationCap size={14} />
+                  Tutorial
+                </button>
+
+                {/* Resistance Mode */}
+                {(() => {
+                  const isUnlocked = PersistenceService.loadResistanceStatus();
+                  return (
+                    <button
+                      disabled={!isUnlocked}
+                      onClick={() => {
+                        if (isUnlocked) {
+                          onChangeMode('RESISTANCE' as GameMode);
+                          setShowModeMenu(false);
+                        }
+                      }}
+                      className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider flex items-center gap-2 w-full
+                            ${!isUnlocked ? 'opacity-50 cursor-not-allowed text-stone-600' : 'hover:bg-stone-800 cursor-pointer'}
+                            ${gameMode === 'RESISTANCE' ? 'text-amber-500 font-bold' : (!isUnlocked ? 'text-stone-600' : 'text-stone-400')}
+                        `}
+                      title={!isUnlocked ? "Decrypting..." : "Resistance Mode"}
+                    >
+                      {!isUnlocked ? <Lock size={14} /> : <ShieldAlert size={14} />}
+                      Resistance
+                    </button>
+                  );
+                })()}
 
               </div>
             )}

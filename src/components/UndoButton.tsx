@@ -18,7 +18,7 @@ const UndoButton: React.FC<UndoButtonProps> = ({
 }) => {
   // Variant styles
   const variantStyles = {
-    default: "bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200 hover:border-stone-400",
+    default: "bg-stone-900 text-amber-500 border-amber-500 hover:bg-stone-800 hover:text-amber-400 border-solid",
     warning: "bg-amber-900/20 text-amber-500 border-amber-800/50 hover:bg-amber-900/40 hover:text-amber-400 hover:border-amber-500",
     muted: "bg-stone-900/50 text-stone-600 border-stone-800 hover:bg-stone-800 hover:text-stone-500 hover:border-stone-700"
   };

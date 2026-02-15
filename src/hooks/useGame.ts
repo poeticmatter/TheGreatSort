@@ -24,7 +24,7 @@ export function useGame(sessionDate: string) {
 
   // 2. Meta Game (Mode, Audit, Resistance)
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
-  const { trackLevelStart, trackInspectorRun, trackLevelAction } = useAnalytics();
+  const { trackLevelStart, trackInspectorRun, trackLevelAction, trackShare } = useAnalytics();
 
   // 3. Daily Logic
   const {
@@ -104,8 +104,9 @@ export function useGame(sessionDate: string) {
     // Dailies usually start immediately? No, user sees intro maybe? 
     // If it initializes, we track start.
     const effectiveMode = PersistenceService.loadResistanceStatus() ? 'RESISTANCE' : 'DAILY';
+    trackLevelAction('retry', effectiveMode as any);
     trackLevelStart(effectiveMode as any);
-  }, [sessionDate, coreDispatch, trackLevelStart]);
+  }, [sessionDate, coreDispatch, trackLevelStart, trackLevelAction]);
 
   const nextLevel = useCallback(() => {
     trackLevelAction('next_level', 'PRACTICE');
@@ -196,10 +197,11 @@ export function useGame(sessionDate: string) {
       const { initialState } = GameHydrationService.hydratePractice(coreState.currentSeed);
       coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
       trackLevelStart('PRACTICE');
+      trackLevelAction('retry', 'PRACTICE');
     } else {
       changeMode('PRACTICE');
     }
-  }, [metaState.gameMode, coreState.currentSeed, coreDispatch, changeMode, trackLevelStart]);
+  }, [metaState.gameMode, coreState.currentSeed, coreDispatch, changeMode, trackLevelStart, trackLevelAction]);
 
 
 
@@ -263,7 +265,8 @@ export function useGame(sessionDate: string) {
     triggerCurrentAudit: metaActions.triggerCurrentAudit,
     triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
     closeResistance: closeResistanceAndReset,
-    saveDaily: finalizeResistanceMission
+    saveDaily: finalizeResistanceMission,
+    trackShare
   }), [
     changeMode,
     coreActions,
@@ -274,7 +277,8 @@ export function useGame(sessionDate: string) {
 
     metaActions,
     closeResistanceAndReset,
-    finalizeResistanceMission
+    finalizeResistanceMission,
+    trackShare
   ]);
 
   return {

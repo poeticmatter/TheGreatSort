@@ -112,6 +112,7 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
                         flavorText={data.flavorMap?.['DONE']}
                         optimalScore={data.optimalScore}
                         gameMode={data.gameMode}
+                        trackShare={actions.trackShare}
                     />
                 ) : (
                     <PuzzleBoard

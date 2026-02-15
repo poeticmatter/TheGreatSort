@@ -1,8 +1,7 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
 import { GamePhase, CardItem, ToolInstance, Move } from '../../types';
 import { useInspectionLoop } from './useInspectionLoop';
-import { useAnalytics } from './useAnalytics';
 import { TOOL_REGISTRY } from '../tools';
 import { applyMove } from '../utils/gameLogic';
 

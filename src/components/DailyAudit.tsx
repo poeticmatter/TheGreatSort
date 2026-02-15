@@ -20,9 +20,10 @@ interface DailyAuditProps {
   onClose: () => void;
   onDetectResistance: () => void;
   flavorText?: string;
+  onShareSuccess?: () => void;
 }
 
-export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText }) => {
+export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText, onShareSuccess }) => {
   const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
@@ -124,9 +125,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     if (result.method === 'manual' && result.textForManualCopy) {
       setManualCopyText(result.textForManualCopy);
       setShareFeedback('MANUAL');
+      if (onShareSuccess) onShareSuccess();
     } else if (result.success) {
       setShareFeedback('COPIED');
       setTimeout(() => setShareFeedback('IDLE'), 2500);
+      if (onShareSuccess) onShareSuccess();
     }
   };
 

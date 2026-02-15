@@ -42,6 +42,8 @@ export const getResistanceFlavor = (
         return 'RES_SUCCESS';
     }
 
-    // Fallback: If Inactive or undefined, return null to let standard flavor logic take over
-    return null;
+    // Default Fallback: If we completed the level (which calls this function) but didn't hit a specific edge case,
+    // we should return a standard completion message rather than null.
+    // This handles scenarios like "Compliance < 100 but not failure"
+    return 'RES_SUCCESS';
 };

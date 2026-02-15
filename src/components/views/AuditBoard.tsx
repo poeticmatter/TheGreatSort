@@ -12,9 +12,10 @@ interface AuditBoardProps {
     flavorText: string;
     optimalScore: number | null;
     gameMode: string;
+    trackShare: (context: string, mode: any) => void;
 }
 
-export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText, optimalScore, gameMode }: AuditBoardProps) {
+export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText, optimalScore, gameMode, trackShare }: AuditBoardProps) {
     const { trackAuditViewed } = useAnalytics();
 
     useEffect(() => {
@@ -33,6 +34,11 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
         trackAuditViewed(effectiveMode as any, levelScore, result);
     }, []); // Run on mount
 
+    const handleShareSuccess = () => {
+        const effectiveMode = (gameMode === 'DAILY' && PersistenceService.loadResistanceStatus()) ? 'RESISTANCE' : gameMode;
+        trackShare('audit_result', effectiveMode as any);
+    };
+
     return (
         <div className="flex-1 flex items-center justify-center w-full min-h-0 p-6">
             <DailyAudit
@@ -41,6 +47,7 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
                 onClose={onClose}
                 onDetectResistance={onDetectResistance}
                 flavorText={flavorText}
+                onShareSuccess={handleShareSuccess}
             />
         </div>
     );
