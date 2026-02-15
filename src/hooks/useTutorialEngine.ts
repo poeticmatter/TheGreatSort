@@ -1,5 +1,6 @@
 import { useReducer, useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGameContext } from '../context/GameContext';
 import { CardItem, GamePhase, AgentRole, ToolInstance } from '../../types';
 import { Play, RotateCcw } from 'lucide-react';
 import { TOOL_REGISTRY } from '../tools';
@@ -12,6 +13,7 @@ import { UserInterfaceState } from './useGameInteractions';
 
 export function useTutorialEngine() {
     const navigate = useNavigate();
+    const { dispatch: globalDispatch } = useGameContext();
     const [currentStepId, setCurrentStepId] = useState<string>('A_INIT');
     const step = TUTORIAL_SCENARIOS[currentStepId];
 
@@ -233,7 +235,11 @@ export function useTutorialEngine() {
         handleCardClick,
         handleToolClick,
         handleBackgroundClick: () => dispatch({ type: 'CANCEL_SELECTION' }),
-        changeMode: () => { },
+        changeMode: (mode: any) => {
+            if (mode === 'TUTORIAL') return;
+            globalDispatch({ type: 'SET_GAME_MODE', payload: { mode } });
+            navigate('/');
+        },
         startInspection,
         retryPractice: () => { },
         retryDaily: () => { },
