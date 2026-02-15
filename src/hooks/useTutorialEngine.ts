@@ -1,4 +1,5 @@
 import { useReducer, useMemo, useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CardItem, GamePhase, AgentRole, ToolInstance } from '../../types';
 import { Play, RotateCcw } from 'lucide-react';
 import { TOOL_REGISTRY } from '../tools';
@@ -10,6 +11,7 @@ import { transformToViewModel } from '../utils/gameViewModelTransformer';
 import { UserInterfaceState } from './useGameInteractions';
 
 export function useTutorialEngine() {
+    const navigate = useNavigate();
     const [currentStepId, setCurrentStepId] = useState<string>('A_INIT');
     const step = TUTORIAL_SCENARIOS[currentStepId];
 
@@ -207,11 +209,11 @@ export function useTutorialEngine() {
 
     const interaction: UserInterfaceState = {
         primaryAction: {
-            label: currentStepId === 'COMPLETE' ? 'Finish' : (state.phase === GamePhase.RESULTS ? (isSuccess ? 'Next Scenario' : 'Retry') : 'Inspect'),
-            variant: isSuccess && state.phase === GamePhase.RESULTS ? 'gold' : 'neutral',
+            label: (currentStepId === 'COMPLETE' || (state.phase === GamePhase.RESULTS && isSuccess && step?.nextStepId === 'COMPLETE')) ? 'Begin Work' : (state.phase === GamePhase.RESULTS ? (isSuccess ? 'Next Scenario' : 'Retry') : 'Inspect'),
+            variant: (currentStepId === 'COMPLETE' || (isSuccess && state.phase === GamePhase.RESULTS)) ? 'gold' : 'neutral',
             Icon: state.phase === GamePhase.RESULTS ? (isSuccess ? Play : RotateCcw) : Play,
-            onClick: state.phase === GamePhase.RESULTS ? (isSuccess ? handleNext : handleRetry) : startInspection,
-            disabled: state.phase === GamePhase.INSPECTING || currentStepId === 'COMPLETE'
+            onClick: (currentStepId === 'COMPLETE' || (state.phase === GamePhase.RESULTS && isSuccess && step?.nextStepId === 'COMPLETE')) ? () => navigate('/') : (state.phase === GamePhase.RESULTS ? (isSuccess ? handleNext : handleRetry) : startInspection),
+            disabled: state.phase === GamePhase.INSPECTING
         },
         secondaryAction: {
             label: 'Undo',

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { GameView } from './GameView';
 import { useTutorialEngine } from '../../hooks/useTutorialEngine';
 import { LayoutType } from '../InventoryGrid';
-import { useNavigate } from 'react-router-dom';
+
 
 export function TutorialPage() {
     const { data, interaction, actions } = useTutorialEngine();
-    const navigate = useNavigate();
+
 
     const getResponsiveLayout = (): LayoutType => window.innerWidth < 1024 ? 'VERTICAL_LIST' : 'HORIZONTAL_STRIP';
     const [layout, setLayout] = useState<LayoutType>(getResponsiveLayout());
@@ -27,13 +27,7 @@ export function TutorialPage() {
                 onLayoutChange={setLayout}
             />
 
-            {/* Explicit Exit Button for Tutorial */}
-            <button
-                onClick={() => navigate('/')}
-                className="absolute top-4 right-4 z-50 bg-stone-800/80 backdrop-blur text-stone-400 hover:text-stone-200 px-4 py-2 rounded border border-stone-700 hover:border-stone-500 text-xs font-bold uppercase tracking-widest transition-all"
-            >
-                Exit Tutorial
-            </button>
+
         </div>
     );
 }
