@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, BookOpen } from 'lucide-react';
 import { FooterAttribution } from './FooterAttribution';
 import TutorialSimulation from './TutorialSimulation';
@@ -10,6 +11,7 @@ interface RulesModalProps {
 
 const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (isOpen) {
@@ -102,13 +104,22 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Action Button */}
-                    <div className="flex justify-center pt-4">
+                    <div className="flex justify-center gap-4 pt-4 w-full">
                         <button
-                            onClick={onClose}
+                            onClick={() => {
+                                navigate('/tutorial');
+                                onClose();
+                            }}
                             className="bg-amber-600 hover:bg-amber-500 text-stone-900 font-bold uppercase tracking-widest px-8 py-3 rounded-sm shadow-lg hover:shadow-amber-900/20 transition-all active:transform active:scale-95 flex items-center gap-2"
                         >
-                            <span className="font-[Cinzel]">Acknowledge</span>
+                            <span className="font-[Cinzel]">Tutorial</span>
+                        </button>
+
+                        <button
+                            onClick={onClose}
+                            className="bg-transparent border border-amber-600/50 hover:border-amber-500 text-amber-600 hover:text-amber-500 font-bold uppercase tracking-widest px-6 py-3 rounded-sm transition-all flex items-center gap-2 opacity-80 hover:opacity-100"
+                        >
+                            <span className="font-[Cinzel]">Begin Work</span>
                         </button>
                     </div>
 

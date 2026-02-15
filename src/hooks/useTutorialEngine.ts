@@ -1,322 +1,245 @@
-
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { CardItem, GamePhase, ToolType, AgentRole, ResistanceStatus } from '../../types';
-import { GameViewModel } from '../types/GameViewModel';
-import { UserInterfaceState } from './useGameInteractions';
+import { useReducer, useMemo, useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGameContext } from '../context/GameContext';
+import { CardItem, GamePhase, AgentRole, ToolInstance } from '../../types';
 import { Play, RotateCcw } from 'lucide-react';
 import { TOOL_REGISTRY } from '../tools';
-import { gradeLevel, calculateCompliance, createInspectionStream, InspectionYield } from '../utils/gameLogic';
-import { applyMove } from '../utils/gameLogic';
-
-interface TutorialGameState {
-    list: CardItem[];
-    selection: number | null;
-    selectedTool: ToolType | null;
-    history: CardItem[][];
-    phase: GamePhase;
-    preInspectionList: CardItem[] | null;
-}
-
-interface TutorialStep {
-    id: string;
-    initialList: number[];
-    allowedTool: ToolType;
-    targetYield: number;
-    description: string;
-    instruction: (currentYield: number, targetYield: number, isSuccess: boolean) => string;
-    nextStepId?: string;
-    successCondition: (currentYield: number, targetYield: number) => boolean;
-}
-
-const STEPS: Record<string, TutorialStep> = {
-    'A_INIT': {
-        id: 'A_INIT',
-        initialList: [2, 8, 5, 6, 1, 9],
-        allowedTool: 'sink',
-        targetYield: 27,
-        description: 'The Blocker',
-        instruction: (currentYield, targetYield, isSuccess) => {
-            if (isSuccess) return "Excellent! The sequence flows correctly. Yield maximized.";
-            if (currentYield < targetYield && currentYield > 19) return `Good. However, the optimal yield is higher. Can you find a better solution?`;
-            return `The current yield is ${currentYield}. Can you increase the yield by sinking the 8?`;
-        },
-        successCondition: (c, t) => c >= t,
-        nextStepId: 'B_INIT'
-    },
-    'B_INIT': {
-        id: 'B_INIT',
-        initialList: [6, 5, 12, 3, 14, 2],
-        allowedTool: 'swap',
-        targetYield: 23,
-        description: 'The Pivot',
-        instruction: (c, t, isSuccess) => {
-            if (isSuccess) return "Well done. By switching to Ascending, you saved the 12.";
-            return "The inspector protocol is locked to DESCENDING because 6 > 5. Swap the 6 and 5 to force ASCENDING mode.";
-        },
-        successCondition: (c, t) => c >= 23,
-        nextStepId: 'COMPLETE'
-    },
-    'COMPLETE': {
-        id: 'COMPLETE',
-        initialList: [],
-        allowedTool: 'sink',
-        targetYield: 0,
-        description: 'Complete',
-        instruction: () => "Tutorial Complete! You are ready.",
-        successCondition: () => false
-    }
-};
+import { gradeLevel, calculateCompliance, applyMove } from '../utils/gameLogic';
+import { gameReducer, initialState } from '../reducers/gameReducer';
+import { useInspectionLoop } from './useInspectionLoop';
+import { TUTORIAL_SCENARIOS } from '../config/tutorialScenarios';
+import { transformToViewModel } from '../utils/gameViewModelTransformer';
+import { UserInterfaceState } from './useGameInteractions';
 
 export function useTutorialEngine() {
+    const navigate = useNavigate();
+    const { dispatch: globalDispatch } = useGameContext();
     const [currentStepId, setCurrentStepId] = useState<string>('A_INIT');
-    const [gameState, setGameState] = useState<TutorialGameState>({
-        list: [],
-        selection: null,
-        selectedTool: null,
-        history: []
+    const step = TUTORIAL_SCENARIOS[currentStepId];
+
+    // 1. Reducer State
+    const [state, dispatch] = useReducer(gameReducer, {
+        ...initialState,
+        gameMode: 'TUTORIAL',
+        sessionDate: 'TUTORIAL'
     });
 
-    const step = STEPS[currentStepId];
+    // 2. Computed Metrics (Live)
+    const { score: currentYield } = useMemo(() => gradeLevel(state.list), [state.list]);
+    const optimalScore = step?.targetYield || 0;
+    const isSuccess = step ? step.successCondition(currentYield, optimalScore) : false;
+    const compliance = calculateCompliance(currentYield, optimalScore, 0);
 
-    // Initialize Step
+    // 3. Loop Driver
+    const handleLoopComplete = useCallback(() => {
+        dispatch({ type: 'SET_PHASE', payload: { phase: GamePhase.RESULTS } });
+    }, []);
+
+    const { startInspection, stopLoop } = useInspectionLoop(state.list, dispatch, handleLoopComplete);
+
+    // 4. Initialization
     useEffect(() => {
         if (!step) return;
+
+        stopLoop(); // Stop any running loop on step change
+
         const initialItems: CardItem[] = step.initialList.map((val, i) => ({
             id: `tut-${step.id}-${i}`,
             val,
             status: 'pending',
             role: AgentRole.NONE
         }));
-        setGameState({
-            list: initialItems,
-            selection: null,
-            selectedTool: null,
-            history: [], // Reset history on step change
-            phase: GamePhase.PLANNING,
-            preInspectionList: null
-        });
-    }, [currentStepId]);
 
-    // Computed State
-    const { score: currentYield, gradedList } = useMemo(() => gradeLevel(gameState.list), [gameState.list]);
+        const tools: ToolInstance[] = [{
+            instanceId: `tut-tool-${step.allowedTool}`,
+            type: step.allowedTool,
+            used: false
+        }];
 
-    // We assume the target yield in the step generic is the "Optimal" for the tutorial context
-    // But we can also calculate real optimal if we want
-    // const realOptimal = useMemo(() => findOptimalScore(gameState.list, [{ type: step.allowedTool, instanceId: 'tut', used: false }]), [gameState.list, step.allowedTool]);
-    // Allow step to define target for simplicity and narrative control
-    const optimalScore = step.targetYield;
-
-    const isSuccess = step.successCondition(currentYield, optimalScore);
-
-    const compliance = calculateCompliance(currentYield, optimalScore, 0);
-
-    // Actions
-    const startInspection = useCallback(() => {
-        const stream = [...createInspectionStream(gameState.list)];
-        const originalList = gameState.list;
-
-        setGameState(prev => ({
-            ...prev,
-            phase: GamePhase.INSPECTING,
-            preInspectionList: originalList
-        }));
-
-        let stepIndex = 0;
-        const intervalId = setInterval(() => {
-            if (stepIndex >= stream.length) {
-                clearInterval(intervalId);
-                // End of inspection, immediately show results
-                setGameState(prev => ({
-                    ...prev,
-                    phase: GamePhase.RESULTS
-                }));
-                return;
+        dispatch({
+            type: 'INITIALIZE_GAME',
+            payload: {
+                state: {
+                    ...initialState,
+                    gameMode: 'TUTORIAL',
+                    list: initialItems,
+                    initialList: initialItems,
+                    toolsAvailable: tools,
+                    levelScore: 0,
+                    phase: GamePhase.PLANNING,
+                    sessionDate: 'TUTORIAL'
+                }
             }
-
-            const step = stream[stepIndex];
-            setGameState(prev => ({ ...prev, list: step.list }));
-            stepIndex++;
-        }, 500); // 500ms per step
-
-    }, [gameState.list]);
-    const handleToolClick = useCallback((instanceId: string) => {
-        // Toggle selection
-        setGameState(prev => ({
-            ...prev,
-            selectedTool: prev.selectedTool ? null : step.allowedTool, // Toggle or select allowed
-            selection: null // Reset card selection on tool change
-        }));
-    }, [step.allowedTool]);
-    const handleUndo = useCallback(() => {
-        setGameState(prev => {
-            if (prev.history.length === 0) return prev;
-            const newHistory = [...prev.history];
-            const previousList = newHistory.pop()!;
-            return {
-                ...prev,
-                list: previousList,
-                selection: null,
-                selectedTool: null,
-                history: newHistory,
-                phase: GamePhase.PLANNING, // Reset phase on undo
-                preInspectionList: null
-            };
         });
+    }, [currentStepId, step, stopLoop]);
+
+    // 5. Actions (Mimicking useCoreGame logic simplified)
+    const handleToolClick = useCallback((instanceId: string) => {
+        if (state.phase !== GamePhase.PLANNING) return;
+
+        // Toggle or Select
+        if (state.selectedToolInstanceId === instanceId) {
+            dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+        } else {
+            dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: instanceId } });
+        }
+    }, [state.phase, state.selectedToolInstanceId]);
+
+    const handleCardClick = useCallback((item: CardItem) => {
+        if (state.phase !== GamePhase.PLANNING) return;
+        if (isSuccess && state.phase !== GamePhase.RESULTS) return; // Prevent moves if already success?
+
+        const index = state.list.findIndex(i => i.id === item.id);
+        if (index === -1) return;
+
+        const toolInstanceId = state.selectedToolInstanceId;
+        if (!toolInstanceId) {
+            // Select tile
+            if (state.selection === index) {
+                dispatch({ type: 'CANCEL_SELECTION' });
+            } else {
+                dispatch({ type: 'SELECT_TILE', payload: { index } });
+            }
+            return;
+        }
+
+        const toolInstance = state.toolsAvailable.find(t => t.instanceId === toolInstanceId);
+        if (!toolInstance || toolInstance.used) return;
+
+        const strategy = TOOL_REGISTRY[toolInstance.type];
+
+        // Apply immediately if no selection needed
+        if (!strategy.requiresSelection) {
+            if (strategy.isValid(state.list, index)) {
+                // Apply
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index) as any;
+
+                dispatch({
+                    type: 'APPLY_MOVE',
+                    payload: {
+                        list: newList,
+                        impactedIndices,
+                        move: {
+                            tool: toolInstance.type,
+                            toolInstanceId,
+                            index,
+                            description: 'Tutorial Move'
+                        }
+                    }
+                });
+                // Deselect after use
+                dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+            }
+            return;
+        }
+
+        // Two-step
+        if (state.selection === null) {
+            dispatch({ type: 'SELECT_TILE', payload: { index } });
+        } else {
+            // Execute
+            if (strategy.isValid(state.list, index, state.selection)) {
+                const { newList, impactedIndices } = applyMove(state.list, toolInstance.type, index, state.selection) as any;
+                dispatch({
+                    type: 'APPLY_MOVE',
+                    payload: {
+                        list: newList,
+                        impactedIndices,
+                        move: {
+                            tool: toolInstance.type,
+                            toolInstanceId,
+                            index,
+                            targetIndex: state.selection,
+                            description: 'Tutorial Move'
+                        }
+                    }
+                });
+                dispatch({ type: 'SELECT_TOOL', payload: { toolInstanceId: null } });
+            } else {
+                // Invalid
+                dispatch({ type: 'TRIGGER_INVALID_MOVE', payload: { shake: true } });
+            }
+        }
+    }, [state, isSuccess]);
+
+    const handleUndo = useCallback(() => {
+        dispatch({ type: 'UNDO_MOVE' });
     }, []);
 
     const handleRetry = useCallback(() => {
-        setGameState(prev => ({
-            ...prev,
-            phase: GamePhase.PLANNING,
-            list: prev.preInspectionList || prev.list, // Restore pre-inspection state
-            preInspectionList: null
-        }));
-    }, []);
-
-    const handleCardClick = useCallback((item: CardItem) => {
-        if (isSuccess) return; // Prevent moves after success
-
-        const index = gameState.list.findIndex(i => i.id === item.id);
-        if (index === -1) return;
-
-        if (!gameState.selectedTool) return; // Must select tool first
-
-        const toolType = step.allowedTool;
-        const strategy = TOOL_REGISTRY[toolType];
-
-        // Selection Logic
-        let newSelection = gameState.selection;
-        let shouldApply = false;
-
-        if (strategy.requiresSelection) {
-            if (gameState.selection === null) {
-                // Select first
-                newSelection = index;
-            } else if (gameState.selection === index) {
-                // Deselect
-                newSelection = null;
-            } else {
-                // Apply with selection
-                shouldApply = true;
+        if (!step) return;
+        dispatch({
+            type: 'INITIALIZE_GAME',
+            payload: {
+                state: {
+                    ...initialState,
+                    gameMode: 'TUTORIAL',
+                    list: [...state.initialList],
+                    initialList: [...state.initialList],
+                    toolsAvailable: state.toolsAvailable.map(t => ({ ...t, used: false })),
+                    levelScore: 0,
+                    phase: GamePhase.PLANNING
+                }
             }
-        } else {
-            // Apply immediately
-            shouldApply = true;
-        }
-
-        if (shouldApply) {
-            // Validate
-            // For Sink, valid if adjacent (implied by Strategy)
-            const sel = strategy.requiresSelection ? gameState.selection : undefined;
-
-            if (strategy.isValid(gameState.list, index, sel)) {
-                // Apply
-                const { newList } = applyMove(gameState.list, toolType, index, sel);
-
-                // Update State
-                setGameState(prev => ({
-                    ...prev,
-                    list: newList,
-                    selectedTool: null, // Deselect tool after use
-                    history: [...prev.history, prev.list]
-                }));
-            } else {
-                // Invalid move visual feedback?
-                // Just reset selection for now
-                if (strategy.requiresSelection) newSelection = index; // switch selection?
-            }
-        } else {
-            setGameState(prev => ({ ...prev, selection: newSelection }));
-        }
-
-    }, [gameState.list, gameState.selection, gameState.selectedTool, isSuccess, step.allowedTool]);
-
+        });
+    }, [state.initialList, state.toolsAvailable, step]);
 
     const handleNext = useCallback(() => {
-        if (isSuccess && step.nextStepId) {
+        if (isSuccess && step?.nextStepId) {
             setCurrentStepId(step.nextStepId);
         }
-    }, [isSuccess, step.nextStepId]);
+    }, [isSuccess, step]);
 
-    // View Model
-    const data: GameViewModel = {
-        list: gameState.list, // Use raw list (which now contains animation frames during inspection)
-        initialList: gameState.list, // Technically initial for this step? Or previous? Using current for now to satisfy type
-        phase: gameState.phase, // Dynamic phase
-        gameMode: 'DAILY', // Use DAILY to show ComplianceMeter
+    // 6. View Model Construction
+    const data = transformToViewModel(state, { gameMode: 'TUTORIAL' }, {
         sessionDate: 'TUTORIAL',
         isLocked: false,
-        dailyCompleted: false,
         dailyResult: null,
-
-        // Tools
-        toolsAvailable: [{
-            instanceId: 'tut-tool',
-            type: step.allowedTool,
-            used: gameState.history.length > 0 // Tool is used if history exists
-        }],
-        selectedToolInstanceId: gameState.selectedTool ? 'tut-tool' : null,
-        selectedTool: gameState.selectedTool ? 'tut-tool' : null,
-        selection: gameState.selection,
-
-        // Metrics
-        mood: 'INITIAL',
-        compliancePercentage: compliance,
-        isResistanceModalOpen: false,
         persistenceLoaded: true,
+        isResistanceModalOpen: false,
+        mood: 'INITIAL',
+
+        compliancePercentage: compliance,
         startingCompliance: 0,
         isZeroYield: currentYield === 0,
         yieldRatio: 0,
         currentYield: currentYield,
 
-        level: 0,
-        levelScore: currentYield,
-        totalScore: 0,
-        totalOptimalScore: 0,
-        optimalScore: optimalScore,
-        worstScore: 0,
-        movesHistory: [], // Not used for now in tut
-        shakeTools: 0,
-        detectedMode: null,
-        currentSeed: 0,
-
-        resistance: {
-            status: ResistanceStatus.INACTIVE,
-            isViewOpen: false
-        },
-
-        // Tutorial
-        tutorialMessage: gameState.selectedTool ? undefined : step.instruction(currentYield, optimalScore, isSuccess)
-    } as GameViewModel;
-
+        allowedIndices: undefined,
+        tutorialMessage: step ? step.instruction(currentYield, optimalScore, isSuccess) : undefined
+    });
 
     const interaction: UserInterfaceState = {
         primaryAction: {
-            label: currentStepId === 'COMPLETE' ? 'Finish' : (gameState.phase === GamePhase.RESULTS ? (isSuccess ? 'Next Scenario' : 'Retry') : 'Inspect'),
-            variant: isSuccess && gameState.phase === GamePhase.RESULTS ? 'gold' : 'neutral',
-            Icon: gameState.phase === GamePhase.RESULTS ? (isSuccess ? Play : RotateCcw) : Play,
-            onClick: gameState.phase === GamePhase.RESULTS ? (isSuccess ? handleNext : handleRetry) : startInspection,
-            disabled: gameState.phase === GamePhase.INSPECTING
+            label: (currentStepId === 'COMPLETE' || (state.phase === GamePhase.RESULTS && isSuccess && step?.nextStepId === 'COMPLETE')) ? 'Begin Work' : (state.phase === GamePhase.RESULTS ? (isSuccess ? 'Next Scenario' : 'Retry') : 'Inspect'),
+            variant: (currentStepId === 'COMPLETE' || (isSuccess && state.phase === GamePhase.RESULTS)) ? 'gold' : 'neutral',
+            Icon: state.phase === GamePhase.RESULTS ? (isSuccess ? Play : RotateCcw) : Play,
+            onClick: (currentStepId === 'COMPLETE' || (state.phase === GamePhase.RESULTS && isSuccess && step?.nextStepId === 'COMPLETE')) ? () => navigate('/') : (state.phase === GamePhase.RESULTS ? (isSuccess ? handleNext : handleRetry) : startInspection),
+            disabled: state.phase === GamePhase.INSPECTING
         },
         secondaryAction: {
             label: 'Undo',
-            variant: 'neutral', // Better color matched to standard Undo
+            variant: 'neutral',
             Icon: RotateCcw,
             onClick: handleUndo,
-            disabled: gameState.history.length === 0 || gameState.phase === GamePhase.INSPECTING
+            disabled: state.movesHistory.length === 0 || state.phase === GamePhase.INSPECTING || state.phase === GamePhase.RESULTS
         },
         feedback: {
             showAuditBoard: false,
             isBoardDisabled: false,
-            allowedIndices: undefined // Allow all interactions
+            allowedIndices: undefined
         }
     };
 
     const actions = {
         handleCardClick,
         handleToolClick,
-        handleBackgroundClick: () => setGameState(prev => ({ ...prev, selection: null })),
-        changeMode: () => { },
+        handleBackgroundClick: () => dispatch({ type: 'CANCEL_SELECTION' }),
+        changeMode: (mode: any) => {
+            if (mode === 'TUTORIAL') return;
+            globalDispatch({ type: 'SET_GAME_MODE', payload: { mode } });
+            navigate('/');
+        },
         startInspection,
         retryPractice: () => { },
         retryDaily: () => { },
@@ -326,7 +249,7 @@ export function useTutorialEngine() {
         triggerResistance: () => { },
         closeResistance: () => { },
         saveDaily: () => { },
-        handleUndo: handleUndo
+        handleUndo
     };
 
     return { data, interaction, actions };
