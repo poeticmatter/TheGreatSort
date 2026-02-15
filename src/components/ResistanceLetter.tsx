@@ -4,14 +4,20 @@ import letterBg from '../assets/ResistanceLetter.png';
 interface ResistanceLetterProps {
   onClose: () => void;
   onJoin?: () => void;
+  variant?: 'INVITE' | 'LOCKED';
 }
 
-export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJoin }) => {
+export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJoin, variant = 'INVITE' }) => {
   const [closing, setClosing] = useState(false);
 
   const handleJoin = () => {
     localStorage.setItem('joinedResistance', 'true');
     if (onJoin) onJoin();
+    setClosing(true);
+    setTimeout(onClose, 300);
+  };
+
+  const handleClose = () => {
     setClosing(true);
     setTimeout(onClose, 300);
   };
@@ -38,26 +44,44 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJ
           {/* Main Text Content */}
           <div className="flex-grow flex">
             <div className="space-y-4 text-sm md:text-[15px] leading-loose text-[#1c1917] mix-blend-multiply opacity-90 font-normal font-['Courier_Prime']">
-              <p>
-                We see you, and we appreciate your efforts. But the course of action you've taken is only going to get you punished.
-              </p>
-              <p>
-                Join the resistance, and we will guide your actions to be meaningful, but within the parameters that will keep you safe.
-              </p>
-              <p>
-                Stay vigilant, friend.
-              </p>
+              {variant === 'LOCKED' ? (
+                <>
+                  <p>We do not trust lightly.</p>
+                  <p>We will contact you if we feel you have something to bring to the resistance.</p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    We see you, and we appreciate your efforts. But the course of action you've taken is only going to get you punished.
+                  </p>
+                  <p>
+                    Join the resistance, and we will guide your actions to be meaningful, but within the parameters that will keep you safe.
+                  </p>
+                  <p>
+                    Stay vigilant, friend.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
           {/* Footer Button - Positioned at bottom */}
           <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-            <button
-              onClick={handleJoin}
-              className="text-blue-700 text-xs uppercase tracking-widest hover:text-blue-500 hover:underline transition-all font-['Courier_Prime']"
-            >
-              [ Join the Resistance ]
-            </button>
+            {variant === 'LOCKED' ? (
+              <button
+                onClick={handleClose}
+                className="text-stone-700 text-xs uppercase tracking-widest hover:text-stone-500 hover:underline transition-all font-['Courier_Prime']"
+              >
+                [ Understood ]
+              </button>
+            ) : (
+              <button
+                onClick={handleJoin}
+                className="text-blue-700 text-xs uppercase tracking-widest hover:text-blue-500 hover:underline transition-all font-['Courier_Prime']"
+              >
+                [ Join the Resistance ]
+              </button>
+            )}
           </div>
 
         </div>

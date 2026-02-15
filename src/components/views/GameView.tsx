@@ -97,6 +97,7 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
 
 
                 onOpenRules={handleOpenRules}
+                onShowResistanceLocked={actions.showLockedResistance}
             />
 
             <RulesModal isOpen={isRulesOpen} onClose={handleCloseRules} />

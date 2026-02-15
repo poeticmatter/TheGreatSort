@@ -200,6 +200,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
 
     case 'ACTIVATE_RESISTANCE':
+    case 'SHOW_LOCKED_RESISTANCE':
     case 'CLOSE_RESISTANCE_VIEW':
     case 'SET_RESISTANCE_PENDING': // Wait, SET_RESISTANCE_PENDING was likely removed or merged?
     // Checking previous file content... It was 'SET_RESISTANCE_STATUS' and 'RESISTANCE_MISSION_COMPLETE'

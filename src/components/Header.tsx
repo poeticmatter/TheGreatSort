@@ -16,12 +16,13 @@ interface HeaderProps {
   onChangeMode: (mode: GameMode) => void;
 
   onOpenRules: () => void;
+  onShowResistanceLocked: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   level, levelScore, totalScore, totalOptimalScore, gameMode,
   phase, optimalScore, detectedMode,
-  onChangeMode, onOpenRules
+  onChangeMode, onOpenRules, onShowResistanceLocked
 }) => {
   const [showModeMenu, setShowModeMenu] = useState(false);
   const navigate = useNavigate();
@@ -103,16 +104,17 @@ const Header: React.FC<HeaderProps> = ({
                   const isUnlocked = PersistenceService.loadResistanceStatus();
                   return (
                     <button
-                      disabled={!isUnlocked}
                       onClick={() => {
                         if (isUnlocked) {
                           onChangeMode('RESISTANCE' as GameMode);
                           setShowModeMenu(false);
+                        } else {
+                          onShowResistanceLocked();
+                          setShowModeMenu(false);
                         }
                       }}
-                      className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider flex items-center gap-2 w-full
-                            ${!isUnlocked ? 'opacity-50 cursor-not-allowed text-stone-600' : 'hover:bg-stone-800 cursor-pointer'}
-                            ${gameMode === 'RESISTANCE' ? 'text-amber-500 font-bold' : (!isUnlocked ? 'text-stone-600' : 'text-stone-400')}
+                      className={`text-left px-3 py-2 text-xs font-[Courier] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer
+                            ${gameMode === 'RESISTANCE' ? 'text-amber-500 font-bold' : (!isUnlocked ? 'text-stone-500' : 'text-stone-400')}
                         `}
                       title={!isUnlocked ? "Decrypting..." : "Resistance Mode"}
                     >

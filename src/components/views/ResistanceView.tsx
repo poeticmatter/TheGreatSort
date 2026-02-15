@@ -5,7 +5,7 @@ import { useAnalytics } from '../../hooks/useAnalytics';
 
 export function ResistanceView() {
     const { state, dispatch } = useGameContext();
-    const { isViewOpen, status } = state.resistance;
+    const { isViewOpen, status, viewVariant } = state.resistance;
     const { trackResistanceJoined } = useAnalytics();
 
     if (!isViewOpen) return null;
@@ -14,6 +14,7 @@ export function ResistanceView() {
         <ResistanceLetter
             onClose={() => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' })}
             onJoin={() => trackResistanceJoined()}
+            variant={viewVariant}
         />
     );
 }

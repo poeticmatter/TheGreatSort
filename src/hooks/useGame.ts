@@ -271,7 +271,8 @@ export function useGame(sessionDate: string) {
     triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
     closeResistance: closeResistanceAndReset,
     saveDaily: finalizeResistanceMission,
-    trackShare
+    trackShare,
+    showLockedResistance: () => coreDispatch({ type: 'SHOW_LOCKED_RESISTANCE' })
   }), [
     changeMode,
     coreActions,

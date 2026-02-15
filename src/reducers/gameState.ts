@@ -6,6 +6,7 @@ export interface ResistanceState {
   status: ResistanceStatus;
   isViewOpen: boolean;
   targetYield?: number;
+  viewVariant?: 'INVITE' | 'LOCKED';
 }
 
 export interface GameState {
@@ -78,6 +79,7 @@ export type GameAction =
   | { type: 'SET_LEVEL_SCORE'; payload: { score: number } }
   | { type: 'UNDO_MOVE' }
   | { type: 'ACTIVATE_RESISTANCE' }
+  | { type: 'SHOW_LOCKED_RESISTANCE' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'CLOSE_RESISTANCE_VIEW' }
   | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }

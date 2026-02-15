@@ -36,6 +36,7 @@ function isValidTransition(from: ResistanceStatus, to: ResistanceStatus): boolea
 export const initialResistanceState: ResistanceState = {
     status: ResistanceStatus.INACTIVE,
     isViewOpen: false,
+    viewVariant: 'INVITE'
 };
 
 export const resistanceReducer = (state: ResistanceState, action: GameAction): ResistanceState => {
@@ -53,9 +54,17 @@ export const resistanceReducer = (state: ResistanceState, action: GameAction): R
             return {
                 ...state,
                 isViewOpen: true,
+                viewVariant: 'INVITE',
                 status: ResistanceStatus.ACTIVE
             };
         }
+
+        case 'SHOW_LOCKED_RESISTANCE':
+            return {
+                ...state,
+                isViewOpen: true,
+                viewVariant: 'LOCKED'
+            };
 
         case 'CLOSE_RESISTANCE_VIEW':
             return {
