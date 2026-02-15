@@ -110,14 +110,14 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                                 navigate('/tutorial');
                                 onClose();
                             }}
-                            className="bg-transparent border border-amber-600/50 hover:border-amber-500 text-amber-600 hover:text-amber-500 font-bold uppercase tracking-widest px-6 py-3 rounded-sm transition-all flex items-center gap-2 opacity-80 hover:opacity-100"
+                            className="bg-amber-600 hover:bg-amber-500 text-stone-900 font-bold uppercase tracking-widest px-8 py-3 rounded-sm shadow-lg hover:shadow-amber-900/20 transition-all active:transform active:scale-95 flex items-center gap-2"
                         >
-                            <span className="font-[Cinzel]">Training</span>
+                            <span className="font-[Cinzel]">Tutorial</span>
                         </button>
 
                         <button
                             onClick={onClose}
-                            className="bg-amber-600 hover:bg-amber-500 text-stone-900 font-bold uppercase tracking-widest px-8 py-3 rounded-sm shadow-lg hover:shadow-amber-900/20 transition-all active:transform active:scale-95 flex items-center gap-2"
+                            className="bg-transparent border border-amber-600/50 hover:border-amber-500 text-amber-600 hover:text-amber-500 font-bold uppercase tracking-widest px-6 py-3 rounded-sm transition-all flex items-center gap-2 opacity-80 hover:opacity-100"
                         >
                             <span className="font-[Cinzel]">Begin Work</span>
                         </button>
