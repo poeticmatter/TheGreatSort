@@ -146,9 +146,14 @@ export function useGame(sessionDate: string) {
       const result = isSolved ? 'SOLVED' : 'UNSOLVED';
 
       trackInspectorRun(effectiveMode as any, score, result);
+
+      // Explicit Resistance Trigger: Check if user submitted a sabotaged board
+      if (metaState.gameMode === 'DAILY' && !hasJoinedResistance) {
+        checkResistanceTrigger();
+      }
     }
     prevPhase.current = coreState.phase;
-  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun, hasJoinedResistance]);
+  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun, hasJoinedResistance, checkResistanceTrigger]);
 
 
   // --- Initialization ---
