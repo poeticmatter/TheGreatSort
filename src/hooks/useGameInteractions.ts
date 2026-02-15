@@ -18,6 +18,7 @@ export interface InteractionCommand {
 export interface UserInterfaceFeedback {
     showAuditBoard: boolean;
     isBoardDisabled: boolean; // For preventing board interactions/toolbelt
+    allowedIndices?: number[];
 }
 
 export interface UserInterfaceState {
