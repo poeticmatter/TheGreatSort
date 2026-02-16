@@ -24,7 +24,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
 }) => {
   const [showTarget, setShowTarget] = useState(false);
 
-  const getAdherence = () => {
+  const getcompliance = () => {
     if (!optimalScore) return 0;
     if (gameMode === 'DAILY' && worstScore !== null) {
       return calculateRelativeEfficiency(levelScore, optimalScore, worstScore);
@@ -32,7 +32,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
     return Math.min(100, Math.round((levelScore / optimalScore) * 100));
   };
 
-  const adherence = getAdherence();
+  const compliance = getcompliance();
 
   return (
     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
@@ -45,7 +45,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
         {/* Card Container */}
         <div className="flex flex-col md:flex-row items-stretch gap-0 bg-stone-800 rounded-sm border-2 border-stone-600 shadow-2xl relative overflow-hidden w-full">
-          
+
           {/* Decor Header */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-stone-700/50"></div>
 
@@ -57,21 +57,21 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
           <div className="w-px bg-stone-600 hidden md:block self-stretch"></div>
 
-          {/* Adherence & Controls Section */}
+          {/* compliance & Controls Section */}
           <div className="flex flex-col p-6 gap-6 min-w-[300px] flex-1">
-            
-            {/* Adherence Bar */}
+
+            {/* compliance Bar */}
             <div className="flex flex-col w-full">
               <div className="flex justify-between items-end mb-1">
-                 <span className="text-[10px] text-stone-500 uppercase tracking-widest">Adherence</span>
-                 <span className={`text-sm font-bold font-mono ${adherence === 100 ? 'text-green-500' : 'text-stone-300'}`}>{adherence}%</span>
+                <span className="text-[10px] text-stone-500 uppercase tracking-widest">compliance</span>
+                <span className={`text-sm font-bold font-mono ${compliance === 100 ? 'text-green-500' : 'text-stone-300'}`}>{compliance}%</span>
               </div>
-              
+
               <div className="w-full h-3 bg-stone-700 rounded-full overflow-hidden border border-stone-600 relative">
-                 <div 
-                    className="h-full bg-amber-500 transition-all duration-1000 ease-out"
-                    style={{ width: `${adherence}%` }}
-                 ></div>
+                <div
+                  className="h-full bg-amber-500 transition-all duration-1000 ease-out"
+                  style={{ width: `${compliance}%` }}
+                ></div>
               </div>
 
               <div className="flex justify-between mt-1 text-[9px] text-stone-600 font-bold uppercase tracking-widest px-1">
@@ -84,36 +84,36 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
             {/* Bottom Row: Target & Action */}
             <div className="flex justify-between items-center gap-4">
-              
+
               {/* Optimal Yield Display */}
               <div className="flex flex-col">
-                 <span className="text-[9px] text-stone-500 uppercase tracking-widest mb-0.5">Optimal Yield</span>
-                 {gameMode === 'DAILY' ? (
-                    optimalScore === null ? (
-                       <span className="text-xs text-stone-500 animate-pulse">Calculating...</span>
-                    ) : showTarget ? (
-                       <span className="text-lg font-bold text-stone-300 font-[Cinzel] animate-in fade-in">{optimalScore}</span>
-                    ) : (
-                       <button 
-                         onClick={() => setShowTarget(true)}
-                         className="text-xs text-amber-600 hover:text-amber-500 underline font-mono text-left"
-                       >
-                         Reveal Target
-                       </button>
-                    )
-                 ) : (
-                    <span className="text-lg font-bold text-stone-300 font-[Cinzel]">{optimalScore}</span>
-                 )}
+                <span className="text-[9px] text-stone-500 uppercase tracking-widest mb-0.5">Optimal Yield</span>
+                {gameMode === 'DAILY' ? (
+                  optimalScore === null ? (
+                    <span className="text-xs text-stone-500 animate-pulse">Calculating...</span>
+                  ) : showTarget ? (
+                    <span className="text-lg font-bold text-stone-300 font-[Cinzel] animate-in fade-in">{optimalScore}</span>
+                  ) : (
+                    <button
+                      onClick={() => setShowTarget(true)}
+                      className="text-xs text-amber-600 hover:text-amber-500 underline font-mono text-left"
+                    >
+                      Reveal Target
+                    </button>
+                  )
+                ) : (
+                  <span className="text-lg font-bold text-stone-300 font-[Cinzel]">{optimalScore}</span>
+                )}
               </div>
 
               {/* Daily Action Button */}
               {gameMode === 'DAILY' && (
-                  <button
-                      onClick={onViewAudit}
-                      className="bg-amber-700 hover:bg-amber-600 text-stone-900 border border-amber-800 px-4 py-2 rounded font-bold uppercase tracking-wider text-[10px] shadow-md transition-all active:translate-y-0.5 whitespace-nowrap"
-                  >
-                      {isLocked ? 'Review Audit' : 'Submit to Audit'}
-                  </button>
+                <button
+                  onClick={onViewAudit}
+                  className="bg-amber-700 hover:bg-amber-600 text-stone-900 border border-amber-800 px-4 py-2 rounded font-bold uppercase tracking-wider text-[10px] shadow-md transition-all active:translate-y-0.5 whitespace-nowrap"
+                >
+                  {isLocked ? 'Review Audit' : 'Submit to Audit'}
+                </button>
               )}
 
             </div>
@@ -122,7 +122,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </div>
       </div>
 
-      {gameMode === 'PRACTICE' && adherence < 100 && (
+      {gameMode === 'PRACTICE' && compliance < 100 && (
         <div className="mt-4 flex flex-col items-center">
           <button
             onClick={onRetryPractice}
@@ -135,7 +135,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
       {gameMode === 'DAILY' && optimalScore !== null && showTarget && (
         <div className="mt-4 text-stone-500 text-xs font-serif italic animate-in fade-in">
-          {adherence === 100
+          {compliance === 100
             ? "Quota Met perfectly."
             : "Inefficiency detected. Compliance is mandatory."}
         </div>
