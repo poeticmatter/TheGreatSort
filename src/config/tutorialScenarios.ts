@@ -30,13 +30,14 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         id: 'B_INIT',
         initialList: [6, 5, 12, 3, 14, 2],
         allowedTool: 'swap',
-        targetYield: 23,
+        targetYield: 37,
         description: 'The Pivot',
         instruction: (c, t, isSuccess) => {
-            if (isSuccess) return "Well done. By switching to Ascending, you saved the 12.";
-            return "The inspector protocol is locked to DESCENDING because 6 > 5. Swap the 6 and 5 to force ASCENDING mode.";
+            if (isSuccess) return "Well done. By switching to ascending, you maximized yield.";
+            if (c > 16) return "You created an ascending protocol which increases yield, but there is a better solution.";
+            return "The inspector protocol is locked to descending because 6 > 5. Can you find a way to switch to ascending mode and maximize yield?";
         },
-        successCondition: (c, t) => c >= 23,
+        successCondition: (c, t) => c >= t,
         nextStepId: 'COMPLETE'
     },
     'COMPLETE': {
