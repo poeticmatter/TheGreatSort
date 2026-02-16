@@ -72,7 +72,7 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJ
                 onClick={handleClose}
                 className="text-stone-700 text-xs uppercase tracking-widest hover:text-stone-500 hover:underline transition-all font-['Courier_Prime']"
               >
-                [ Understood ]
+                [ I will find a way to make them notice me ]
               </button>
             ) : (
               <button
