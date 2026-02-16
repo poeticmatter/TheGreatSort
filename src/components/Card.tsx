@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { CardItem, AgentRole } from '../../types';
 import { Play, Siren, Shield } from 'lucide-react';
+import CountUp from './CountUp';
 
 interface CardProps {
   item: CardItem;
@@ -118,6 +119,16 @@ const Card: React.FC<CardProps> = React.memo(({
     ? ""
     : "sm:left-[calc(100%+14px)] sm:right-auto sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rotate-0";
 
+  /* Step Out Logic Removed */
+  let translateClass = "";
+  if (isSelected) {
+    if (variant === 'standard') {
+      // translateClass = "-translate-y-2"; // Step Up DISABLED
+    } else if (variant === 'wide') {
+      // translateClass = "translate-x-2"; // Step Right DISABLED
+    }
+  }
+
   return (
     <div
       style={style}
@@ -133,7 +144,7 @@ const Card: React.FC<CardProps> = React.memo(({
           : 'w-20 h-24 text-3xl'       // Desktop (Horizontal Strip): Tall, large card
         }
         rounded-sm border sm:border-2 ${borderColor} ${bgColor} ${textColor} ${opacity} ${shadow}
-        transform transition-all duration-300 ease-out ${scale}
+        transform transition-all duration-300 ease-out ${scale} ${translateClass}
         cursor-pointer select-none font-serif font-bold
         overflow-visible
         group
@@ -169,7 +180,8 @@ const Card: React.FC<CardProps> = React.memo(({
       <div className={`hidden sm:block absolute bottom-1 left-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
       <div className={`hidden sm:block absolute bottom-1 right-1 w-1 h-1 rounded-full ${item.status === 'safe' ? 'bg-amber-500' : 'bg-stone-500'} opacity-50`}></div>
 
-      {item.val}
+      {/* Value with CountUp */}
+      <CountUp value={item.val} />
 
       {/* Rubber Stamp Effect for Eliminated */}
       {item.status === 'eliminated' && (
@@ -245,5 +257,3 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
 };
 
 export default React.memo(Card, arePropsEqual);
-
-
