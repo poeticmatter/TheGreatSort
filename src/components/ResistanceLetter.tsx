@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import letterBg from '../assets/ResistanceLetter.png';
 
 interface ResistanceLetterProps {
-  onClose: () => void;
+  onClose: (accepted: boolean) => void;
   onJoin?: () => void;
   variant?: 'INVITE' | 'LOCKED';
 }
@@ -14,16 +14,16 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJ
     localStorage.setItem('joinedResistance', 'true');
     if (onJoin) onJoin();
     setClosing(true);
-    setTimeout(onClose, 300);
+    setTimeout(() => onClose(true), 300);
   };
 
   const handleClose = () => {
     setClosing(true);
-    setTimeout(onClose, 300);
+    setTimeout(() => onClose(false), 300);
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-stone-950 transition-opacity duration-1000 ${closing ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-stone-950 transition-opacity duration-1000 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <style>{`
         @keyframes text-pulse-to-black {
           0%, 100% { color: #44403c; } 

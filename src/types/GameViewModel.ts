@@ -26,4 +26,5 @@ export interface GameViewModel extends GameState {
     // Tutorial specific
     allowedIndices?: number[];
     tutorialMessage?: string;
+    hasJoinedResistance: boolean;
 }

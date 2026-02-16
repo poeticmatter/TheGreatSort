@@ -10,12 +10,17 @@ import { useInspectionLoop } from './useInspectionLoop';
 import { TUTORIAL_SCENARIOS } from '../config/tutorialScenarios';
 import { transformToViewModel } from '../utils/gameViewModelTransformer';
 import { UserInterfaceState } from './useGameInteractions';
+import { PersistenceService } from '../services/persistence';
+import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export function useTutorialEngine() {
     const navigate = useNavigate();
     const { dispatch: globalDispatch } = useGameContext();
     const [currentStepId, setCurrentStepId] = useState<string>('A_INIT');
     const step = TUTORIAL_SCENARIOS[currentStepId];
+
+    // load resistance status directly
+    const hasJoinedResistance = PersistenceService.loadResistanceStatus();
 
     // 1. Reducer State
     const [state, dispatch] = useReducer(gameReducer, {
@@ -204,6 +209,7 @@ export function useTutorialEngine() {
         isZeroYield: currentYield === 0,
         yieldRatio: 0,
         currentYield: currentYield,
+        hasJoinedResistance,
 
         allowedIndices: undefined,
         tutorialMessage: step ? step.instruction(currentYield, optimalScore, isSuccess) : undefined
@@ -247,9 +253,15 @@ export function useTutorialEngine() {
         closeAudit: () => { },
         triggerCurrentAudit: () => { },
         triggerResistance: () => { },
-        closeResistance: () => { },
+        closeResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
         saveDaily: () => { },
-        handleUndo
+        handleCardClick,
+        handleToolClick,
+        handleUndo,
+        showLockedResistance: () => dispatch({ type: 'SHOW_LOCKED_RESISTANCE' }),
+        joinResistance: () => { },
+        dismissResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
+        trackShare: () => { }
     };
 
     return { data, interaction, actions };

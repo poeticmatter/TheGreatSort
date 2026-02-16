@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useCoreGame } from './useCoreGame';
 import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
@@ -24,7 +24,7 @@ export function useGame(sessionDate: string) {
 
   // 2. Meta Game (Mode, Audit, Resistance)
   const { metaState, metaActions } = useMetaGame(coreState, coreDispatch, sessionDate);
-  const { trackLevelStart, trackInspectorRun, trackLevelAction, trackShare } = useAnalytics();
+  const { trackLevelStart, trackInspectorRun, trackLevelAction, trackShare, trackResistanceJoined } = useAnalytics();
 
   // 3. Daily Logic
   const {
@@ -116,9 +116,10 @@ export function useGame(sessionDate: string) {
   }, [coreDispatch, trackLevelStart, trackLevelAction]);
 
   // --- Resistance System ---
-  const hasJoinedResistance = PersistenceService.loadResistanceStatus();
+  // Reactive State for Resistance Status to ensure UI updates immediately
+  const [hasJoinedResistance, setHasJoinedResistance] = useState(PersistenceService.loadResistanceStatus());
 
-  const { finalizeResistanceMission, closeResistanceAndReset, checkResistanceTrigger } = useResistanceSystem({
+  const { finalizeResistanceMission, closeResistanceAndReset: originalCloseResistanceAndReset, checkResistanceTrigger } = useResistanceSystem({
     coreState,
     coreDispatch,
     metaState,
@@ -128,6 +129,12 @@ export function useGame(sessionDate: string) {
     nextLevel,
     hasJoinedResistance
   });
+
+  // Wrapper to update local state when joining
+  const closeResistanceAndReset = useCallback(() => {
+    setHasJoinedResistance(true); // Update local state
+    originalCloseResistanceAndReset();
+  }, [originalCloseResistanceAndReset]);
 
 
   // --- Inspector Run Tracking ---
@@ -161,7 +168,7 @@ export function useGame(sessionDate: string) {
   useEffect(() => {
     if (metaState.isGameLoaded) return;
 
-    if (metaState.gameMode === 'DAILY') {
+    if (metaState.gameMode === 'DAILY' || metaState.gameMode === 'RESISTANCE') {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
           dailyConfig.resistance!.status = ResistanceStatus.ACTIVE;
@@ -270,6 +277,12 @@ export function useGame(sessionDate: string) {
     triggerCurrentAudit: metaActions.triggerCurrentAudit,
     triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
     closeResistance: closeResistanceAndReset,
+    joinResistance: () => {
+      setHasJoinedResistance(true);
+      PersistenceService.saveResistanceStatus(true);
+      trackResistanceJoined();
+    },
+    dismissResistance: () => coreDispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
     saveDaily: finalizeResistanceMission,
     trackShare,
     showLockedResistance: () => coreDispatch({ type: 'SHOW_LOCKED_RESISTANCE' })
@@ -299,6 +312,7 @@ export function useGame(sessionDate: string) {
       dailyResult,
       isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked,
       isResistanceModalOpen: metaState.gameMode === 'PRACTICE' ? false : (coreState.resistance?.isViewOpen ?? false),
+      hasJoinedResistance, // Exposed for UI reactivity
       persistenceLoaded: dailyStatus === 'READY',
       startingCompliance,
       isZeroYield,
