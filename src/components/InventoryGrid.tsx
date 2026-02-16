@@ -38,7 +38,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
     case 'HORIZONTAL_STRIP':
     default:
       // Centered strip that scrolls if needed
-      layoutClasses = "flex flex-row gap-0.5 sm:gap-1 overflow-x-auto px-1 sm:px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full min-h-[12rem]";
+      layoutClasses = "relative flex flex-row gap-0.5 sm:gap-1 overflow-x-auto px-1 sm:px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full min-h-[12rem]";
       break;
   }
 
@@ -64,7 +64,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         `}} />
 
       <div className={layoutClasses}>
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="popLayout">
           {cards.map((card, idx) => {
             const isLast = idx === cards.length - 1;
 
