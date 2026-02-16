@@ -4,16 +4,13 @@ import { useMetaGame } from './useMetaGame';
 import { useSolverService } from './useSolverService';
 import { useProjectedMetrics } from './useProjectedMetrics';
 import { useSystemMood } from './useSystemMood';
-import { verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
 import { GameHydrationService } from '../services/gameHydrationService'; // Import Hydration Service
 import { useDailyChallenge } from './useDailyChallenge'; // Import Daily Hook
 import { PuzzleRepository } from '../services/puzzleRepository'; // Helper usage if needed
-import { GamePhase, GameMode, ResistanceStatus, CardItem, Move } from '../../types';
-import { getDailyEntry } from './useGamePersistence'; // For shareResult mostly
-import { useGameInteractions } from './useGameInteractions';
+import { GamePhase, GameMode, ResistanceStatus } from '../../types';
+import { useGameInteractions } from './useGameInteractions'
 import { useResistanceSystem } from './useResistanceSystem';
 import { PersistenceService } from '../services/persistence';
-import { initialResistanceState } from '../reducers/resistanceReducer';
 import { useAnalytics } from './useAnalytics';
 
 export function useGame(sessionDate: string) {
@@ -168,7 +165,7 @@ export function useGame(sessionDate: string) {
   useEffect(() => {
     if (metaState.isGameLoaded) return;
 
-    if (metaState.gameMode === 'DAILY' || metaState.gameMode === 'RESISTANCE') {
+    if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
         if (PersistenceService.loadResistanceStatus()) {
           dailyConfig.resistance!.status = ResistanceStatus.ACTIVE;

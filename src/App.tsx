@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
-import { useAnalytics } from './hooks/useAnalytics';
 import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { LayoutType } from './components/InventoryGrid';
 import { GameProvider, useGameContext } from './context/GameContext';

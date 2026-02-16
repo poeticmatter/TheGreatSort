@@ -11,7 +11,6 @@ import { TUTORIAL_SCENARIOS } from '../config/tutorialScenarios';
 import { transformToViewModel } from '../utils/gameViewModelTransformer';
 import { UserInterfaceState } from './useGameInteractions';
 import { PersistenceService } from '../services/persistence';
-import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export function useTutorialEngine() {
     const navigate = useNavigate();
@@ -255,8 +254,6 @@ export function useTutorialEngine() {
         triggerResistance: () => { },
         closeResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
         saveDaily: () => { },
-        handleCardClick,
-        handleToolClick,
         handleUndo,
         showLockedResistance: () => dispatch({ type: 'SHOW_LOCKED_RESISTANCE' }),
         joinResistance: () => { },

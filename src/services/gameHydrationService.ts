@@ -1,8 +1,8 @@
-import { GameState, ResistanceState } from '../reducers/gameState';
+import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, ToolInstance, Move, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
+import { GamePhase, CardItem, AgentRole, ResistanceStatus } from '../../types';
 import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export interface HydrationResult {

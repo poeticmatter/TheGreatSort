@@ -1,5 +1,5 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
+import { GamePhase } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
@@ -202,18 +202,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'ACTIVATE_RESISTANCE':
     case 'SHOW_LOCKED_RESISTANCE':
     case 'CLOSE_RESISTANCE_VIEW':
-    case 'SET_RESISTANCE_PENDING': // Wait, SET_RESISTANCE_PENDING was likely removed or merged?
-    // Checking previous file content... It was 'SET_RESISTANCE_STATUS' and 'RESISTANCE_MISSION_COMPLETE'
-    // I see 'SET_RESISTANCE_PENDING' in the case list I'm generating. It might be in resistanceReducer actions.
-    // The previous file content had:
-    // case 'ACTIVATE_RESISTANCE':
-    // case 'CLOSE_RESISTANCE_VIEW':
-    // case 'SET_RESISTANCE_PENDING':
-    // case 'SET_RESISTANCE_STATUS':
-    // case 'RESISTANCE_MISSION_COMPLETE': {
-    // Wait, the previous file content I "viewed" showed:
-    // 188:     case 'SET_RESISTANCE_PENDING':
-    // Yes, it was there.
     case 'SET_RESISTANCE_STATUS':
     case 'RESISTANCE_MISSION_COMPLETE': {
       return {

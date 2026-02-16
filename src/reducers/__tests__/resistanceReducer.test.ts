@@ -46,30 +46,7 @@ describe('resistanceReducer', () => {
         });
     });
 
-    describe('SET_RESISTANCE_PENDING', () => {
-        it('should validate boolean payload', () => {
-            const action: GameAction = {
-                type: 'SET_RESISTANCE_PENDING',
-                payload: { pending: true }
-            };
-            const newState = resistanceReducer(initialResistanceState, action);
-            expect(newState.isPending).toBe(true);
-        });
 
-        it('should reject invalid payload and log warning', () => {
-            const action = {
-                type: 'SET_RESISTANCE_PENDING',
-                payload: { pending: 'not-a-boolean' }
-            } as unknown as GameAction;
-            const newState = resistanceReducer(initialResistanceState, action);
-
-            expect(newState).toBe(initialResistanceState);
-            expect(consoleWarnSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Invalid payload'),
-                expect.anything()
-            );
-        });
-    });
 
     describe('SET_RESISTANCE_STATUS', () => {
         it('should allow valid transition ACTIVE → SUCCESS', () => {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GameMode, GamePhase } from '../../types'
+import { GameMode } from '../../types'
 import { useAnalytics } from './useAnalytics';
-import { calculateRelativeEfficiency } from '../utils/gameLogic';
 
 export interface MetaState {
     gameMode: GameMode;
@@ -24,7 +23,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
     const [isGameLoaded, setIsGameLoaded] = useState(false);
     const [auditState, setAuditState] = useState<{ date: string; userScore: number } | null>(null);
 
-    const { trackLevelStart, trackAuditViewed } = useAnalytics();
+    const { trackLevelStart } = useAnalytics();
 
     // Sync sessionDate to store if needed, or just rely on initial state match.
     // Ideally we dispatch SET_SESSION_DATE on mount if they differ?

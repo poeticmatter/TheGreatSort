@@ -1,5 +1,4 @@
 import { SaveStateSchema, CachedSolution, DailyResult, DailyHistory, SCHEMA_VERSION } from './types';
-import { getTodayDateString } from '../../utils/dateUtils';
 
 const KEYS = {
     DAILY_STATE_PREFIX: 'daily_state_',

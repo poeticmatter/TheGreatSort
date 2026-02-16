@@ -1,5 +1,5 @@
 import {
-  ArrowLeftToLine, ArrowRightToLine, Trash2, ArrowRightLeft, Merge, ArrowDownToLine,
+  ArrowLeftToLine, ArrowRightToLine, ArrowRightLeft, ArrowDownToLine,
   RefreshCcwDot, Divide, Shield, DiamondMinus, RedoDot, FlipHorizontal2, Recycle, Equal, Scale
 } from 'lucide-react';
 import { ToolDefinition } from '../types';

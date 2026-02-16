@@ -2,7 +2,7 @@ export type FlavorKey = 'SOLVED' | 'DONE' | 'ADEQUATE' | 'INITIAL' | 'SUSPICIOUS
 
 export interface FlavorEntry {
     text: string;
-    weight: number; // 1 = common, 0.1 = rare
+    weight: number;
 }
 
 export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {

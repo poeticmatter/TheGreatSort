@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { CardItem, CardStatus } from '../../types';
+import { CardItem } from '../../types';
 import { SystemMood } from './useSystemMood';
-import { SHARE_FLAVOR_DATABASE, ShareFlavorEntry } from '../config/shareFlavor';
+import { SHARE_FLAVOR_DATABASE } from '../config/shareFlavor';
 
 interface UseShareResultProps {
     userScore: number;

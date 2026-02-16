@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import { GameMode, GamePhase, ToolInstance, Move, CardItem } from '../../types';
 import { PersistenceService } from '../services/persistence';
 import { SaveStateSchema, DailyResult } from '../services/persistence/types';
-import { getTodayDateString } from '../utils/dateUtils';
 
 // Re-export specific helpers for backward compatibility if needed, 
 // or mostly for cleaner imports in useGame

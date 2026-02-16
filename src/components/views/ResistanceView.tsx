@@ -1,7 +1,6 @@
 import React from 'react';
 import { ResistanceLetter } from '../ResistanceLetter';
 import { useGameContext } from '../../context/GameContext';
-import { useAnalytics } from '../../hooks/useAnalytics';
 
 interface ResistanceViewProps {
     onClose: (accepted: boolean) => void;
