@@ -63,7 +63,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
 
     // --- Feedback Logic ---
     const feedback = useMemo<UserInterfaceFeedback>(() => {
-        const isDailyLocked = (gameMode === 'DAILY' || gameMode === 'RESISTANCE') && isLocked;
+        const isDailyLocked = gameMode === 'DAILY' && isLocked;
         const showAuditBoard = isDailyLocked || !!auditState;
 
         // Controls are disabled if the board is locked (Daily solved/failed) OR if we are inspecting (running simulation)
@@ -87,7 +87,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
         let disabled = false;
 
         // 1. Daily Locked State (Overrides everything)
-        if ((gameMode === 'DAILY' || gameMode === 'RESISTANCE') && isLocked) {
+        if (gameMode === 'DAILY' && isLocked) {
             label = 'Training';
             variant = 'destructive';
             Icon = Play;
@@ -99,7 +99,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
             // "DAILY" or "RESISTANCE" needs "View Audit"
             // "PRACTICE" needs "Next Level"
 
-            const isDailyLike = gameMode === 'DAILY' || gameMode === 'RESISTANCE';
+            const isDailyLike = gameMode === 'DAILY';
 
             onClick = isDailyLike
                 ? () => { actions.saveDaily(); actions.triggerCurrentAudit(); }
@@ -136,7 +136,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
         // Only show Secondary Action in certain states? 
         // Previously it was always rendered but maybe disabled.
 
-        const isDailyRetry = (gameMode === 'DAILY' || gameMode === 'RESISTANCE') && phase === GamePhase.RESULTS && !isLocked;
+        const isDailyRetry = gameMode === 'DAILY' && phase === GamePhase.RESULTS && !isLocked;
         const isPracticeRetry = gameMode === 'PRACTICE' && phase === GamePhase.RESULTS;
 
         if (isDailyRetry || isPracticeRetry) {
@@ -145,7 +145,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
                 label: 'RETRY',
                 variant: isPerfect ? 'muted' : 'default',
                 Icon: Repeat,
-                onClick: (gameMode === 'DAILY' || gameMode === 'RESISTANCE') ? actions.retryDaily : actions.retryPractice,
+                onClick: gameMode === 'DAILY' ? actions.retryDaily : actions.retryPractice,
                 disabled: false
             };
         }

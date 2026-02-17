@@ -26,6 +26,7 @@ export const initialState: GameState = {
   resistance: initialResistanceState,
   gameMode: 'DAILY',
   sessionDate: getTodayDateString(),
+  isLoaded: false,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -36,12 +37,21 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Preserve mode and date from current state unless explicitly overwritten by payload
         gameMode: state.gameMode,
         sessionDate: state.sessionDate,
+        isLoaded: true, // Default to loaded on init
         ...action.payload.state,
       };
     }
 
     case 'SET_GAME_MODE': {
-      return { ...state, gameMode: action.payload.mode };
+      return {
+        ...state,
+        gameMode: action.payload.mode,
+        isLoaded: false // Reset loaded state when switching modes
+      };
+    }
+
+    case 'SET_IS_LOADED': {
+      return { ...state, isLoaded: action.payload.loaded };
     }
 
     case 'SET_SESSION_DATE': {

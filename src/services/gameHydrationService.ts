@@ -2,7 +2,7 @@ import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
+import { GamePhase, CardItem, AgentRole, ResistanceStatus } from '../../types';
 import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export interface HydrationResult {
@@ -25,23 +25,12 @@ export class GameHydrationService {
         // Apply Resistance Data
         const { list: refinedStartList, resistanceStatus: baseStatus, resistanceTarget } = this.applyResistanceData(startList, puzzle);
 
-        // Determine final resistance status
-        // If save has it, use save. BUT if loadResistanceStatus implies active, we should respect that?
-        // Usually save game state overrides. But if we joined resistance externally (meta), maybe we should force it?
-        // The prompt says "The persistence status should be loaded once... and stored in Redux... The UI should derive...".
-        // If we are loading a SAVE, the save should reflect the state at that time.
-        // However, if the user joined resistance, maybe they want to see resistance UI even if save is old?
-        // Let's assume if isResistanceActive is true, we force it.
-
         let resistanceStatus = baseStatus;
-        let gameModeOverride: GameMode | undefined = undefined;
 
         if (isResistanceActive) {
             resistanceStatus = ResistanceStatus.ACTIVE;
-            gameModeOverride = 'RESISTANCE';
-        } else if (save.snapshot?.resistanceStatus) {
-            // Future-proofing: if save contains explicit status
         }
+
 
         const startTools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
@@ -222,12 +211,7 @@ export class GameHydrationService {
         return {
             list: newList,
             resistanceStatus: ResistanceStatus.INACTIVE,
-            resistanceTarget: resistanceData.targetYield // simplified schema property name might actully be targetYield?
-            // The generator writes "targetYield".
-            // The DailyPuzzle interface in generator says "targetYield".
-            // However, DailyPuzzleData type in PuzzleRepository MIGHT be different.
-            // I should check DailyPuzzleData interface. But based on typical flow, it matches generator output.
-            // I'll assume resistanceData has targetYield property as generated.
+            resistanceTarget: resistanceData.targetYield
         };
     }
 
@@ -240,11 +224,7 @@ export class GameHydrationService {
 
         if (hasJoinedResistance && initialState.resistance) {
             initialState.resistance.status = ResistanceStatus.ACTIVE;
-            // If we are activating resistance, we should probably set the game mode too?
-            // The hook logic was doing: dailyConfig.gameMode = 'RESISTANCE';
-            // But gameMode is on MetaState (in useGame), not strictly GameState (though GameState has it too in reducer).
-            // The reducer respects the payload's gameMode if provided.
-            initialState.gameMode = 'RESISTANCE';
+            initialState.gameMode = 'DAILY';
         }
 
         return { initialState, isValid };

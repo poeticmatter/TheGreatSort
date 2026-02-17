@@ -13,7 +13,8 @@ export function useDailyChallenge(
     sessionDate: string,
     gameState?: GameState,
     gameMode?: GameMode,
-    isGameLoaded: boolean = false
+    isGameLoaded: boolean = false,
+    hasUnlockedResistance: boolean = false
 ) {
     const [status, setStatus] = useState<DailyStatus>('LOADING');
     const [initialConfig, setInitialConfig] = useState<Partial<GameState> | null>(null);
@@ -24,6 +25,9 @@ export function useDailyChallenge(
 
     // Load Logic
     useEffect(() => {
+        // Reset status to ensure we don't serve stale config while loading
+        setStatus('LOADING');
+
         const loadDaily = () => {
             // 1. Get Puzzle definition
             const [y, m, d] = sessionDate.split('-').map(Number);
@@ -33,31 +37,24 @@ export function useDailyChallenge(
             // 2. Check Persistence
             const savedState = PersistenceService.loadDailyState(sessionDate);
             const savedResult = PersistenceService.getDailyResult(sessionDate);
-            const isResistant = PersistenceService.loadResistanceStatus();
+            // Use prop instead of loading again, or ensure consistency
+            const isResistant = hasUnlockedResistance;
 
             let config: Partial<GameState>;
 
             if (savedState) {
-                const { initialState } = GameHydrationService.hydrateDailyFromSave(savedState, puzzle);
-                // Apply Resistance status to saved state if valid
-                if (isResistant && initialState.resistance) {
-                    initialState.resistance.status = ResistanceStatus.ACTIVE;
-                    initialState.gameMode = 'RESISTANCE';
-                }
+                // Pass isResistant directly to hydration service to handle overrides internally
+                const { initialState } = GameHydrationService.hydrateDailyFromSave(savedState, puzzle, isResistant);
                 config = initialState;
             } else if (savedResult) {
-                // Completed but no state save found
-                const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
+                // Completed but no state save found. Use hydrateResistanceDaily to handle resistance logic consistently.
+                const { initialState } = GameHydrationService.hydrateResistanceDaily(puzzle, isResistant);
                 config = {
                     ...initialState,
                     phase: GamePhase.RESULTS,
                     dailyCompleted: true,
                     levelScore: savedResult.score
                 };
-                if (isResistant && config.resistance) {
-                    config.resistance.status = ResistanceStatus.ACTIVE;
-                    config.gameMode = 'RESISTANCE';
-                }
             } else {
                 // Brand new session
                 const { initialState } = GameHydrationService.hydrateResistanceDaily(puzzle, isResistant);
@@ -69,12 +66,13 @@ export function useDailyChallenge(
             setStatus('READY');
         };
 
+        // Only load if we are in a relevant mode (though pre-loading is fine, re-loading on mode switch is critical)
         loadDaily();
-    }, [sessionDate]);
+    }, [sessionDate, hasUnlockedResistance, gameMode]);
 
     // Snapshot Saver
     useEffect(() => {
-        if (!isGameLoaded || !gameState || (gameMode !== 'DAILY' && gameMode !== 'RESISTANCE')) return;
+        if (!isGameLoaded || !gameState || gameMode !== 'DAILY') return;
 
         // Only save if there's meaningful data (e.g. seed is present)
         if (gameState.currentSeed === undefined) return;

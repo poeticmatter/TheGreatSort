@@ -31,6 +31,7 @@ export interface GameState {
   resistance: ResistanceState;
   gameMode: GameMode;
   sessionDate: string;
+  isLoaded: boolean;
 }
 
 export type GameAction =
@@ -85,4 +86,5 @@ export type GameAction =
   | { type: 'SET_RESISTANCE_STATUS'; payload: { status: ResistanceStatus } }
   | { type: 'RESISTANCE_MISSION_COMPLETE'; payload: { status: ResistanceStatus } }
   | { type: 'SET_GAME_MODE'; payload: { mode: GameMode } }
-  | { type: 'SET_SESSION_DATE'; payload: { date: string } };
+  | { type: 'SET_SESSION_DATE'; payload: { date: string } }
+  | { type: 'SET_IS_LOADED'; payload: { loaded: boolean } };
