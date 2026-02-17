@@ -67,7 +67,10 @@ export const getSecondaryButtonVisuals = (
     isLocked: boolean,
     isPerfect: boolean
 ): ButtonVisualConfig => {
-    if (gameMode === 'DAILY' && phase === GamePhase.RESULTS && !isLocked) {
+    const isDailyRetry = gameMode === 'DAILY' && phase === GamePhase.RESULTS && !isLocked;
+    const isPracticeRetry = gameMode === 'PRACTICE' && phase === GamePhase.RESULTS;
+
+    if (isDailyRetry || isPracticeRetry) {
         return {
             label: 'RETRY',
             variant: isPerfect ? 'muted' : 'default',
