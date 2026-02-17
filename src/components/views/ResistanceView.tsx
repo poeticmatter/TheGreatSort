@@ -1,4 +1,3 @@
-import React from 'react';
 import { ResistanceLetter } from '../ResistanceLetter';
 import { useGameContext } from '../../context/GameContext';
 

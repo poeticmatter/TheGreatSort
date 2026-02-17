@@ -10,7 +10,7 @@ export interface ResistanceState {
 }
 
 export interface GameState {
-  level: number;
+  // level removed
   levelScore: number;
   totalScore: number;
   totalOptimalScore: number;
@@ -44,7 +44,7 @@ export type GameAction =
   | {
     type: 'START_LEVEL';
     payload: {
-      level: number;
+      // level removed
       list: CardItem[];
       tools: ToolInstance[];
       seed?: number;

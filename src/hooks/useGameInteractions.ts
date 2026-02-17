@@ -59,7 +59,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
 
     // --- Primary Action (Submit / Inspect / Next) ---
     const primaryAction = useMemo<InteractionCommand>(() => {
-        const { label, variant, Icon } = getPrimaryButtonVisuals(phase, gameMode, mood, isLocked);
+        const { label, variant, Icon } = getPrimaryButtonVisuals(phase, gameMode, mood);
 
         let onClick = actions.startInspection;
         let disabled = false;

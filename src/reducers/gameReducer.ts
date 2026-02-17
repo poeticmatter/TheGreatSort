@@ -6,7 +6,7 @@ import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 import { getTodayDateString } from '../utils/dateUtils';
 
 export const initialState: GameState = {
-  level: 1,
+  // level removed
   levelScore: 0,
   totalScore: 0,
   totalOptimalScore: 0,
@@ -61,7 +61,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'START_LEVEL': {
       return {
         ...state,
-        level: action.payload.level,
+        // level removed
         list: action.payload.list,
         initialList: action.payload.initialList ? [...action.payload.initialList] : [...action.payload.list],
         toolsAvailable: action.payload.tools,

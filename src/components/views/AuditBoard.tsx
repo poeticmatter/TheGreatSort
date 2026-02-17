@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { DailyAudit } from '../DailyAudit';
 import { useAnalytics } from '../../hooks/useAnalytics';
-import { PersistenceService } from '../../services/persistence';
 import { GameMode } from '../../../types';
 
 interface AuditBoardProps {

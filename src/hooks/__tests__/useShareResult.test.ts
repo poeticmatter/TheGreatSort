@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { generateEmojiGrid, formatSharePayload, getWeightedFlavor } from '../useShareResult';
-import { CardItem } from '../../types';
+import { CardItem } from '../../../types';
 import { SHARE_FLAVOR_DATABASE } from '../../config/shareFlavor';
 
 describe('Smart Share Logic', () => {

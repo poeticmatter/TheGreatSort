@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Header from '../Header';
 import Footer from '../Footer';
 import ToolBelt from '../ToolBelt';
@@ -86,14 +86,8 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative shell">
             <Header
-                level={data.level}
-                levelScore={data.levelScore}
-                totalScore={data.totalScore}
-                totalOptimalScore={data.totalOptimalScore}
                 gameMode={data.gameMode}
                 phase={data.phase}
-                optimalScore={data.optimalScore}
-                detectedMode={data.detectedMode}
                 onChangeMode={actions.changeMode}
                 onOpenRules={handleOpenRules}
                 onShowResistanceLocked={actions.showLockedResistance}

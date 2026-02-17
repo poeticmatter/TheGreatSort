@@ -201,7 +201,6 @@ export function useCoreGame({ onGameComplete, onMoveApplied }: UseCoreGameProps 
         dispatch({
             type: 'START_LEVEL',
             payload: {
-                level,
                 list,
                 tools,
                 seed,

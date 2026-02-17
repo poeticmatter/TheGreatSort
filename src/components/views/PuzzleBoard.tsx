@@ -27,7 +27,6 @@ export function PuzzleBoard({
     layout,
     sidebarContent,
     onBackgroundClick,
-    triggerShake,
     isLocked,
     onRequestAudit
 }: PuzzleBoardProps) {

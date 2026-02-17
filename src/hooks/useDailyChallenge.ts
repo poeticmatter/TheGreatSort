@@ -5,7 +5,7 @@ import { PuzzleRepository } from '../services/puzzleRepository';
 import { useDailyLock } from './useDailyLock';
 import { GameState } from '../reducers/gameState';
 import { DailyResult } from '../services/persistence/types';
-import { GamePhase, GameMode, ResistanceStatus } from '../../types';
+import { GamePhase, GameMode } from '../../types';
 
 export type DailyStatus = 'LOADING' | 'READY';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { GameView } from './GameView';
 import { useTutorialEngine } from '../../hooks/useTutorialEngine';
 import { LayoutType } from '../InventoryGrid';

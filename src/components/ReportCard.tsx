@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Repeat } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { GameMode } from '../../types';
 import { calculateRelativeEfficiency } from '../utils/gameLogic';
 

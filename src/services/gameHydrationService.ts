@@ -82,7 +82,7 @@ export class GameHydrationService {
 
         // 4. Construct the partial GameState
         const state: Partial<GameState> = {
-            level: 1, // Daily is always level 1 effectively
+            // level removed
             list: currentList,
             initialList: refinedStartList, // Crucial for Undo
             toolsAvailable: currentTools,
@@ -127,7 +127,7 @@ export class GameHydrationService {
         const worstScore = puzzle.targets?.min ?? null;
 
         const state: Partial<GameState> = {
-            level: 1,
+            // level removed
             list: refinedList,
             initialList: [...refinedList], // Copy for initialList
             toolsAvailable: tools,
@@ -162,7 +162,7 @@ export class GameHydrationService {
         const flavorMap = generateFlavorMap(seed);
 
         const state: Partial<GameState> = {
-            level: 1,
+            // level removed
             list: list,
             initialList: [...list],
             toolsAvailable: tools,
