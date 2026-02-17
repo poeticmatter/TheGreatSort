@@ -19,9 +19,9 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         targetYield: 27,
         description: 'The Blocker',
         instruction: (currentYield, targetYield, isSuccess) => {
-            if (isSuccess) return "Excellent! The sequence flows correctly. Yield maximized.";
-            if (currentYield < targetYield && currentYield > 19) return `Good. However, the optimal yield is higher. Can you find a better solution?`;
-            return `The current yield is ${currentYield}. Can you increase the yield by sinking the 8?`;
+            if (isSuccess) return "Sequence approved. Yield maximized.";
+            if (currentYield < targetYield && currentYield > 19) return `Yield falls within acceptable tolerance. Protocol requires maximum yield.`;
+            return `Current yield: ${currentYield}. Asset 8 is limiting output.`;
         },
         successCondition: (c, t) => c >= t,
         nextStepId: 'B_INIT'
@@ -33,9 +33,9 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         targetYield: 37,
         description: 'The Pivot',
         instruction: (c, t, isSuccess) => {
-            if (isSuccess) return "Well done. By switching to ascending, you maximized yield.";
-            if (c > 16) return "You created an ascending protocol which increases yield, but there is a better solution.";
-            return "The inspector protocol is locked to descending because 6 > 5. Can you find a way to switch to ascending mode and maximize yield?";
+            if (isSuccess) return "Ascending protocol engaged. Maximum yield verified.";
+            if (c > 16) return "Yield increase noted via ascending protocol. Further optimization required.";
+            return "Descending lock active due to value regression (6 > 5). Override to Ascending mode required.";
         },
         successCondition: (c, t) => c >= t,
         nextStepId: 'COMPLETE'
@@ -46,7 +46,7 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         allowedTool: 'sink',
         targetYield: 0,
         description: 'Complete',
-        instruction: () => "Tutorial Complete! You are ready.",
+        instruction: () => "Training simulation concluded. Report for duty.",
         successCondition: () => false
     }
 };
