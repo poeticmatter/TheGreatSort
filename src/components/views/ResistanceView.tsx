@@ -1,19 +1,30 @@
-import React from 'react';
 import { ResistanceLetter } from '../ResistanceLetter';
 import { useGameContext } from '../../context/GameContext';
-import { useAnalytics } from '../../hooks/useAnalytics';
 
-export function ResistanceView() {
-    const { state, dispatch } = useGameContext();
-    const { isViewOpen, status } = state.resistance;
-    const { trackResistanceJoined } = useAnalytics();
+interface ResistanceViewProps {
+    onClose: (accepted: boolean) => void;
+    onJoin: () => void;
+    isOpen?: boolean;
+    variant?: 'INVITE' | 'LOCKED';
+}
 
-    if (!isViewOpen) return null;
+
+export function ResistanceView({ onClose, onJoin, isOpen, variant }: ResistanceViewProps) {
+    const { state } = useGameContext();
+
+    // Use props if provided (Tutorial), otherwise fall back to context (Main Game - though Main Game also passes props now via GameView)
+    // Actually, since GameView always has data, we can prefer props.
+    // Use props if they are defined, otherwise fallback. Note that isOpen might be false, so check for undefined.
+    const effectiveIsOpen = isOpen !== undefined ? isOpen : (state.resistance?.isViewOpen ?? false);
+    const effectiveVariant = variant !== undefined ? variant : (state.resistance?.viewVariant);
+
+    if (!effectiveIsOpen) return null;
 
     return (
         <ResistanceLetter
-            onClose={() => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' })}
-            onJoin={() => trackResistanceJoined()}
+            onClose={onClose}
+            onJoin={onJoin}
+            variant={effectiveVariant}
         />
     );
 }

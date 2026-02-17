@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from './hooks/useGame';
-import { useAnalytics } from './hooks/useAnalytics';
 import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { LayoutType } from './components/InventoryGrid';
 import { GameProvider, useGameContext } from './context/GameContext';
 
 import { GameView } from './components/views/GameView';
-import { ResistanceView } from './components/views/ResistanceView';
 import ResistanceLetter from './assets/ResistanceLetter.png';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -81,8 +79,6 @@ function TheGreatSortContent() {
           layout={layout}
           onLayoutChange={setLayout}
         />
-        {/* ResistanceView controls its own visibility via Context */}
-        <ResistanceView />
       </>
     );
   };

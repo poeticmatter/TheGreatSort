@@ -17,6 +17,7 @@ export interface ViewModelContext {
     yieldRatio: number;
     currentYield: number;
     projectedResistanceStatus?: any;
+    hasJoinedResistance: boolean;
     // Tutorial overrides
     allowedIndices?: number[];
     tutorialMessage?: string;
@@ -45,6 +46,7 @@ export function transformToViewModel(
         startingCompliance: context.startingCompliance,
         isZeroYield: context.isZeroYield,
         yieldRatio: context.yieldRatio,
+        hasJoinedResistance: context.hasJoinedResistance,
         // currentYield is passed but not strictly in GameViewModel interface, extending GameState usually covers score but currentYield might be transient
         // effectively duck-typed
 

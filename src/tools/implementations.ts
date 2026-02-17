@@ -1,5 +1,5 @@
 import { ToolStrategy } from './types.ts';
-import { ISortable, Move, ToolType, CardItem } from '../../types.ts';
+import { ISortable, Move, ToolType } from '../../types.ts';
 
 // Use shallow copy for performance and reference preservation
 const copy = <T extends ISortable>(list: T[]): T[] => [...list];

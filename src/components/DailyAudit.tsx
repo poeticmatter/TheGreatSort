@@ -20,9 +20,10 @@ interface DailyAuditProps {
   onClose: () => void;
   onDetectResistance: () => void;
   flavorText?: string;
+  onShareSuccess?: () => void;
 }
 
-export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText }) => {
+export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText, onShareSuccess }) => {
   const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
@@ -48,16 +49,16 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Calculate Adherence
+  // Calculate compliance
   const passed = solution ? userScore >= optimalScore : false;
-  const adherence = solution
+  const compliance = solution
     ? calculateRelativeEfficiency(userScore, optimalScore, worstScore)
     : 0;
 
   // Determine Mood for Share
-  // We use the actual adherence value to determine the performance mood.
+  // We use the actual compliance value to determine the performance mood.
   // We pass 'false' for isDailyCompleted to get the graded mood (SOLVED/ADEQUATE/etc) instead of generic "DONE".
-  const mood = useSystemMood(adherence, 100, false);
+  const mood = useSystemMood(compliance, 100, false);
 
   // Resistance Verification
   // Checking `stats`:
@@ -87,7 +88,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
   // If we have resistance, override the generic "DONE" flavor with specific resistance outcome flavor
   if (joinedResistance && isResistanceActive && resistanceOutcome) {
-    const flavorKey = getResistanceFlavor(adherence, resistanceOutcome);
+    const flavorKey = getResistanceFlavor(compliance, resistanceOutcome);
     if (flavorKey) {
       shareMood = flavorKey as SystemMood;
 
@@ -95,8 +96,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       if (entries && entries.length > 0) {
         // Deterministic pick based on seed/date
         // Since we don't have seed readily available as number here (it's date string), 
-        // let's use userScore + adherence as salt
-        const salt = userScore + Math.floor(adherence);
+        // let's use userScore + compliance as salt
+        const salt = userScore + Math.floor(compliance);
         const index = salt % entries.length;
         displayFlavorText = entries[index].text;
       }
@@ -111,12 +112,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     // Use the user's final list (their actual submission state, not the initial puzzle or optimal solution)
     const { gradedList: finalItems } = gradeLevel(userFinalList);
 
+    let resistanceStatusText: string | undefined;
+    if (joinedResistance && isResistanceActive && resistanceOutcome) {
+      resistanceStatusText = getStatusConfig(resistanceOutcome).text;
+    }
+
     const text = generatePayload({
       userScore,
-      compliancePercentage: adherence,
+      compliancePercentage: compliance,
       mood: shareMood,
       items: finalItems,
-      date: date
+      date: date,
+      resistanceStatusText
     });
 
     const result = await performShare(text);
@@ -124,9 +131,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     if (result.method === 'manual' && result.textForManualCopy) {
       setManualCopyText(result.textForManualCopy);
       setShareFeedback('MANUAL');
+      if (onShareSuccess) onShareSuccess();
     } else if (result.success) {
       setShareFeedback('COPIED');
       setTimeout(() => setShareFeedback('IDLE'), 2500);
+      if (onShareSuccess) onShareSuccess();
     }
   };
 
@@ -199,26 +208,26 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
               <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
               <div className="text-3xl font-bold text-amber-500">{optimalScore}</div>
             </div>
-            <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${adherence >= 100 ? 'border-amber-400/50'
-              : adherence >= 90 ? 'border-amber-700/50'
+            <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${compliance >= 100 ? 'border-amber-400/50'
+              : compliance >= 90 ? 'border-amber-700/50'
                 : 'border-red-900/50'
               }`}>
-              <div className="text-xs uppercase text-stone-500 mb-1">Adherence Rating</div>
-              <div className={`text-3xl font-black ${adherence >= 100 ? 'text-amber-400'
-                : adherence >= 90 ? 'text-amber-600'
+              <div className="text-xs uppercase text-stone-500 mb-1">compliance Rating</div>
+              <div className={`text-3xl font-black ${compliance >= 100 ? 'text-amber-400'
+                : compliance >= 90 ? 'text-amber-600'
                   : 'text-red-500'
                 }`}>
-                {adherence}%
+                {compliance}%
               </div>
-              {/* Adherence Stamp */}
+              {/* compliance Stamp */}
               <div className={`absolute top-1/2 right-4 transform -translate-y-1/2 -rotate-12 border-2 text-xs font-black px-2 py-1 opacity-50 select-none pointer-events-none
-                   ${adherence >= 100 ? 'border-amber-400 text-amber-400'
-                  : adherence >= 90 ? 'border-amber-700 text-amber-700'
+                   ${compliance >= 100 ? 'border-amber-400 text-amber-400'
+                  : compliance >= 90 ? 'border-amber-700 text-amber-700'
                     : 'border-red-600 text-red-600'
                 }`}>
                 {
-                  adherence >= 100 ? 'PASSED'
-                    : adherence >= 90 ? 'SATISFACTORY'
+                  compliance >= 100 ? 'PASSED'
+                    : compliance >= 90 ? 'SATISFACTORY'
                       : isInterrogation ? 'INTERROGATION'
                         : 'PROBATION'
                 }

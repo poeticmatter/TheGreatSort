@@ -1,15 +1,17 @@
 import { useReducer, useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameContext } from '../context/GameContext';
-import { CardItem, GamePhase, AgentRole, ToolInstance } from '../../types';
+import { CardItem, GamePhase, AgentRole, ToolInstance, GameMode } from '../../types';
 import { Play, RotateCcw } from 'lucide-react';
 import { TOOL_REGISTRY } from '../tools';
 import { gradeLevel, calculateCompliance, applyMove } from '../utils/gameLogic';
 import { gameReducer, initialState } from '../reducers/gameReducer';
+import { GameState } from '../reducers/gameState';
 import { useInspectionLoop } from './useInspectionLoop';
 import { TUTORIAL_SCENARIOS } from '../config/tutorialScenarios';
 import { transformToViewModel } from '../utils/gameViewModelTransformer';
 import { UserInterfaceState } from './useGameInteractions';
+import { PersistenceService } from '../services/persistence';
 
 export function useTutorialEngine() {
     const navigate = useNavigate();
@@ -17,12 +19,15 @@ export function useTutorialEngine() {
     const [currentStepId, setCurrentStepId] = useState<string>('A_INIT');
     const step = TUTORIAL_SCENARIOS[currentStepId];
 
+    // load resistance status directly
+    const hasJoinedResistance = PersistenceService.loadResistanceStatus();
+
     // 1. Reducer State
     const [state, dispatch] = useReducer(gameReducer, {
         ...initialState,
-        gameMode: 'TUTORIAL',
+        gameMode: 'TUTORIAL' as GameMode,
         sessionDate: 'TUTORIAL'
-    });
+    } as GameState);
 
     // 2. Computed Metrics (Live)
     const { score: currentYield } = useMemo(() => gradeLevel(state.list), [state.list]);
@@ -87,7 +92,7 @@ export function useTutorialEngine() {
 
     const handleCardClick = useCallback((item: CardItem) => {
         if (state.phase !== GamePhase.PLANNING) return;
-        if (isSuccess && state.phase !== GamePhase.RESULTS) return; // Prevent moves if already success?
+        if (isSuccess) return; // Prevent moves if already success?
 
         const index = state.list.findIndex(i => i.id === item.id);
         if (index === -1) return;
@@ -204,6 +209,7 @@ export function useTutorialEngine() {
         isZeroYield: currentYield === 0,
         yieldRatio: 0,
         currentYield: currentYield,
+        hasJoinedResistance,
 
         allowedIndices: undefined,
         tutorialMessage: step ? step.instruction(currentYield, optimalScore, isSuccess) : undefined
@@ -247,9 +253,13 @@ export function useTutorialEngine() {
         closeAudit: () => { },
         triggerCurrentAudit: () => { },
         triggerResistance: () => { },
-        closeResistance: () => { },
+        closeResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
         saveDaily: () => { },
-        handleUndo
+        handleUndo,
+        showLockedResistance: () => dispatch({ type: 'SHOW_LOCKED_RESISTANCE' }),
+        joinResistance: () => { },
+        dismissResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
+        trackShare: () => { }
     };
 
     return { data, interaction, actions };

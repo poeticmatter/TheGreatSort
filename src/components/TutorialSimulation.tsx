@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { InventoryGrid } from './InventoryGrid';
-import { CardItem, AgentRole } from '../../types';
 import { RenderableCard } from '../hooks/useGridPresentation';
 import { ArrowLeftRight } from 'lucide-react';
 import { useSimulationFSM } from '../hooks/useSimulationFSM';

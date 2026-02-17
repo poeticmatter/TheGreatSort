@@ -19,9 +19,9 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         targetYield: 27,
         description: 'The Blocker',
         instruction: (currentYield, targetYield, isSuccess) => {
-            if (isSuccess) return "Excellent! The sequence flows correctly. Yield maximized.";
-            if (currentYield < targetYield && currentYield > 19) return `Good. However, the optimal yield is higher. Can you find a better solution?`;
-            return `The current yield is ${currentYield}. Can you increase the yield by sinking the 8?`;
+            if (isSuccess) return "Sequence approved. Yield maximized.";
+            if (currentYield < targetYield && currentYield > 19) return `Yield falls within acceptable tolerance. Protocol requires maximum yield.`;
+            return `Current yield: ${currentYield}. Asset 8 is limiting output.`;
         },
         successCondition: (c, t) => c >= t,
         nextStepId: 'B_INIT'
@@ -30,13 +30,14 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         id: 'B_INIT',
         initialList: [6, 5, 12, 3, 14, 2],
         allowedTool: 'swap',
-        targetYield: 23,
+        targetYield: 37,
         description: 'The Pivot',
         instruction: (c, t, isSuccess) => {
-            if (isSuccess) return "Well done. By switching to Ascending, you saved the 12.";
-            return "The inspector protocol is locked to DESCENDING because 6 > 5. Swap the 6 and 5 to force ASCENDING mode.";
+            if (isSuccess) return "Ascending protocol engaged. Maximum yield verified.";
+            if (c > 16) return "Yield increase noted via ascending protocol. Further optimization required.";
+            return "Descending lock active due to value regression (6 > 5). Override to Ascending mode required.";
         },
-        successCondition: (c, t) => c >= 23,
+        successCondition: (c, t) => c >= t,
         nextStepId: 'COMPLETE'
     },
     'COMPLETE': {
@@ -45,7 +46,7 @@ export const TUTORIAL_SCENARIOS: Record<string, TutorialScenario> = {
         allowedTool: 'sink',
         targetYield: 0,
         description: 'Complete',
-        instruction: () => "Tutorial Complete! You are ready.",
+        instruction: () => "Training simulation concluded. Report for duty.",
         successCondition: () => false
     }
 };

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { AnalyticsService, AnalyticsFactory, GameMode } from '../services/analytics';
+import { AnalyticsService, AnalyticsFactory } from '../services/analytics';
+import { GameMode } from '../../types';
 
 export function useAnalytics() {
 

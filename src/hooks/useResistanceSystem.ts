@@ -71,21 +71,6 @@ export function useResistanceSystem({
         saveDailyResult(coreState.levelScore, finalStatus);
         coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
 
-        // Efficiency Check (Results Phase - Trigger Resistance if needed)
-        // If player has not joined (INACTIVE) and gets 0% efficiency, trigger it.
-        // We use finalStatus here which would be INACTIVE if they haven't joined yet.
-        if (finalStatus === ResistanceStatus.INACTIVE && coreState.optimalScore && coreState.worstScore) {
-            const efficiency = coreState.optimalScore
-                ? Math.round((coreState.levelScore / coreState.optimalScore) * 100)
-                : 0;
-
-            if (efficiency === 0) {
-                setTimeout(() => {
-                    coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
-                }, 1000);
-            }
-        }
-
     }, [
         saveDailyResult,
         coreState.levelScore,
@@ -111,13 +96,6 @@ export function useResistanceSystem({
             nextLevel();
         }
     }, [metaState.gameMode, retryDaily, nextLevel, coreDispatch]);
-
-    // Reactive Trigger Check: Runs after state update/render
-    React.useEffect(() => {
-        if (metaState.gameMode === 'DAILY' && coreState.movesHistory.length > 0) {
-            checkResistanceTrigger();
-        }
-    }, [coreState.movesHistory, checkResistanceTrigger, metaState.gameMode]);
 
     return {
         checkResistanceTrigger,

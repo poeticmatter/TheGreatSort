@@ -1,12 +1,12 @@
 import { GameState, GameAction } from './gameState';
-import { GamePhase, ToolInstance, Move, ToolType, ResistanceStatus } from '../../types';
+import { GamePhase } from '../../types';
 import { applyMove } from '../utils/gameLogic';
 import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
 import { getTodayDateString } from '../utils/dateUtils';
 
 export const initialState: GameState = {
-  level: 1,
+  // level removed
   levelScore: 0,
   totalScore: 0,
   totalOptimalScore: 0,
@@ -26,6 +26,7 @@ export const initialState: GameState = {
   resistance: initialResistanceState,
   gameMode: 'DAILY',
   sessionDate: getTodayDateString(),
+  isLoaded: false,
 };
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -36,12 +37,21 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         // Preserve mode and date from current state unless explicitly overwritten by payload
         gameMode: state.gameMode,
         sessionDate: state.sessionDate,
+        isLoaded: true, // Default to loaded on init
         ...action.payload.state,
       };
     }
 
     case 'SET_GAME_MODE': {
-      return { ...state, gameMode: action.payload.mode };
+      return {
+        ...state,
+        gameMode: action.payload.mode,
+        isLoaded: false // Reset loaded state when switching modes
+      };
+    }
+
+    case 'SET_IS_LOADED': {
+      return { ...state, isLoaded: action.payload.loaded };
     }
 
     case 'SET_SESSION_DATE': {
@@ -51,7 +61,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'START_LEVEL': {
       return {
         ...state,
-        level: action.payload.level,
+        // level removed
         list: action.payload.list,
         initialList: action.payload.initialList ? [...action.payload.initialList] : [...action.payload.list],
         toolsAvailable: action.payload.tools,
@@ -200,19 +210,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
 
     case 'ACTIVATE_RESISTANCE':
+    case 'SHOW_LOCKED_RESISTANCE':
     case 'CLOSE_RESISTANCE_VIEW':
-    case 'SET_RESISTANCE_PENDING': // Wait, SET_RESISTANCE_PENDING was likely removed or merged?
-    // Checking previous file content... It was 'SET_RESISTANCE_STATUS' and 'RESISTANCE_MISSION_COMPLETE'
-    // I see 'SET_RESISTANCE_PENDING' in the case list I'm generating. It might be in resistanceReducer actions.
-    // The previous file content had:
-    // case 'ACTIVATE_RESISTANCE':
-    // case 'CLOSE_RESISTANCE_VIEW':
-    // case 'SET_RESISTANCE_PENDING':
-    // case 'SET_RESISTANCE_STATUS':
-    // case 'RESISTANCE_MISSION_COMPLETE': {
-    // Wait, the previous file content I "viewed" showed:
-    // 188:     case 'SET_RESISTANCE_PENDING':
-    // Yes, it was there.
     case 'SET_RESISTANCE_STATUS':
     case 'RESISTANCE_MISSION_COMPLETE': {
       return {

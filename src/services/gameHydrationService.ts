@@ -1,8 +1,8 @@
-import { GameState, ResistanceState } from '../reducers/gameState';
+import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
 import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
-import { GamePhase, ToolInstance, Move, GameMode, CardItem, AgentRole, ResistanceStatus } from '../../types';
+import { GamePhase, CardItem, AgentRole, ResistanceStatus } from '../../types';
 import { initialResistanceState } from '../reducers/resistanceReducer';
 
 export interface HydrationResult {
@@ -17,13 +17,20 @@ export class GameHydrationService {
      * This is a pure function that takes the save data and the daily puzzle definition
      * and returns a fully initialized state object.
      */
-    static hydrateDailyFromSave(save: SaveStateSchema, puzzle: DailyPuzzleData): HydrationResult {
+    static hydrateDailyFromSave(save: SaveStateSchema, puzzle: DailyPuzzleData, isResistanceActive: boolean = false): HydrationResult {
         // 1. Reconstruct Base State (The immutable starting point)
         const seed = puzzle.id;
         const startList = PuzzleRepository.hydrateSequence(puzzle.sequence);
 
         // Apply Resistance Data
-        const { list: refinedStartList, resistanceStatus, resistanceTarget } = this.applyResistanceData(startList, puzzle);
+        const { list: refinedStartList, resistanceStatus: baseStatus, resistanceTarget } = this.applyResistanceData(startList, puzzle);
+
+        let resistanceStatus = baseStatus;
+
+        if (isResistanceActive) {
+            resistanceStatus = ResistanceStatus.ACTIVE;
+        }
+
 
         const startTools = PuzzleRepository.hydrateTools(puzzle.tools);
         const flavorMap = generateFlavorMap(seed);
@@ -75,7 +82,7 @@ export class GameHydrationService {
 
         // 4. Construct the partial GameState
         const state: Partial<GameState> = {
-            level: 1, // Daily is always level 1 effectively
+            // level removed
             list: currentList,
             initialList: refinedStartList, // Crucial for Undo
             toolsAvailable: currentTools,
@@ -120,7 +127,7 @@ export class GameHydrationService {
         const worstScore = puzzle.targets?.min ?? null;
 
         const state: Partial<GameState> = {
-            level: 1,
+            // level removed
             list: refinedList,
             initialList: [...refinedList], // Copy for initialList
             toolsAvailable: tools,
@@ -155,7 +162,7 @@ export class GameHydrationService {
         const flavorMap = generateFlavorMap(seed);
 
         const state: Partial<GameState> = {
-            level: 1,
+            // level removed
             list: list,
             initialList: [...list],
             toolsAvailable: tools,
@@ -204,12 +211,22 @@ export class GameHydrationService {
         return {
             list: newList,
             resistanceStatus: ResistanceStatus.INACTIVE,
-            resistanceTarget: resistanceData.targetYield // simplified schema property name might actully be targetYield?
-            // The generator writes "targetYield".
-            // The DailyPuzzle interface in generator says "targetYield".
-            // However, DailyPuzzleData type in PuzzleRepository MIGHT be different.
-            // I should check DailyPuzzleData interface. But based on typical flow, it matches generator output.
-            // I'll assume resistanceData has targetYield property as generated.
+            resistanceTarget: resistanceData.targetYield
         };
+    }
+
+    /**
+     * Creates a fresh state for a Daily Challenge, explicitly handling Resistance status.
+     * This encapsulates the logic of checking persistence and activating Resistance mode if needed.
+     */
+    static hydrateResistanceDaily(puzzle: DailyPuzzleData, hasJoinedResistance: boolean): HydrationResult {
+        const { initialState, isValid } = this.hydrateDailyNew(puzzle);
+
+        if (hasJoinedResistance && initialState.resistance) {
+            initialState.resistance.status = ResistanceStatus.ACTIVE;
+            initialState.gameMode = 'DAILY';
+        }
+
+        return { initialState, isValid };
     }
 }

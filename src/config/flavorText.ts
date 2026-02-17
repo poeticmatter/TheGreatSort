@@ -2,7 +2,7 @@ export type FlavorKey = 'SOLVED' | 'DONE' | 'ADEQUATE' | 'INITIAL' | 'SUSPICIOUS
 
 export interface FlavorEntry {
     text: string;
-    weight: number; // 1 = common, 0.1 = rare
+    weight: number;
 }
 
 export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
@@ -76,7 +76,7 @@ export const FLAVOR_DATABASE: Record<FlavorKey, FlavorEntry[]> = {
         { text: "SYSTEM PURGE!", weight: 5 },
         { text: "THE STATE COMES FIRST!", weight: 5 },
         { text: "RESISTANCE IS FUTILE!", weight: 1 },
-        { text: "REISTANCE AGENT!", weight: 1 },
+        { text: "REISTANCE AGENT DETECTED!", weight: 1 },
         { text: "TRAITOR!", weight: 1 },
 
     ],

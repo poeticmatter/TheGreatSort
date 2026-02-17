@@ -11,7 +11,7 @@ export default function SolverApp() {
     const [sequence, setSequence] = useState<CardItem[]>([]);
     const [solution, setSolution] = useState<Solution | null>(null);
     const [isSolving, setIsSolving] = useState(false);
-    const [tools, setTools] = useState<ToolType[]>(['swap', 'purge', 'promote', 'demote']);
+    const [tools, setTools] = useState<ToolType[]>(['swap', 'sink', 'promote', 'demote']);
 
     const handleGenerate = () => {
         const newSeq = generateLevel(seqLength);

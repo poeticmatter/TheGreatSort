@@ -3,6 +3,7 @@ import Card from './Card';
 import { CardItem } from '../../types';
 import { RenderableCard } from '../hooks/useGridPresentation';
 import { Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type LayoutType =
   | 'VERTICAL_LIST'
@@ -37,7 +38,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
     case 'HORIZONTAL_STRIP':
     default:
       // Centered strip that scrolls if needed
-      layoutClasses = "flex flex-row gap-0.5 sm:gap-1 overflow-x-auto px-1 sm:px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full";
+      layoutClasses = "relative flex flex-row gap-0.5 sm:gap-1 overflow-x-auto px-1 sm:px-4 py-8 items-center scrollbar-hide snap-x w-fit mx-auto max-w-full min-h-[12rem]";
       break;
   }
 
@@ -63,15 +64,26 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         `}} />
 
       <div className={layoutClasses}>
-        {cards.map((card, idx) => {
-          const isLast = idx === cards.length - 1;
+        <AnimatePresence initial={false} mode="popLayout">
+          {cards.map((card, idx) => {
+            const isLast = idx === cards.length - 1;
 
-          // For Horizontal Strip, snap alignment
-          const wrapperClass = layout === 'HORIZONTAL_STRIP' ? 'snap-center flex-shrink-0 flex items-center' : 'flex flex-col items-center';
+            // For Horizontal Strip, snap alignment
+            // wrapperClass defines the inner layout of the Item+Arrow group
+            const wrapperClass = layout === 'HORIZONTAL_STRIP'
+              ? 'snap-center flex-shrink-0 flex items-center'
+              : 'flex flex-col items-center';
 
-          return (
-            <React.Fragment key={card.key}>
-              <div className={wrapperClass} style={layout === 'HORIZONTAL_STRIP' ? undefined : { display: 'contents' }}>
+            return (
+              <motion.div
+                key={card.key}
+                layout
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className={`${wrapperClass} gap-0.5 sm:gap-1`} // Ensure gap between Card and Arrow matches container gap
+              >
                 <Card
                   item={card}
                   // We disable the internal arrows of the Card since we are rendering them externally 
@@ -86,16 +98,16 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                   variant={layout === 'VERTICAL_LIST' ? 'wide' : 'standard'}
                   showRoles={showRoles}
                 />
-              </div>
 
-              {!isLast && (
-                <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90' : ''}`}>
-                  <Play size={10} fill="currentColor" />
-                </div>
-              )}
-            </React.Fragment>
-          );
-        })}
+                {!isLast && (
+                  <div className={`text-stone-600 ${layout === 'VERTICAL_LIST' ? 'rotate-90' : ''}`}>
+                    <Play size={10} fill="currentColor" />
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

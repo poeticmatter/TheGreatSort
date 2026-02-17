@@ -1,4 +1,3 @@
-import React from 'react';
 import { DailyAudit } from '../DailyAudit';
 
 interface AuditViewProps {

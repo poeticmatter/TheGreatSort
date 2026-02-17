@@ -4,6 +4,7 @@ import { TOOLS } from '../constants';
 import ActionButton from './ActionButton';
 import UndoButton from './UndoButton';
 import { LucideIcon } from 'lucide-react';
+import { ButtonVariant } from '../config/submitButtonConfig';
 
 interface ToolBeltProps {
   toolsAvailable: ToolInstance[];
@@ -17,7 +18,7 @@ interface ToolBeltProps {
     onClick: () => void;
     disabled: boolean;
     Icon?: LucideIcon;
-    variant?: 'default' | 'warning' | 'muted';
+    variant?: ButtonVariant;
   };
   isDisabled?: boolean;
 }
@@ -80,7 +81,7 @@ const ToolBelt: React.FC<ToolBeltProps & { orientation?: 'horizontal' | 'vertica
           disabled={secondaryAction.disabled || (isDisabled && phase === GamePhase.PLANNING)}
           label={secondaryAction.label}
           Icon={secondaryAction.Icon}
-          variant={secondaryAction.variant || 'default'} // safety cast regarding variant type mismatch
+          variant={secondaryAction.variant}
         />
       )}
     </div>

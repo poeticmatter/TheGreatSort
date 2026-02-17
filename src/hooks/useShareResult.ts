@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
-import { CardItem, CardStatus } from '../../types';
+import { CardItem } from '../../types';
 import { SystemMood } from './useSystemMood';
-import { SHARE_FLAVOR_DATABASE, ShareFlavorEntry } from '../config/shareFlavor';
+import { SHARE_FLAVOR_DATABASE } from '../config/shareFlavor';
 
 interface UseShareResultProps {
     userScore: number;
     compliancePercentage: number;
     mood: SystemMood;
     items: CardItem[];
+    resistanceStatusText?: string;
 }
 
 // Logic Exports (Pure)
@@ -25,40 +26,35 @@ export const getWeightedFlavor = (mood: SystemMood): string => {
     return entries[0].text;
 };
 
-export const generateEmojiGrid = (items: CardItem[]): string => {
-    return items.map(item => {
-        if (item.status === 'eliminated') {
-            return '🟥';
-        }
-        return '🟨';
-    }).join('');
-};
-
 export const formatSharePayload = (
     userScore: number,
     compliancePercentage: number,
     flavorText: string,
-    emojiGrid: string,
-    date: string
+    date: string,
+    resistanceStatusText?: string
 ): string => {
-    return [
-        `THE GREAT SORT ${date}`,
-        `Citizen Yield: ${userScore}`,
-        `Compliance: ${compliancePercentage}%`,
-        ``,
-        `"${flavorText}"`,
-        ``,
-        emojiGrid,
-        ``,
-        `Play at stalinsort.fun`
-    ].join('\n');
+    const lines = [
+        `THE GREAT SORT ${date}`
+    ];
+
+    if (resistanceStatusText) {
+        lines.push(resistanceStatusText);
+    }
+
+    lines.push(`Citizen Yield: ${userScore}`);
+    lines.push(`Compliance: ${compliancePercentage}%`);
+    lines.push(``);
+    lines.push(`"${flavorText}"`);
+    lines.push(``);
+    lines.push(`Play at stalinsort.fun`);
+
+    return lines.join('\n');
 };
 
 export const useShareResult = () => {
-    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items, date }: UseShareResultProps & { date: string }) => {
+    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items, date, resistanceStatusText }: UseShareResultProps & { date: string }) => {
         const flavorText = getWeightedFlavor(mood);
-        const emojiGrid = generateEmojiGrid(items);
-        return formatSharePayload(userScore, compliancePercentage, flavorText, emojiGrid, date);
+        return formatSharePayload(userScore, compliancePercentage, flavorText, date, resistanceStatusText);
     }, []);
 
     return { generatePayload };

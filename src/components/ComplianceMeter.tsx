@@ -51,7 +51,7 @@ export const ComplianceMeter: React.FC<ComplianceMeterProps> = ({
     return (
         <div className={`${finalContainerClasses} ${className || ''}`}>
             {/* Percentage Label */}
-            <div className={`font-mono text-xs ${isResistanceSuccess ? 'text-blue-400 font-bold' : 'text-stone-500'} ${layout === 'VERTICAL_LIST' ? '' : 'absolute -right-8 top-2'}`}>
+            <div className={`font-mono text-xs ${isResistanceSuccess ? 'text-blue-400 font-bold' : 'text-stone-500'} ${layout === 'HORIZONTAL_STRIP' ? 'absolute -right-8 top-2' : ''}`}>
                 {compliancePercentage}%
             </div>
 

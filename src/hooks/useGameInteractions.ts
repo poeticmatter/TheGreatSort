@@ -1,11 +1,9 @@
-import { useMemo, useCallback } from 'react';
-import { BadgeCheck, ShieldAlert, Play, Eye, EyeClosed, Repeat, RotateCcw, LucideIcon } from 'lucide-react';
-import { GamePhase, GameMode } from '../../types';
-import { SystemMood } from './useSystemMood';
+import { useMemo } from 'react';
+import { LucideIcon } from 'lucide-react';
+import { GamePhase } from '../../types';
+import { getPrimaryButtonVisuals, getSecondaryButtonVisuals, ButtonVariant } from '../config/submitButtonConfig';
 
 // --- Types ---
-
-export type ButtonVariant = 'gold' | 'silver' | 'bronze' | 'neutral' | 'warning' | 'info' | 'destructive' | 'default' | 'muted';
 
 export interface InteractionCommand {
     label: string;
@@ -27,25 +25,6 @@ export interface UserInterfaceState {
     feedback: UserInterfaceFeedback;
 }
 
-// --- Visual Helpers (Local) ---
-
-const getMoodVisuals = (mood: SystemMood): { label: string; variant: ButtonVariant; Icon: LucideIcon } => {
-    switch (mood) {
-        case 'SOLVED':
-            return { label: 'Submit to Audit', variant: 'gold', Icon: BadgeCheck };
-        case 'ADEQUATE':
-            return { label: 'Submit to Audit', variant: 'silver', Icon: BadgeCheck };
-        case 'INITIAL':
-            return { label: 'Inadequate', variant: 'neutral', Icon: EyeClosed };
-        case 'SUSPICIOUS':
-            return { label: 'Non-Compliant', variant: 'warning', Icon: Eye };
-        case 'SABOTAGE':
-            return { label: 'Terminate', variant: 'destructive', Icon: ShieldAlert };
-        default:
-            return { label: 'Inspect', variant: 'neutral', Icon: Play };
-    }
-};
-
 // --- Hook Implementation ---
 
 export function useGameInteractions(state: any, actions: any): UserInterfaceState {
@@ -63,7 +42,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
 
     // --- Feedback Logic ---
     const feedback = useMemo<UserInterfaceFeedback>(() => {
-        const isDailyLocked = (gameMode === 'DAILY' || gameMode === 'RESISTANCE') && isLocked;
+        const isDailyLocked = gameMode === 'DAILY' && isLocked;
         const showAuditBoard = isDailyLocked || !!auditState;
 
         // Controls are disabled if the board is locked (Daily solved/failed) OR if we are inspecting (running simulation)
@@ -80,49 +59,25 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
 
     // --- Primary Action (Submit / Inspect / Next) ---
     const primaryAction = useMemo<InteractionCommand>(() => {
-        let label = 'Inspect';
-        let variant: ButtonVariant = 'neutral';
-        let Icon = Play;
+        const { label, variant, Icon } = getPrimaryButtonVisuals(phase, gameMode, mood);
+
         let onClick = actions.startInspection;
         let disabled = false;
 
-        // 1. Daily Locked State (Overrides everything)
-        if ((gameMode === 'DAILY' || gameMode === 'RESISTANCE') && isLocked) {
-            label = 'Training';
-            variant = 'destructive';
-            Icon = Play;
-            onClick = actions.retryPractice; // Navigate to Practice
-            disabled = false;
-        }
-        // 2. Results Phase
-        else if (phase === GamePhase.RESULTS) {
-            // "DAILY" or "RESISTANCE" needs "View Audit"
-            // "PRACTICE" needs "Next Level"
-
-            const isDailyLike = gameMode === 'DAILY' || gameMode === 'RESISTANCE';
-
-            onClick = isDailyLike
-                ? () => { actions.saveDaily(); actions.triggerCurrentAudit(); }
-                : actions.nextLevel;
-
-            label = isDailyLike ? 'View Audit' : 'Next Level';
-            variant = 'warning';
-            Icon = Play;
-        }
-        // 3. Planning Phase (Mood Driven)
-        else {
-            const moodVisuals = getMoodVisuals(mood);
-            label = moodVisuals.label;
-            variant = moodVisuals.variant;
-            Icon = moodVisuals.Icon;
-
-            // Interaction logic usually stays 'startInspection', but if we want to differentiate 'Submit' vs 'Inspect' explicitly in the command:
-            // The current flow uses 'startInspection' which triggers the engine.
-            // If the user wants specific "Terminate" logic, it's likely handled by the engine or a specific action. 
-            // For now, mapping all to startInspection is consistent with previous logic.
+        // Determine click handler based on state
+        if (gameMode === 'PRACTICE' && phase === GamePhase.RESULTS) {
+            onClick = actions.nextLevel;
+        } else if (gameMode === 'DAILY' && isLocked) {
+            onClick = actions.retryPractice;
+        } else if (phase === GamePhase.RESULTS) {
+            if (gameMode === 'DAILY') {
+                onClick = () => { actions.saveDaily(); actions.triggerCurrentAudit(); };
+            } else {
+                onClick = actions.nextLevel;
+            }
         }
 
-        // 4. Global Disabled Rules
+        // Global Disabled Rules
         if (phase === GamePhase.INSPECTING) {
             disabled = true;
         }
@@ -133,34 +88,28 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
 
     // --- Secondary Action (Undo / Retry) ---
     const secondaryAction = useMemo<InteractionCommand | null>(() => {
-        // Only show Secondary Action in certain states? 
-        // Previously it was always rendered but maybe disabled.
+        const isPerfect = compliancePercentage >= 100 || (optimalScore !== null && optimalScore === levelScore);
+        const { label, variant, Icon } = getSecondaryButtonVisuals(phase, gameMode, isLocked, isPerfect);
 
-        const isDailyRetry = (gameMode === 'DAILY' || gameMode === 'RESISTANCE') && phase === GamePhase.RESULTS && !isLocked;
+        const isDailyRetry = gameMode === 'DAILY' && phase === GamePhase.RESULTS && !isLocked;
         const isPracticeRetry = gameMode === 'PRACTICE' && phase === GamePhase.RESULTS;
 
         if (isDailyRetry || isPracticeRetry) {
-            const isPerfect = compliancePercentage >= 100 || (optimalScore !== null && optimalScore === levelScore);
             return {
-                label: 'RETRY',
-                variant: isPerfect ? 'muted' : 'default',
-                Icon: Repeat,
-                onClick: (gameMode === 'DAILY' || gameMode === 'RESISTANCE') ? actions.retryDaily : actions.retryPractice,
+                label,
+                variant,
+                Icon,
+                onClick: gameMode === 'DAILY' ? actions.retryDaily : actions.retryPractice,
                 disabled: false
             };
         }
 
-        // Default: Undo
-        // Hide Undo if... actually previous logic didn't "hide" it, just disabled it maybe?
-        // But returning null allows the UI to not render it if desired.
-        // Let's keep it consistent: always return an object for Undo, possibly disabled.
-
         const canUndo = movesHistory.length > 0 && !isLocked && phase !== GamePhase.INSPECTING;
 
         return {
-            label: 'UNDO',
-            variant: 'default',
-            Icon: RotateCcw,
+            label,
+            variant,
+            Icon,
             onClick: actions.handleUndo,
             disabled: !canUndo
         };
