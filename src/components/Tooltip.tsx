@@ -88,8 +88,8 @@ const Tooltip: React.FC<TooltipProps> = ({
         </div>
 
         {/* Instruction Text */}
-        <div className="h-14 w-full flex items-center justify-center text-base font-serif text-stone-300 tracking-wide italic text-center drop-shadow-sm overflow-hidden px-4">
-          "{instruction}"
+        <div className="min-h-14 w-full flex items-center justify-center text-base font-serif text-stone-300 tracking-wide italic text-center drop-shadow-sm px-4">
+          <span>"{instruction}"</span>
         </div>
 
         {/* Decorative Corner Accents (Subtle) */}
