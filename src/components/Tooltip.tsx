@@ -41,7 +41,7 @@ const Tooltip: React.FC<TooltipProps> = ({
     if (isResistanceActive) {
       return (
         <span>
-          Eliminate the <span className="text-red-500 font-bold not-italic whitespace-nowrap">state <Siren className="inline w-3 h-3 mb-0.5" /></span> agent. Protect the <span className="text-blue-500 font-bold not-italic whitespace-nowrap">resistance <Shield className="inline w-3 h-3 mb-0.5" /></span> agent.
+          Eliminate the <span className="text-red-500 font-bold not-italic whitespace-nowrap">state <Siren className="inline w-5 h-5 mb-1" /></span> agent. Protect the <span className="text-blue-500 font-bold not-italic whitespace-nowrap">resistance <Shield className="inline w-5 h-5 mb-1" /></span> agent.
         </span>
       );
     }
