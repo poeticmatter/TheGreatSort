@@ -1,11 +1,9 @@
-import { useMemo, useCallback } from 'react';
-import { BadgeCheck, ShieldAlert, Play, Eye, EyeClosed, Repeat, RotateCcw, LucideIcon } from 'lucide-react';
-import { GamePhase, GameMode } from '../../types';
-import { SystemMood } from './useSystemMood';
+import { useMemo } from 'react';
+import { Play, Repeat, RotateCcw, LucideIcon } from 'lucide-react';
+import { GamePhase } from '../../types';
+import { getMoodButtonConfig, ButtonVariant } from '../config/submitButtonConfig';
 
 // --- Types ---
-
-export type ButtonVariant = 'gold' | 'silver' | 'bronze' | 'neutral' | 'warning' | 'info' | 'destructive' | 'default' | 'muted';
 
 export interface InteractionCommand {
     label: string;
@@ -26,25 +24,6 @@ export interface UserInterfaceState {
     secondaryAction: InteractionCommand | null;
     feedback: UserInterfaceFeedback;
 }
-
-// --- Visual Helpers (Local) ---
-
-const getMoodVisuals = (mood: SystemMood): { label: string; variant: ButtonVariant; Icon: LucideIcon } => {
-    switch (mood) {
-        case 'SOLVED':
-            return { label: 'Submit to Audit', variant: 'gold', Icon: BadgeCheck };
-        case 'ADEQUATE':
-            return { label: 'Submit to Audit', variant: 'silver', Icon: BadgeCheck };
-        case 'INITIAL':
-            return { label: 'Inadequate', variant: 'neutral', Icon: EyeClosed };
-        case 'SUSPICIOUS':
-            return { label: 'Non-Compliant', variant: 'warning', Icon: Eye };
-        case 'SABOTAGE':
-            return { label: 'Terminate', variant: 'destructive', Icon: ShieldAlert };
-        default:
-            return { label: 'Inspect', variant: 'neutral', Icon: Play };
-    }
-};
 
 // --- Hook Implementation ---
 
@@ -111,7 +90,7 @@ export function useGameInteractions(state: any, actions: any): UserInterfaceStat
         }
         // 3. Planning Phase (Mood Driven)
         else {
-            const moodVisuals = getMoodVisuals(mood);
+            const moodVisuals = getMoodButtonConfig(mood);
             label = moodVisuals.label;
             variant = moodVisuals.variant;
             Icon = moodVisuals.Icon;

@@ -22,7 +22,7 @@ export const getMoodButtonConfig = (mood: SystemMood): ButtonVisualConfig => {
         case 'SUSPICIOUS':
             return { label: 'Non-Compliant', variant: 'warning', Icon: Eye };
         case 'SABOTAGE':
-            return { label: 'Terminate', variant: 'destructive', Icon: ShieldAlert };
+            return { label: 'Sabotage', variant: 'destructive', Icon: ShieldAlert };
         default:
             return { label: 'Inspect', variant: 'neutral', Icon: Play };
     }
