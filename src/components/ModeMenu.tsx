@@ -20,6 +20,23 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
 }) => {
     const [showModeMenu, setShowModeMenu] = useState(false);
     const navigate = useNavigate();
+    const menuRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowModeMenu(false);
+            }
+        };
+
+        if (showModeMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showModeMenu]);
 
     const getCurrentModeLabel = () => {
         if (gameMode === 'TUTORIAL') return 'TUTORIAL';
@@ -28,7 +45,7 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
     };
 
     return (
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setShowModeMenu(!showModeMenu)}
                 disabled={phase === GamePhase.INSPECTING}
