@@ -256,7 +256,7 @@ export function useTutorialEngine() {
         closeResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
         saveDaily: () => { },
         handleUndo,
-        showLockedResistance: () => { },
+        showLockedResistance: () => dispatch({ type: 'SHOW_LOCKED_RESISTANCE' }),
         joinResistance: () => { },
         dismissResistance: () => dispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
         trackShare: () => { }
