@@ -112,12 +112,18 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     // Use the user's final list (their actual submission state, not the initial puzzle or optimal solution)
     const { gradedList: finalItems } = gradeLevel(userFinalList);
 
+    let resistanceStatusText: string | undefined;
+    if (joinedResistance && isResistanceActive && resistanceOutcome) {
+      resistanceStatusText = getStatusConfig(resistanceOutcome).text;
+    }
+
     const text = generatePayload({
       userScore,
       compliancePercentage: compliance,
       mood: shareMood,
       items: finalItems,
-      date: date
+      date: date,
+      resistanceStatusText
     });
 
     const result = await performShare(text);
