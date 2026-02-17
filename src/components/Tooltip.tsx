@@ -28,8 +28,6 @@ const Tooltip: React.FC<TooltipProps> = ({
   phase,
   selectedTool,
   selection,
-  gameMode,
-  isLocked,
   isResistanceActive,
   mood,
   tutorialMessage
@@ -37,27 +35,27 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   const getInstruction = (): React.ReactNode => {
     if (tutorialMessage) return tutorialMessage;
-    if (phase === GamePhase.RESULTS) return "Sequence Complete. Review results.";
-    if (phase === GamePhase.INSPECTING) return "Processing sequence...";
+    if (phase === GamePhase.RESULTS) return "Sequence Complete. Review audit.";
+    if (phase === GamePhase.INSPECTING) return "Running Inspection...";
 
     if (isResistanceActive) {
       return (
         <span>
-          The <span className="text-red-500 font-bold not-italic">state <Siren className="inline w-3 h-3 mb-0.5" /></span> agent must be eliminated. The <span className="text-blue-500 font-bold not-italic">resistance <Shield className="inline w-3 h-3 mb-0.5" /></span> agent must survive.
+          Eliminate the <span className="text-red-500 font-bold not-italic whitespace-nowrap">state <Siren className="inline w-3 h-3 mb-0.5" /></span> agent. Protect the <span className="text-blue-500 font-bold not-italic whitespace-nowrap">resistance <Shield className="inline w-3 h-3 mb-0.5" /></span> agent.
         </span>
       );
     }
 
     if (!selectedTool) {
-      if (mood === 'ADEQUATE') return "All items surviving may not be possible. 100% compliance is the optimal solution.";
-      if (mood === 'SUSPICIOUS') return "Warning: Non-compliance will be met with severe punishment.";
+      if (mood === 'ADEQUATE') return "Item loss is authorized. 100% compliance is the optimal solution.";
+      if (mood === 'SUSPICIOUS') return "Efficiency tip: Compliance is mandatory.";
       if (mood === 'SABOTAGE') return "ERROR! ERROR! ERROR!";
       if (mood === 'SOLVED') return "Report to audit, comrade.";
     }
 
-    if (gameMode === 'DAILY' && isLocked) return "Quota Locked. Training Mode Active.";
 
-    if (!selectedTool) return "Comrade, select a tool to re-educate the sequence.";
+
+    if (!selectedTool) return "Select a tool to re-educate the sequence.";
 
     // Get tool definition
     const toolDef = TOOLS[selectedTool.toUpperCase()];
@@ -77,10 +75,10 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   return (
     <div className="w-full flex justify-center py-2 pointer-events-none select-none">
-      <div className="relative flex items-center gap-3 px-6 py-2 bg-[#1c1917]/95 border border-amber-900/40 rounded shadow-2xl backdrop-blur-sm min-w-[320px] max-w-2xl justify-center">
+      <div className="relative flex items-center gap-3 md:gap-5 px-6 py-2 md:px-10 md:py-4 bg-[#1c1917]/95 border border-amber-900/40 rounded shadow-2xl backdrop-blur-sm min-w-[320px] max-w-2xl justify-center transition-all duration-300">
         {/* Icon */}
-        <div className="text-amber-600/80 shrink-0 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="text-amber-500 shrink-0 flex items-center">
+          <svg className="w-4 h-4 md:w-6 md:h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -88,8 +86,8 @@ const Tooltip: React.FC<TooltipProps> = ({
         </div>
 
         {/* Instruction Text */}
-        <div className="min-h-14 w-full flex items-center justify-center text-base font-serif text-stone-300 tracking-wide italic text-center drop-shadow-sm px-4">
-          <span>"{instruction}"</span>
+        <div className="min-h-14 md:min-h-20 w-full flex items-center justify-start text-sm md:text-lg font-mono font-bold text-stone-400 tracking-widest text-left px-4 transition-all duration-300">
+          <span>{instruction}</span>
         </div>
 
         {/* Decorative Corner Accents (Subtle) */}
