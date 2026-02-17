@@ -91,18 +91,16 @@ export function useGame(sessionDate: string) {
     const [y, m, d] = sessionDate.split('-').map(Number);
     const puzzleDate = new Date(y, m - 1, d);
     const puzzle = PuzzleRepository.getDailyPuzzle(puzzleDate);
-    const { initialState } = GameHydrationService.hydrateDailyNew(puzzle); // 2. [CRITICAL] Inject Resistance Status if player has joined
-    const hasJoined = PersistenceService.loadResistanceStatus();
-    if (hasJoined) {
-      initialState.resistance!.status = ResistanceStatus.ACTIVE;
-    }
+
+    // Use centralized hydration logic
+    const isResistant = PersistenceService.loadResistanceStatus();
+    const { initialState } = GameHydrationService.hydrateResistanceDaily(puzzle, isResistant);
+
     coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: initialState } });
     coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: false } });
-    // Dailies usually start immediately? No, user sees intro maybe? 
-    // If it initializes, we track start.
-    const effectiveMode = PersistenceService.loadResistanceStatus() ? 'RESISTANCE' : 'DAILY';
-    trackLevelAction('retry', effectiveMode as any);
-    trackLevelStart(effectiveMode as any);
+
+    trackLevelAction('retry', metaState.gameMode);
+    trackLevelStart(metaState.gameMode);
   }, [sessionDate, coreDispatch, trackLevelStart, trackLevelAction]);
 
   const nextLevel = useCallback(() => {
@@ -113,8 +111,15 @@ export function useGame(sessionDate: string) {
   }, [coreDispatch, trackLevelStart, trackLevelAction]);
 
   // --- Resistance System ---
-  // Reactive State for Resistance Status to ensure UI updates immediately
-  const [hasJoinedResistance, setHasJoinedResistance] = useState(PersistenceService.loadResistanceStatus());
+  // Derive resistance status:
+  // 1. Unlocked Status (Meta - Persisted): Has the user joined the resistance globally?
+  // 2. Active Status (Session - State): Is the current game running in resistance mode?
+
+  // We initialize the unlocked status from persistence.
+  const [hasUnlockedResistance, setHasUnlockedResistance] = useState(() => PersistenceService.loadResistanceStatus());
+
+  // Internal Logic relies on checking if the *Current Session* is active (e.g. for triggering events).
+  const isResistanceActive = coreState.resistance?.status !== ResistanceStatus.INACTIVE;
 
   const { finalizeResistanceMission, closeResistanceAndReset: originalCloseResistanceAndReset, checkResistanceTrigger } = useResistanceSystem({
     coreState,
@@ -124,14 +129,19 @@ export function useGame(sessionDate: string) {
     saveDailyResult,
     retryDaily,
     nextLevel,
-    hasJoinedResistance
+    hasJoinedResistance: isResistanceActive // Logic uses Active status
   });
 
   // Wrapper to update local state when joining
   const closeResistanceAndReset = useCallback(() => {
-    setHasJoinedResistance(true); // Update local state
+    // If we joined, we want to ensure the game reflects that state
+    if (PersistenceService.loadResistanceStatus()) {
+      coreDispatch({ type: 'ACTIVATE_RESISTANCE' }); // Ensure state reflects active
+      metaActions.setGameMode('DAILY');
+      setHasUnlockedResistance(true); // Ensure UI reflects unlock
+    }
     originalCloseResistanceAndReset();
-  }, [originalCloseResistanceAndReset]);
+  }, [originalCloseResistanceAndReset, coreDispatch, metaActions]);
 
 
   // --- Inspector Run Tracking ---
@@ -146,18 +156,17 @@ export function useGame(sessionDate: string) {
       const optimal = coreState.optimalScore || 0;
       const isSolved = score >= optimal;
 
-      const effectiveMode = metaState.gameMode === 'DAILY' && hasJoinedResistance ? 'RESISTANCE' : metaState.gameMode;
       const result = isSolved ? 'SOLVED' : 'UNSOLVED';
 
-      trackInspectorRun(effectiveMode as any, score, result);
+      trackInspectorRun(metaState.gameMode, score, result);
 
       // Explicit Resistance Trigger: Check if user submitted a sabotaged board
-      if (metaState.gameMode === 'DAILY' && !hasJoinedResistance) {
+      if (metaState.gameMode === 'DAILY' && !isResistanceActive) {
         checkResistanceTrigger();
       }
     }
     prevPhase.current = coreState.phase;
-  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun, hasJoinedResistance, checkResistanceTrigger]);
+  }, [coreState.phase, coreState.levelScore, coreState.optimalScore, metaState.gameMode, trackInspectorRun, isResistanceActive, checkResistanceTrigger]);
 
 
   // --- Initialization ---
@@ -167,19 +176,14 @@ export function useGame(sessionDate: string) {
 
     if (metaState.gameMode === 'DAILY') {
       if (dailyStatus === 'READY' && dailyConfig) {
-        if (PersistenceService.loadResistanceStatus()) {
-          dailyConfig.resistance!.status = ResistanceStatus.ACTIVE;
-          dailyConfig.gameMode = 'RESISTANCE';
-        }
+        // Hydration via useDailyChallenge already handles resistance injection
         coreDispatch({ type: 'INITIALIZE_GAME', payload: { state: dailyConfig } });
         metaActions.setIsGameLoaded(true);
         if (dailyConfig.optimalScore) coreDispatch({ type: 'SET_OPTIMAL_SCORE', payload: { score: dailyConfig.optimalScore } });
         if (dailyConfig.worstScore) coreDispatch({ type: 'SET_WORST_SCORE', payload: { score: dailyConfig.worstScore } });
         if (dailyConfig.dailyCompleted) coreDispatch({ type: 'SET_DAILY_COMPLETED', payload: { completed: true } });
 
-        // Initial Game Start Logic for Daily
-        const effectiveMode = PersistenceService.loadResistanceStatus() ? 'RESISTANCE' : 'DAILY';
-        trackLevelStart(effectiveMode as any);
+        trackLevelStart(metaState.gameMode);
       }
     }
     else if (metaState.gameMode === 'PRACTICE') {
@@ -275,8 +279,10 @@ export function useGame(sessionDate: string) {
     triggerResistance: () => coreDispatch({ type: 'ACTIVATE_RESISTANCE' }),
     closeResistance: closeResistanceAndReset,
     joinResistance: () => {
-      setHasJoinedResistance(true);
+      coreDispatch({ type: 'ACTIVATE_RESISTANCE' });
+      metaActions.setGameMode('DAILY');
       PersistenceService.saveResistanceStatus(true);
+      setHasUnlockedResistance(true);
       trackResistanceJoined();
     },
     dismissResistance: () => coreDispatch({ type: 'CLOSE_RESISTANCE_VIEW' }),
@@ -308,14 +314,14 @@ export function useGame(sessionDate: string) {
       sessionDate,
       dailyResult,
       isLocked: metaState.gameMode === 'PRACTICE' ? false : isLocked,
-      isResistanceModalOpen: metaState.gameMode === 'PRACTICE' ? false : (coreState.resistance?.isViewOpen ?? false),
-      hasJoinedResistance, // Exposed for UI reactivity
+      isResistanceModalOpen: (metaState.gameMode === 'PRACTICE' || metaState.gameMode === 'TUTORIAL') ? false : (coreState.resistance?.isViewOpen ?? false),
+      hasJoinedResistance: hasUnlockedResistance, // Exposed for UI reactivity (using Persisted Status)
       persistenceLoaded: dailyStatus === 'READY',
       startingCompliance,
       isZeroYield,
       yieldRatio,
       currentYield, // Live-calculated yield for Training mode
-      projectedResistanceStatus: (metaState.gameMode === 'PRACTICE' || !hasJoinedResistance)
+      projectedResistanceStatus: (metaState.gameMode === 'PRACTICE')
         ? undefined
         : projectResistanceStatus, // Expose live resistance status
 

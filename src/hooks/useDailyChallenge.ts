@@ -5,7 +5,7 @@ import { PuzzleRepository } from '../services/puzzleRepository';
 import { useDailyLock } from './useDailyLock';
 import { GameState } from '../reducers/gameState';
 import { DailyResult } from '../services/persistence/types';
-import { GamePhase, GameMode } from '../../types';
+import { GamePhase, GameMode, ResistanceStatus } from '../../types';
 
 export type DailyStatus = 'LOADING' | 'READY';
 
@@ -33,11 +33,17 @@ export function useDailyChallenge(
             // 2. Check Persistence
             const savedState = PersistenceService.loadDailyState(sessionDate);
             const savedResult = PersistenceService.getDailyResult(sessionDate);
+            const isResistant = PersistenceService.loadResistanceStatus();
 
             let config: Partial<GameState>;
 
             if (savedState) {
                 const { initialState } = GameHydrationService.hydrateDailyFromSave(savedState, puzzle);
+                // Apply Resistance status to saved state if valid
+                if (isResistant && initialState.resistance) {
+                    initialState.resistance.status = ResistanceStatus.ACTIVE;
+                    initialState.gameMode = 'RESISTANCE';
+                }
                 config = initialState;
             } else if (savedResult) {
                 // Completed but no state save found
@@ -48,9 +54,13 @@ export function useDailyChallenge(
                     dailyCompleted: true,
                     levelScore: savedResult.score
                 };
+                if (isResistant && config.resistance) {
+                    config.resistance.status = ResistanceStatus.ACTIVE;
+                    config.gameMode = 'RESISTANCE';
+                }
             } else {
                 // Brand new session
-                const { initialState } = GameHydrationService.hydrateDailyNew(puzzle);
+                const { initialState } = GameHydrationService.hydrateResistanceDaily(puzzle, isResistant);
                 config = initialState;
             }
 
@@ -64,7 +74,7 @@ export function useDailyChallenge(
 
     // Snapshot Saver
     useEffect(() => {
-        if (!isGameLoaded || !gameState || gameMode !== 'DAILY') return;
+        if (!isGameLoaded || !gameState || (gameMode !== 'DAILY' && gameMode !== 'RESISTANCE')) return;
 
         // Only save if there's meaningful data (e.g. seed is present)
         if (gameState.currentSeed === undefined) return;

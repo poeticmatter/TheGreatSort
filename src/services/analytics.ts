@@ -19,7 +19,7 @@ const eventQueue: Array<() => void> = [];
 
 // --- Event Schemas ---
 
-export type GameMode = 'DAILY' | 'PRACTICE' | 'RESISTANCE';
+import { GameMode } from '../../types';
 
 export interface BaseEventParams {
   [key: string]: any;

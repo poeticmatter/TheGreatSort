@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { DailyAudit } from '../DailyAudit';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { PersistenceService } from '../../services/persistence';
+import { GameMode } from '../../types';
 
 interface AuditBoardProps {
     sessionDate: string;
@@ -11,8 +12,8 @@ interface AuditBoardProps {
     onDetectResistance: () => void;
     flavorText: string;
     optimalScore: number | null;
-    gameMode: string;
-    trackShare: (context: string, mode: any) => void;
+    gameMode: GameMode;
+    trackShare: (context: string, mode: GameMode) => void;
 }
 
 export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText, optimalScore, gameMode, trackShare }: AuditBoardProps) {
@@ -20,7 +21,7 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
 
     useEffect(() => {
         const hasJoined = PersistenceService.loadResistanceStatus();
-        const effectiveMode = (gameMode === 'DAILY' && hasJoined) ? 'RESISTANCE' : gameMode;
+        const effectiveMode: GameMode = (gameMode === 'DAILY' && hasJoined) ? 'RESISTANCE' : gameMode;
 
         // Determine result
         let result: 'SOLVED' | 'UNSOLVED' = 'UNSOLVED';
@@ -31,12 +32,12 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
         }
 
         // We know effectiveMode is "DAILY" | "PRACTICE" | "RESISTANCE"
-        trackAuditViewed(effectiveMode as any, levelScore, result);
+        trackAuditViewed(effectiveMode, levelScore, result);
     }, []); // Run on mount
 
     const handleShareSuccess = () => {
-        const effectiveMode = (gameMode === 'DAILY' && PersistenceService.loadResistanceStatus()) ? 'RESISTANCE' : gameMode;
-        trackShare('audit_result', effectiveMode as any);
+        const effectiveMode: GameMode = (gameMode === 'DAILY' && PersistenceService.loadResistanceStatus()) ? 'RESISTANCE' : gameMode;
+        trackShare('audit_result', effectiveMode);
     };
 
     return (

@@ -15,9 +15,9 @@ export function ResistanceView({ onClose, onJoin, isOpen, variant }: ResistanceV
 
     // Use props if provided (Tutorial), otherwise fall back to context (Main Game - though Main Game also passes props now via GameView)
     // Actually, since GameView always has data, we can prefer props.
-    // If prop is undefined, fall back.
-    const effectiveIsOpen = isOpen ?? state.resistance.isViewOpen;
-    const effectiveVariant = variant ?? state.resistance.viewVariant;
+    // Use props if they are defined, otherwise fallback. Note that isOpen might be false, so check for undefined.
+    const effectiveIsOpen = isOpen !== undefined ? isOpen : (state.resistance?.isViewOpen ?? false);
+    const effectiveVariant = variant !== undefined ? variant : (state.resistance?.viewVariant);
 
     if (!effectiveIsOpen) return null;
 
