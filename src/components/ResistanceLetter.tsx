@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import letterBg from '../assets/ResistanceLetter.png';
 
 interface ResistanceLetterProps {
@@ -9,6 +9,14 @@ interface ResistanceLetterProps {
 
 export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJoin, variant = 'INVITE' }) => {
   const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    // Prevent body scroll to stop layout shift on mobile devices while open
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const handleJoin = () => {
     localStorage.setItem('joinedResistance', 'true');
@@ -23,7 +31,7 @@ export const ResistanceLetter: React.FC<ResistanceLetterProps> = ({ onClose, onJ
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-stone-950 transition-opacity duration-1000 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-stone-950 transition-opacity duration-1000 ${closing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <style>{`
         @keyframes text-pulse-to-black {
           0%, 100% { color: #44403c; } 
