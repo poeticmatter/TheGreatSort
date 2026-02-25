@@ -8,24 +8,28 @@ export function useAnalytics() {
     AnalyticsService.pageView(path);
   }, []);
 
-  const trackLevelStart = useCallback((mode: GameMode) => {
-    AnalyticsService.track(AnalyticsFactory.levelStart(mode));
+  const trackPuzzleStarted = useCallback((mode: GameMode) => {
+    AnalyticsService.track(AnalyticsFactory.puzzleStarted(mode));
   }, []);
 
-  const trackInspectorRun = useCallback((mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => {
-    AnalyticsService.track(AnalyticsFactory.inspectorRun(mode, score, result));
+  const trackSequenceSubmitted = useCallback((mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED', compliance_percentage: number, target_yield: number) => {
+    AnalyticsService.track(AnalyticsFactory.sequenceSubmitted(mode, score, result, compliance_percentage, target_yield));
   }, []);
 
-  const trackAuditViewed = useCallback((mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => {
-    AnalyticsService.track(AnalyticsFactory.auditViewed(mode, score, result));
+  const trackReportViewed = useCallback((mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => {
+    AnalyticsService.track(AnalyticsFactory.reportViewed(mode, score, result));
   }, []);
 
-  const trackLevelAction = useCallback((action: 'retry' | 'next_level', mode: GameMode) => {
-    AnalyticsService.track(AnalyticsFactory.levelAction(action, mode));
+  const trackPuzzleRetried = useCallback((mode: GameMode) => {
+    AnalyticsService.track(AnalyticsFactory.puzzleRetried(mode));
   }, []);
 
-  const trackResistanceJoined = useCallback(() => {
-    AnalyticsService.track(AnalyticsFactory.resistanceJoined());
+  const trackPuzzleNext = useCallback((mode: GameMode) => {
+    AnalyticsService.track(AnalyticsFactory.puzzleNext(mode));
+  }, []);
+
+  const trackResistanceJoined = useCallback((mode: GameMode) => {
+    AnalyticsService.track(AnalyticsFactory.resistanceJoined(mode));
   }, []);
 
   const trackShare = useCallback((context: string, mode: GameMode) => {
@@ -34,10 +38,11 @@ export function useAnalytics() {
 
   return {
     trackPageView,
-    trackLevelStart,
-    trackInspectorRun,
-    trackAuditViewed,
-    trackLevelAction,
+    trackPuzzleStarted,
+    trackSequenceSubmitted,
+    trackReportViewed,
+    trackPuzzleRetried,
+    trackPuzzleNext,
     trackResistanceJoined,
     trackShare
   };

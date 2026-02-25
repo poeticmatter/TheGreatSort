@@ -13,7 +13,7 @@ export interface MetaActions {
     setIsGameLoaded: (loaded: boolean) => void;
     triggerCurrentAudit: () => void;
     closeAudit: () => void;
-    trackLevelStart: (mode: GameMode) => void;
+    trackPuzzleStarted: (mode: GameMode) => void;
 }
 
 export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: string) {
@@ -24,7 +24,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
 
     const [auditState, setAuditState] = useState<{ date: string; userScore: number } | null>(null);
 
-    const { trackLevelStart } = useAnalytics();
+    const { trackPuzzleStarted } = useAnalytics();
 
     // Sync sessionDate to store if needed
     useEffect(() => {
@@ -60,7 +60,7 @@ export function useMetaGame(coreState: any, coreDispatch: any, sessionDate: stri
             setIsGameLoaded,
             triggerCurrentAudit,
             closeAudit,
-            trackLevelStart,
+            trackPuzzleStarted,
         }
     };
 }
