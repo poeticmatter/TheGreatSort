@@ -86,12 +86,7 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative shell">
             <Header
-                gameMode={data.gameMode}
-                phase={data.phase}
-                onChangeMode={actions.changeMode}
                 onOpenRules={handleOpenRules}
-                onShowResistanceLocked={actions.showLockedResistance}
-                hasJoinedResistance={data.hasJoinedResistance}
             />
 
             <ResistanceView

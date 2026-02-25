@@ -1,25 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Lock, GraduationCap, ShieldAlert } from 'lucide-react';
-import { GameMode, GamePhase } from '../../types';
+import { GamePhase } from '../../types';
+import { useNavigationCoordinator } from '../hooks/useNavigationCoordinator';
 
-interface ModeMenuProps {
-    gameMode: GameMode;
-    phase: GamePhase;
-    onChangeMode: (mode: GameMode) => void;
-    hasJoinedResistance: boolean;
-    onShowResistanceLocked: () => void;
-}
+const ModeMenu: React.FC = () => {
+    const {
+        effectiveMode,
+        hasJoinedResistance,
+        executeNavigationIntent,
+        emitLockedResistanceIntent,
+        currentPhase
+    } = useNavigationCoordinator();
 
-const ModeMenu: React.FC<ModeMenuProps> = ({
-    gameMode,
-    phase,
-    onChangeMode,
-    hasJoinedResistance,
-    onShowResistanceLocked
-}) => {
     const [showModeMenu, setShowModeMenu] = useState(false);
-    const navigate = useNavigate();
     const menuRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -39,8 +32,8 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
     }, [showModeMenu]);
 
     const getCurrentModeLabel = () => {
-        if (gameMode === 'TUTORIAL') return 'TUTORIAL';
-        if (gameMode === 'PRACTICE') return 'TRAINING';
+        if (effectiveMode === 'TUTORIAL') return 'TUTORIAL';
+        if (effectiveMode === 'PRACTICE') return 'TRAINING';
         return hasJoinedResistance ? 'RESISTANCE' : 'DAILY QUOTA';
     };
 
@@ -48,8 +41,8 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
         <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setShowModeMenu(!showModeMenu)}
-                disabled={phase === GamePhase.INSPECTING}
-                className={`flex items-center gap-1 text-[12px] font-['Courier_Prime'] uppercase tracking-[0.2em] transition-colors ${phase === GamePhase.INSPECTING
+                disabled={currentPhase === GamePhase.INSPECTING}
+                className={`flex items-center gap-1 text-[12px] font-['Courier_Prime'] uppercase tracking-[0.2em] transition-colors ${currentPhase === GamePhase.INSPECTING
                     ? 'text-stone-600 cursor-not-allowed opacity-50'
                     : 'text-stone-400 hover:text-amber-500'
                     }`}
@@ -65,14 +58,10 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                     {/* Daily Quota / Active Resistance Toggle */}
                     <button
                         onClick={() => {
-                            if (gameMode === 'TUTORIAL') {
-                                navigate('/');
-                            }
-                            onChangeMode('DAILY');
+                            executeNavigationIntent('DAILY');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer
-                    ${(gameMode === 'DAILY') ? 'text-amber-500 font-bold' : 'text-stone-400'}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer ${(effectiveMode === 'DAILY') ? 'text-amber-500 font-bold' : 'text-stone-400'}
                 `}
                     >
                         {hasJoinedResistance ? <ShieldAlert size={14} /> : null}
@@ -82,13 +71,10 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                     {/* Training (Always Available) */}
                     <button
                         onClick={() => {
-                            if (gameMode === 'TUTORIAL') {
-                                navigate('/');
-                            }
-                            onChangeMode('PRACTICE');
+                            executeNavigationIntent('PRACTICE');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 ${gameMode === 'PRACTICE' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 ${effectiveMode === 'PRACTICE' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                     >
                         Training
                     </button>
@@ -98,10 +84,10 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                     {/* Tutorial (Always Available) */}
                     <button
                         onClick={() => {
-                            navigate('/tutorial');
+                            executeNavigationIntent('TUTORIAL');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 ${gameMode === 'TUTORIAL' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 ${effectiveMode === 'TUTORIAL' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                     >
                         <GraduationCap size={14} />
                         Tutorial
@@ -112,7 +98,7 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                     {/* Career Mode (Coming Soon) */}
                     <button
                         onClick={() => {
-                            navigate('/career');
+                            executeNavigationIntent('CAREER');
                             setShowModeMenu(false);
                         }}
                         className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between group ${window.location.pathname === '/career' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
@@ -125,7 +111,7 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                     {!hasJoinedResistance && (
                         <button
                             onClick={() => {
-                                onShowResistanceLocked();
+                                emitLockedResistanceIntent();
                                 setShowModeMenu(false);
                             }}
                             className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer text-stone-500`}

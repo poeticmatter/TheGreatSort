@@ -7,12 +7,7 @@ export const CareerPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-stone-900 text-stone-200 font-sans selection:bg-red-500/30 flex flex-col relative">
             <Header
-                gameMode="DAILY" // Dummy, as we are simply showing a page, but maintains interface bounds
-                phase={GamePhase.PLANNING}
-                onChangeMode={() => { }}
                 onOpenRules={() => { }}
-                onShowResistanceLocked={() => { }}
-                hasJoinedResistance={false}
             />
 
             <main className="flex-1 flex items-center justify-center p-6">
