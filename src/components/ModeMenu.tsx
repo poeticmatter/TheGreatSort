@@ -32,6 +32,7 @@ const ModeMenu: React.FC = () => {
     }, [showModeMenu]);
 
     const getCurrentModeLabel = () => {
+        if (effectiveMode === 'CAREER') return 'CAREER';
         if (effectiveMode === 'TUTORIAL') return 'TUTORIAL';
         if (effectiveMode === 'PRACTICE') return 'TRAINING';
         return hasJoinedResistance ? 'RESISTANCE' : 'DAILY QUOTA';
@@ -117,7 +118,7 @@ const ModeMenu: React.FC = () => {
                             executeNavigationIntent('CAREER');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between w-full group ${window.location.pathname === '/career' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between w-full group ${effectiveMode === 'CAREER' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                     >
                         <div className="flex items-center gap-2">
                             <ScrollText size={14} />

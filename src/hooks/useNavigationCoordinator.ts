@@ -18,9 +18,11 @@ export function useNavigationCoordinator() {
     }, [state.gameMode, location.pathname]);
 
     // 2. Identify effective mode based on pure route overriding
-    let effectiveGameMode = state.gameMode;
+    let effectiveGameMode: GameMode | 'CAREER' = state.gameMode;
     if (location.pathname === '/tutorial') {
         effectiveGameMode = 'TUTORIAL';
+    } else if (location.pathname === '/career') {
+        effectiveGameMode = 'CAREER';
     }
 
     // 3. Centralized Command Dispatcher for Intent
