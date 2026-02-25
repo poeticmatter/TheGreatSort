@@ -230,13 +230,16 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
               const textColor = 'text-blue-400';
 
               return (
-                <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700
+                <div className={`w-full mb-6 p-4 border-2 rounded relative overflow-hidden flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 crt-overlay
                     ${borderColor} ${bgColor}
                  `}>
-                  <StatusIcon className={`${textColor} w-8 h-8`} />
+                  <StatusIcon className={`${textColor} w-8 h-8 z-10`} />
 
-                  <div className="flex flex-col items-center">
-                    <div className={`text-xl font-black uppercase tracking-widest ${textColor}`}>
+                  <div className="flex flex-col items-center z-10">
+                    <div
+                      className={`text-xl font-black uppercase tracking-widest ${textColor} glitch-text`}
+                      data-text={config.text}
+                    >
                       {config.text}
                     </div>
                     {config.description && (

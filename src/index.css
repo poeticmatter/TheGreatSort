@@ -1,1 +1,120 @@
 @import "tailwindcss";
+
+/* CRT & Signal Interference Effects */
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+  animation: scanlines 10s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes scanlines {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(20px);
+  }
+}
+
+
+/* Text glitch effect */
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+
+.glitch-text::before {
+  left: 2px;
+  text-shadow: -1px 0 rgba(255, 0, 0, 0.7);
+  clip-path: inset(0 0 0 0);
+  animation: glitch-anim-1 3s infinite linear alternate-reverse;
+}
+
+.glitch-text::after {
+  left: -2px;
+  text-shadow: 1px 0 rgba(0, 0, 255, 0.7);
+  clip-path: inset(0 0 0 0);
+  animation: glitch-anim-2 2.5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim-1 {
+  0% {
+    clip-path: inset(20% 0 80% 0);
+    transform: translate(-2px, 0);
+  }
+
+  10% {
+    clip-path: inset(60% 0 10% 0);
+    transform: translate(2px, 0);
+  }
+
+  20% {
+    clip-path: inset(40% 0 50% 0);
+    transform: translate(-2px, 0);
+  }
+
+  30% {
+    clip-path: inset(80% 0 5% 0);
+    transform: translate(2px, 0);
+  }
+
+  40%,
+  100% {
+    clip-path: inset(50% 0 50% 0);
+    transform: translate(0, 0);
+  }
+
+  /* pauses */
+}
+
+@keyframes glitch-anim-2 {
+  0% {
+    clip-path: inset(10% 0 60% 0);
+    transform: translate(2px, 0);
+  }
+
+  10% {
+    clip-path: inset(30% 0 20% 0);
+    transform: translate(-2px, 0);
+  }
+
+  20% {
+    clip-path: inset(70% 0 10% 0);
+    transform: translate(2px, 0);
+  }
+
+  30% {
+    clip-path: inset(20% 0 50% 0);
+    transform: translate(-2px, 0);
+  }
+
+  40%,
+  100% {
+    clip-path: inset(50% 0 50% 0);
+    transform: translate(0, 0);
+  }
+
+  /* pauses */
+}
