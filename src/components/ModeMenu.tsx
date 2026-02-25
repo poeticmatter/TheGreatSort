@@ -103,7 +103,6 @@ const ModeMenu: React.FC = () => {
                                 setShowModeMenu(false);
                             }}
                             className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer text-stone-500`}
-                            title="Decrypting..."
                         >
                             <Lock size={14} />
                             Resistance
