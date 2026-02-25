@@ -190,13 +190,10 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
-          <h1 className="text-3xl font-black uppercase tracking-wide text-amber-500 mb-2 flex items-center gap-3">
+          <h1 className="text-3xl font-black uppercase tracking-wide text-amber-500 mb-8 flex items-center gap-3">
             <FileText className="w-8 h-8" />
             Daily Audit: {date}
           </h1>
-          <p className="text-stone-400 font-mono text-sm mb-8 max-w-2xl text-center">
-            Official performance review of sorting efficiency for the designated cycle.
-          </p>
 
           {/* KPI Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 w-full">
@@ -266,12 +263,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
 
         </div>
 
-        {/* Flavor Text */}
-        {displayFlavorText && (
-          <div className="my-6 w-full flex justify-center border-t border-b border-stone-800 py-4">
-            <FlavorTextComponent mood="DONE" text={displayFlavorText} />
-          </div>
-        )}
+
 
         {/* Share Button Section */}
         <div className="w-full flex flex-col items-center mb-8 gap-2">
