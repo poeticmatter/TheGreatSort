@@ -31,6 +31,7 @@ interface DailyPuzzle {
     resistanceData?: {
         agents: Record<number, 'resistance' | 'state'>; // originalIndex -> role
         targetYield: number; // The max score possible GIVEN the survival constraints
+        solution: DailyPuzzleMove[];
     };
 }
 
@@ -125,19 +126,22 @@ async function main() {
             const optimalKept = getKeptIndicesSet(level, analysis.bestSolution);
 
             // We use 'findAll' to get all potential outcomes
-            const allSolutionsAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: initialScore });
+            const allSolutionsAnalysis = solve(level, toolTypes, 'MAX', { findAll: true, threshold: initialScore, minDepth: 4 });
 
             if (!allSolutionsAnalysis.allSolutions || allSolutionsAnalysis.allSolutions.length === 0) {
                 console.log(`   -> No solutions found for analysis.`);
                 continue;
             }
 
-            let validResData: { agents: Record<number, 'resistance' | 'state'>; targetYield: number } | null = null;
-            const constraintMap = new Map<string, number>(); // "r,s" -> maxYield
+            let validResData: { agents: Record<number, 'resistance' | 'state'>; targetYield: number; solution: DailyPuzzleMove[] } | null = null;
+            const constraintMap = new Map<string, { yield: number, length: number, solution: DailyPuzzleMove[] }>(); // "r,s" -> {yield, length, solution}
 
             for (const sol of allSolutionsAnalysis.allSolutions) {
                 // Requirement: Score > Initial
                 if (sol.score <= initialScore) continue;
+
+                // Meaningful Depth must be >= MIN_SOLUTION_DEPTH (4)
+                if (sol.moves.length < MIN_SOLUTION_DEPTH) continue;
 
                 const altKept = getKeptIndicesSet(level, sol.moves);
 
@@ -163,9 +167,16 @@ async function main() {
                 for (const r of validResAgents) {
                     for (const s of validStateAgents) {
                         const key = `${r},${s}`;
-                        const currentMax = constraintMap.get(key) || -Infinity;
-                        if (sol.score > currentMax) {
-                            constraintMap.set(key, sol.score);
+                        const currentVal = constraintMap.get(key);
+
+                        // Prioritize higher depth, then higher yield
+                        const isBetter =
+                            !currentVal ||
+                            sol.moves.length > currentVal.length ||
+                            (sol.moves.length === currentVal.length && sol.score > currentVal.yield);
+
+                        if (isBetter) {
+                            constraintMap.set(key, { yield: sol.score, length: sol.moves.length, solution: sol.moves });
                         }
                     }
                 }
@@ -174,13 +185,13 @@ async function main() {
             // Now we have a map of potential missions and their achievable yields.
             // We filter for distinct missions where targetYield is defined.
 
-            const possibleConstraints = Array.from(constraintMap.entries()).filter(([_, yieldVal]) => {
-                return yieldVal > initialScore;
+            const possibleConstraints = Array.from(constraintMap.entries()).filter(([_, data]) => {
+                return data.yield > initialScore;
             });
 
             if (possibleConstraints.length > 0) {
                 // Pick random
-                const [key, targetYield] = possibleConstraints[Math.floor(Math.random() * possibleConstraints.length)];
+                const [key, data] = possibleConstraints[Math.floor(Math.random() * possibleConstraints.length)];
                 const [rStr, sStr] = key.split(',');
                 const r = parseInt(rStr, 10);
                 const s = parseInt(sStr, 10);
@@ -190,7 +201,8 @@ async function main() {
                         [r]: 'resistance',
                         [s]: 'state'
                     } as Record<number, 'resistance' | 'state'>,
-                    targetYield: targetYield
+                    targetYield: data.yield,
+                    solution: data.solution
                 };
             }
 

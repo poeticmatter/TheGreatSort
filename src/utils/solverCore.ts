@@ -113,7 +113,7 @@ export function solve(
     initialSequence: ISortable[],
     initialTools: ToolType[],
     objective: 'MAX' | 'MIN' = 'MAX',
-    options?: { findAll?: boolean; threshold?: number }
+    options?: { findAll?: boolean; threshold?: number; minDepth?: number; maxDepth?: number }
 ): SolverResult {
     let globalBestScore = objective === 'MAX' ? -Infinity : Infinity;
 
@@ -138,6 +138,11 @@ export function solve(
         // if (currentSeq.some(s => s.val < 0)) {
         //    return;
         // }
+
+        // Pruning Rule: Exceeds maximum depth
+        if (options?.maxDepth !== undefined && currentPath.length > options.maxDepth) {
+            return;
+        }
 
         const score = calculateBatchScore(currentSeq);
         // Include hasShield in state key as it dramatically affects future scoring potential
@@ -164,15 +169,12 @@ export function solve(
             }
         }
 
-        // Capture Alternative Logic (Optimization: Only if tools empty? Or simply high scores?)
-        // Standard "Result" is usually when tools are exhausted or user stops.
-        // But solver runs until tools exhausted.
-        if (options?.findAll && currentTools.length === 0) {
-            // Check threshold
-            if (options.threshold !== undefined) {
-                if (score > options.threshold) { // Assuming Delta Algo wants Higher Yield
-                    // We store unique states? Or all paths?
-                    // Let's store unique states (shortest path to them).
+        // Capture Alternative Logic
+        if (options?.findAll) {
+            const meetsMinDepth = options.minDepth === undefined || currentPath.length >= options.minDepth;
+
+            if (meetsMinDepth && options.threshold !== undefined) {
+                if (score > options.threshold) {
                     if (!visitedStatesForSolutions.has(stateValString)) {
                         visitedStatesForSolutions.add(stateValString);
                         allSolutions.push({
@@ -204,6 +206,21 @@ export function solve(
             for (const move of moves) {
                 // Apply the move
                 const nextSeq = strategy.apply(currentSeq, move.index, move.targetIndex);
+
+                // Prune NOOP moves
+                let isNoop = true;
+                if (currentSeq.length !== nextSeq.length) {
+                    isNoop = false;
+                } else {
+                    for (let i = 0; i < currentSeq.length; i++) {
+                        if (currentSeq[i].val !== nextSeq[i].val || currentSeq[i].hasShield !== nextSeq[i].hasShield) {
+                            isNoop = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (isNoop) continue;
 
                 // Construct the Move Object
                 const moveObj: DailyPuzzleMove = {

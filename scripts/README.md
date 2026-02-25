@@ -5,9 +5,7 @@ This directory contains utility scripts for **The Great Sort**.
 ## 🧩 proper Puzzle Generator
 
 **File:** `generate-puzzles.ts`
-
-This script generates deterministic, solvable "Daily Puzzles" for the game. It uses the core game logic to ensure every generated puzzle has a valid optimal solution and meets specific complexity criteria (e.g., minimum depth, unique solution paths).
-
+This script generates deterministic, solvable "Daily Puzzles" for the game. It uses the core game logic to ensure every generated puzzle has a valid optimal solution and meets specific complexity criteria (e.g., minimum depth, unique solution paths, and constraint-based resistance layers).
 ### Usage
 
 Run the script using `npx tsx`. You generally do not need to compile it first.
@@ -35,9 +33,13 @@ The script **overwrites** the file at:
 
 The generator enforces the following rules for "Production Quality" puzzles:
 1.  **Solvability**: Every puzzle must be solvable.
-2.  **Minimum Depth**: Puzzles solvable in fewer than `MIN_SOLUTION_DEPTH` (default: 4) moves are discarded to ensure difficulty.
-3.  **Unique Solutions**: Puzzles with multiple distinct end-states are discarded to ensure the "Optimal Score" is unique, preventing ambiguity.
-4.  **Verification**: After generation, the script runs a check against the `calculateBatchScore` function to guarantee the recorded solution actually yields the claimed score.
+2.  **Minimum Depth**: Puzzles solvable in fewer than `MIN_SOLUTION_DEPTH` (default: 4) moves are discarded to ensure baseline difficulty for the optimal path.
+3.  **Unique Solutions**: Puzzles with multiple distinct max-yield end-states are discarded to prevent ambiguity in the optimal score.
+4.  **Resistance Layer (Alt Path)**: Each base puzzle mandates a valid Resistance mission. The script searches for alternative solutions satisfying these constraints:
+    - **Resistance Agent**: Must be eliminated in the optimal path, but survives in the alt path.
+    - **State Agent**: Must be safe in the optimal path, but eliminated in the alt path.
+    - **Complexity & Depth Requirement**: To ensure Resistance alt-solutions aren't trivial, they must individually require at least 4 meaningful, non-redundant tool uses (NOOP moves like swapping with self are pruned). If multiple valid missions exist for the same agents, the one with the highest sequence depth (followed by max yield) is selected for the `targetYield`.
+    - **Fallback**: If a solid base puzzle cannot fulfill this strict resistance constraint, the generator discards it and attempts another seed.
 
 ### Troubleshooting
 
