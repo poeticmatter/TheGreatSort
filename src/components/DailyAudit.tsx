@@ -199,16 +199,16 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
           </p>
 
           {/* KPI Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 w-full">
-            <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
-              <div className="text-xs uppercase text-stone-500 mb-1">Citizen Yield</div>
-              <div className="text-3xl font-bold text-stone-200">{userScore}</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 w-full">
+            <div className="bg-stone-900/80 p-4 md:p-5 border border-stone-600 rounded">
+              <div className="text-[11px] md:text-xs uppercase text-stone-500 mb-1">Citizen Yield</div>
+              <div className="text-2xl md:text-3xl font-bold text-stone-200">{userScore}</div>
             </div>
-            <div className="bg-stone-900/80 p-5 border border-stone-600 rounded">
-              <div className="text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
-              <div className="text-3xl font-bold text-amber-500">{optimalScore}</div>
+            <div className="bg-stone-900/80 p-4 md:p-5 border border-stone-600 rounded">
+              <div className="text-[11px] md:text-xs uppercase text-stone-500 mb-1">Optimal Yield</div>
+              <div className="text-2xl md:text-3xl font-bold text-amber-500">{optimalScore}</div>
             </div>
-            <div className={`bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${compliance >= 100 ? 'border-amber-400/50'
+            <div className={`col-span-2 md:col-span-1 bg-stone-900/80 p-5 border rounded flex flex-col justify-center relative overflow-hidden ${compliance >= 100 ? 'border-amber-400/50'
               : compliance >= 90 ? 'border-amber-700/50'
                 : 'border-red-900/50'
               }`}>
