@@ -1,4 +1,4 @@
-import { CheckCircle, AlertTriangle, FileText, LucideIcon } from 'lucide-react';
+import { CheckCircle, AlertTriangle, FileText, LucideIcon, Siren, Fingerprint } from 'lucide-react';
 import { ResistanceStatus } from '../../types';
 
 export interface ResistanceStatusConfig {
@@ -28,14 +28,14 @@ export const RESISTANCE_STATUS_CONFIG: Record<ResistanceStatus, ResistanceStatus
         color: 'red',
         text: 'WE ARE EXPOSED!',
         description: 'You must keep our agents safe!',
-        icon: AlertTriangle
+        icon: Fingerprint
     },
     // COMPROMISED: State loyalist agent survived the sorting process.
     [ResistanceStatus.COMPROMISED]: {
         color: 'red',
         text: 'STATE AGENT ESCAPED',
         description: 'State agent escaped. Watch your back, they are coming for you.',
-        icon: AlertTriangle
+        icon: Siren
     },
     [ResistanceStatus.ACTIVE]: {
         color: 'stone',

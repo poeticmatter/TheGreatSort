@@ -240,7 +240,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                       {config.text}
                     </div>
                     {config.description && (
-                      <div className={`text-xs md:text-sm font-mono mt-1 ${textColor} opacity-80 max-w-[90%] text-center`}>
+                      <div className={`text-xs md:text-sm font-mono mt-1 ${textColor} opacity-80 max-w-[90%] md:max-w-none text-center`}>
                         {config.description}
                       </div>
                     )}
