@@ -190,8 +190,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
-          <h1 className="text-3xl font-black uppercase tracking-wide text-amber-500 mb-8 flex items-center gap-3">
-            <FileText className="w-8 h-8" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wide text-amber-500 mb-8 flex items-center gap-2 sm:gap-3 whitespace-nowrap">
+            <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
             Daily Audit: {date}
           </h1>
 
