@@ -107,6 +107,20 @@ const ModeMenu: React.FC<ModeMenuProps> = ({
                         Tutorial
                     </button>
 
+                    <div className="h-px bg-stone-700 my-1 opacity-50" />
+
+                    {/* Career Mode (Coming Soon) */}
+                    <button
+                        onClick={() => {
+                            navigate('/career');
+                            setShowModeMenu(false);
+                        }}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between group ${window.location.pathname === '/career' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                    >
+                        <span>Career</span>
+                        <span className="text-[9px] bg-stone-800 px-1 py-0.5 rounded text-amber-500 group-hover:bg-amber-900/30">Coming Soon</span>
+                    </button>
+
                     {/* Legacy Locked Slot - Only show if specifically NOT joined */}
                     {!hasJoinedResistance && (
                         <button

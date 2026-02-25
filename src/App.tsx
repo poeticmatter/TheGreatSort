@@ -10,6 +10,7 @@ import ResistanceLetter from './assets/ResistanceLetter.png';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
 import { TutorialPage } from './components/views/TutorialPage';
+import { CareerPage } from './components/views/CareerPage';
 const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
 function GamePage() {
@@ -26,6 +27,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<GamePage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/career" element={<CareerPage />} />
           {import.meta.env.DEV && (
             <Route
               path="/banners"
