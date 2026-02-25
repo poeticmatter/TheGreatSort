@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Lock, GraduationCap, ShieldAlert } from 'lucide-react';
+import { ChevronDown, Lock, GraduationCap, ShieldAlert, Calendar, Dumbbell, ScrollText } from 'lucide-react';
 import { GamePhase } from '../../types';
 import { useNavigationCoordinator } from '../hooks/useNavigationCoordinator';
 
@@ -64,7 +64,7 @@ const ModeMenu: React.FC = () => {
                         className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider flex items-center gap-2 w-full hover:bg-stone-800 cursor-pointer ${(effectiveMode === 'DAILY') ? 'text-amber-500 font-bold' : 'text-stone-400'}
                 `}
                     >
-                        {hasJoinedResistance ? <ShieldAlert size={14} /> : null}
+                        {hasJoinedResistance ? <ShieldAlert size={14} /> : <Calendar size={14} />}
                         {hasJoinedResistance ? 'Resistance' : 'Daily'}
                     </button>
 
@@ -74,8 +74,9 @@ const ModeMenu: React.FC = () => {
                             executeNavigationIntent('PRACTICE');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 ${effectiveMode === 'PRACTICE' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 w-full ${effectiveMode === 'PRACTICE' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                     >
+                        <Dumbbell size={14} />
                         Training
                     </button>
 
@@ -87,24 +88,10 @@ const ModeMenu: React.FC = () => {
                             executeNavigationIntent('TUTORIAL');
                             setShowModeMenu(false);
                         }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 ${effectiveMode === 'TUTORIAL' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center gap-2 w-full ${effectiveMode === 'TUTORIAL' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
                     >
                         <GraduationCap size={14} />
                         Tutorial
-                    </button>
-
-                    <div className="h-px bg-stone-700 my-1 opacity-50" />
-
-                    {/* Career Mode (Coming Soon) */}
-                    <button
-                        onClick={() => {
-                            executeNavigationIntent('CAREER');
-                            setShowModeMenu(false);
-                        }}
-                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between group ${window.location.pathname === '/career' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
-                    >
-                        <span>Career</span>
-                        <span className="text-[9px] bg-stone-800 px-1 py-0.5 rounded text-amber-500 group-hover:bg-amber-900/30">Coming Soon</span>
                     </button>
 
                     {/* Legacy Locked Slot - Only show if specifically NOT joined */}
@@ -121,6 +108,23 @@ const ModeMenu: React.FC = () => {
                             Resistance
                         </button>
                     )}
+
+                    <div className="h-px bg-stone-700 my-1 opacity-50" />
+
+                    {/* Career Mode (Coming Soon) */}
+                    <button
+                        onClick={() => {
+                            executeNavigationIntent('CAREER');
+                            setShowModeMenu(false);
+                        }}
+                        className={`text-left px-3 py-2 text-xs font-['Courier_Prime'] uppercase tracking-wider hover:bg-stone-800 flex items-center justify-between w-full group ${window.location.pathname === '/career' ? 'text-amber-500 font-bold' : 'text-stone-400'}`}
+                    >
+                        <div className="flex items-center gap-2">
+                            <ScrollText size={14} />
+                            <span>Career</span>
+                        </div>
+                        <span className="text-[9px] bg-stone-800 px-1 py-0.5 rounded text-amber-500 group-hover:bg-amber-900/30">Coming Soon</span>
+                    </button>
 
                 </div>
             )}
