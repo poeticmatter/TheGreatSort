@@ -22,7 +22,7 @@ export const getResistanceFlavor = (
     }
 
     // 2. Resistance Agent Lost
-    if (resistanceStatus === ResistanceStatus.EXPOSED || resistanceStatus === ResistanceStatus.MIA) {
+    if (resistanceStatus === ResistanceStatus.EXPOSED) {
         return 'RES_AGENT_LOST';
     }
 

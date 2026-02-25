@@ -13,6 +13,7 @@ import { FooterAttribution } from './FooterAttribution';
 
 import { getResistanceFlavor } from '../utils/resistanceFlavor';
 import { FLAVOR_DATABASE } from '../config/flavorText';
+import { getStatusConfig } from '../config/resistanceStatusConfig';
 
 interface DailyAuditProps {
   date: string;
@@ -159,24 +160,7 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
     );
   }
 
-  // Helper for Status Config
-  const getStatusConfig = (status: ResistanceStatus) => {
-    switch (status) {
-      case ResistanceStatus.SUCCESS:
-        return { color: 'blue', text: 'RESISTANCE MISSION ACCOMPLISHED', icon: CheckCircle };
-      case ResistanceStatus.CAREFUL:
-        return { color: 'amber', text: 'CAREFUL, FRIEND', icon: AlertTriangle };
-      case ResistanceStatus.EXPOSED:
-        return { color: 'red', text: 'YOU ARE EXPOSED!', icon: AlertTriangle };
-      case ResistanceStatus.MIA:
-        return { color: 'red', text: 'RESISTANCE AGENT MIA', icon: AlertTriangle };
-      case ResistanceStatus.COMPROMISED:
-        return { color: 'red', text: 'STATE AGENT ESCAPED', icon: AlertTriangle };
-      default:
-        // Fallback for ACTIVE or INACTIVE if they leak through
-        return { color: 'stone', text: 'STATUS UNKNOWN', icon: FileText };
-    }
-  };
+
 
   return (
     <div className="w-full max-w-5xl mx-auto text-stone-100 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -255,6 +239,11 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
                     <div className={`text-xl font-black uppercase tracking-widest ${textColor}`}>
                       {config.text}
                     </div>
+                    {config.description && (
+                      <div className={`text-xs md:text-sm font-mono mt-1 ${textColor} opacity-80 max-w-[90%] text-center`}>
+                        {config.description}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
