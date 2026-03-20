@@ -21,8 +21,8 @@ export interface DailyPuzzleData {
 }
 
 // Use local time construction: new Date(year, monthIndex, day)
-// January is 0. 2026-01-01 Local Time.
-const EPOCH_START = new Date(2026, 0, 1);
+// January is 0. 2026-03-19 Local Time.
+const EPOCH_START = new Date(2026, 2, 19);
 
 export const PuzzleRepository = {
     getDailyPuzzle(date: Date): DailyPuzzleData {
