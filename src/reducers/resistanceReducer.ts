@@ -8,14 +8,12 @@ const ALLOWED_TRANSITIONS: Record<ResistanceStatus, ResistanceStatus[]> = {
         ResistanceStatus.SUCCESS,
         ResistanceStatus.EXPOSED,
         ResistanceStatus.COMPROMISED,
-        ResistanceStatus.CAREFUL,
-        ResistanceStatus.MIA
+        ResistanceStatus.CAREFUL
     ],
     [ResistanceStatus.SUCCESS]: [],
     [ResistanceStatus.EXPOSED]: [],
     [ResistanceStatus.COMPROMISED]: [],
     [ResistanceStatus.CAREFUL]: [],
-    [ResistanceStatus.MIA]: [],
 };
 
 // --- Payload Validators ---

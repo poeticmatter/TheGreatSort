@@ -58,12 +58,6 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
 
                     <div className="space-y-4">
-                        <p className="text-stone-400 font-serif leading-relaxed italic border-l-2 border-stone-700 pl-4">
-                            "Optimization is the rule of success. Maximize yield, comrade."
-                        </p>
-
-
-
                         <div className="bg-stone-950/50 p-4 border border-stone-800 rounded-sm">
                             <h3 className="text-amber-600 font-bold uppercase tracking-wider text-sm mb-3">Protocol Briefing</h3>
                             <ul className="space-y-3 text-stone-300 text-sm font-[Courier_Prime]">
@@ -125,10 +119,7 @@ const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
                     {/* Attribution */}
                     <div className="pt-6 border-t border-stone-800 flex flex-col items-center gap-2">
-                        <p className="text-stone-600 text-xs font-mono uppercase tracking-widest">
-                            System maintained by
-                        </p>
-                        <FooterAttribution vertical />
+                        <FooterAttribution />
                     </div>
 
                 </div>

@@ -34,9 +34,25 @@ const Tooltip: React.FC<TooltipProps> = ({
 }) => {
 
   const getInstruction = (): React.ReactNode => {
-    if (tutorialMessage) return tutorialMessage;
     if (phase === GamePhase.RESULTS) return "Sequence Complete. Review audit.";
     if (phase === GamePhase.INSPECTING) return "Running Inspection...";
+
+    if (selectedTool) {
+      // Get tool definition
+      const toolDef = TOOLS[selectedTool.toUpperCase()];
+      const toolName = toolDef ? toolDef.name : selectedTool;
+      const toolDesc = toolDef ? toolDef.desc : "";
+
+      if (selection === null) {
+        // First click needed: Show Description to guide user on what the tool does
+        return toolDesc || `Select target for ${toolName}...`;
+      } else {
+        // Second click needed
+        return `Select destination for ${toolName}...`;
+      }
+    }
+
+    if (tutorialMessage) return tutorialMessage;
 
     if (isResistanceActive) {
       return (
@@ -46,29 +62,12 @@ const Tooltip: React.FC<TooltipProps> = ({
       );
     }
 
-    if (!selectedTool) {
-      if (mood === 'ADEQUATE') return "Item loss is authorized. 100% compliance is the optimal solution.";
-      if (mood === 'SUSPICIOUS') return "Efficiency tip: Compliance is mandatory.";
-      if (mood === 'SABOTAGE') return "ERROR! ERROR! ERROR!";
-      if (mood === 'SOLVED') return "Report to audit, comrade.";
-    }
+    if (mood === 'ADEQUATE') return "Item loss is authorized. 100% compliance is the optimal solution.";
+    if (mood === 'SUSPICIOUS') return "Efficiency tip: Compliance is mandatory.";
+    if (mood === 'SABOTAGE') return "ERROR! ERROR! ERROR!";
+    if (mood === 'SOLVED') return "Report to audit, comrade.";
 
-
-
-    if (!selectedTool) return "Select a tool to re-educate the sequence.";
-
-    // Get tool definition
-    const toolDef = TOOLS[selectedTool.toUpperCase()];
-    const toolName = toolDef ? toolDef.name : selectedTool;
-    const toolDesc = toolDef ? toolDef.desc : "";
-
-    if (selection === null) {
-      // First click needed: Show Description to guide user on what the tool does
-      return toolDesc || `Select target for ${toolName}...`;
-    } else {
-      // Second click needed
-      return `Select destination for ${toolName}...`;
-    }
+    return "Select a tool to re-educate the sequence.";
   };
 
   const instruction = getInstruction();

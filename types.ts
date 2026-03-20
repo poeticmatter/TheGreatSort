@@ -16,7 +16,6 @@ export enum AgentRole {
 export enum ResistanceStatus {
   INACTIVE = 'inactive',
   ACTIVE = 'active',
-  MIA = 'mia',
   COMPROMISED = 'compromised', // State agent survived
   SUCCESS = 'success',
   CAREFUL = 'careful', // Conditions met but low score? Or maybe just failed score.

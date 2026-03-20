@@ -1,29 +1,14 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import ModeMenu from './ModeMenu';
-import { GameMode, GamePhase } from '../../types';
 
 interface HeaderProps {
-  gameMode: GameMode;
-  phase: GamePhase;
-  onChangeMode: (mode: GameMode) => void;
-
   onOpenRules: () => void;
-  onShowResistanceLocked: () => void;
-  hasJoinedResistance: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
-  gameMode,
-  phase,
-  onChangeMode, onOpenRules, onShowResistanceLocked, hasJoinedResistance
+  onOpenRules
 }) => {
-
-
-
-
-
-
   return (
     <header className="px-6 py-4 border-b-4 border-red-900 bg-gradient-to-r from-red-950 to-stone-900 shadow-xl flex flex-col md:flex-row justify-center items-center gap-6 md:gap-12 z-50 sticky top-0">
       <div className="flex flex-col items-center">
@@ -47,17 +32,7 @@ const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Mode Selector */}
-          <ModeMenu
-            gameMode={gameMode}
-            phase={phase}
-            onChangeMode={onChangeMode}
-            hasJoinedResistance={hasJoinedResistance}
-            onShowResistanceLocked={onShowResistanceLocked}
-          />
-
-
-
-
+          <ModeMenu />
 
         </div>
       </div>
@@ -66,3 +41,4 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 export default Header;
+

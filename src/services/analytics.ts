@@ -22,42 +22,35 @@ const eventQueue: Array<() => void> = [];
 import { GameMode } from '../../types';
 
 export interface BaseEventParams {
+  event_category: string;
+  game_mode: GameMode;
   [key: string]: any;
 }
 
 // Strict Factory Methods replace loose tracking
 export const AnalyticsFactory = {
-  levelStart: (mode: GameMode) => ({
-    name: 'level_start',
+  puzzleStarted: (mode: GameMode) => ({
+    name: 'puzzle_started',
     params: {
       event_category: 'Lifecycle',
       game_mode: mode
     }
   }),
 
-  levelComplete: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
-    name: 'level_complete', // Standard GA4 event or close mapping
+  sequenceSubmitted: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED', compliance_percentage: number, target_yield: number) => ({
+    name: 'sequence_submitted',
     params: {
       event_category: 'Gameplay',
       game_mode: mode,
       score,
-      result
+      result,
+      compliance_percentage,
+      target_yield
     }
   }),
 
-  // Mapping 'inspector_run' to a custom event
-  inspectorRun: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
-    name: 'inspector_run',
-    params: {
-      event_category: 'Gameplay',
-      game_mode: mode,
-      score,
-      result
-    }
-  }),
-
-  auditViewed: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
-    name: 'audit_viewed',
+  reportViewed: (mode: GameMode, score: number, result: 'SOLVED' | 'UNSOLVED') => ({
+    name: 'report_viewed',
     params: {
       event_category: 'Engagement',
       game_mode: mode,
@@ -66,19 +59,27 @@ export const AnalyticsFactory = {
     }
   }),
 
-  levelAction: (action: 'retry' | 'next_level', mode: GameMode) => ({
-    name: 'level_action',
+  puzzleRetried: (mode: GameMode) => ({
+    name: 'puzzle_retried',
     params: {
       event_category: 'Interaction',
-      action_type: action,
       game_mode: mode
     }
   }),
 
-  resistanceJoined: () => ({
+  puzzleNext: (mode: GameMode) => ({
+    name: 'puzzle_next',
+    params: {
+      event_category: 'Interaction',
+      game_mode: mode
+    }
+  }),
+
+  resistanceJoined: (mode: GameMode) => ({
     name: 'resistance_joined',
     params: {
-      event_category: 'Conversion'
+      event_category: 'Conversion',
+      game_mode: mode
     }
   }),
 

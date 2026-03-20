@@ -43,7 +43,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
         group relative rounded-sm font-bold flex items-center justify-center transition-all duration-300
         ${compact
           ? 'w-16 h-16 p-1 flex-col gap-0.5 rounded shadow-sm'
-          : 'px-6 py-4 w-72 gap-3 font-[Cinzel] tracking-widest text-lg shadow-lg active:shadow-none active:translate-y-1'
+          : 'px-6 py-4 w-full sm:w-auto sm:min-w-[20rem] whitespace-nowrap gap-3 font-[Cinzel] tracking-widest text-lg shadow-lg active:shadow-none active:translate-y-1'
         }
         ${baseStyle}
         ${disabled ? 'opacity-50 cursor-not-allowed filter grayscale' : ''}

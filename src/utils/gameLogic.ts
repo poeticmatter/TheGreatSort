@@ -410,7 +410,7 @@ export const verifyResistanceMission = (
   initialYield: number,
   targetYield: number // The Conditional Maximum Yield
 ): ResistanceStatus => {
-  // If already ended irrecoverably (e.g. MIA), preserve it?
+  // If already ended irrecoverably, preserve it?
   // Actually, standard logic is to re-evaluate on every inspection fully.
   // Except if we have a persisted failure state that shouldn't be cleared?
   // Let's assume re-evaluation is fine because inspection is transient until final result.

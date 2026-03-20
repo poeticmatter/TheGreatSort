@@ -8,7 +8,6 @@ import { PuzzleBoard } from './PuzzleBoard';
 import { AuditBoard } from './AuditBoard';
 import { UserInterfaceState } from '../../hooks/useGameInteractions';
 import RulesModal from '../RulesModal';
-import { ResistanceView } from './ResistanceView';
 
 import { GameViewModel } from '../../types/GameViewModel';
 
@@ -86,19 +85,7 @@ export function GameView({ data, interaction, actions, layout }: GameViewProps) 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden relative shell">
             <Header
-                gameMode={data.gameMode}
-                phase={data.phase}
-                onChangeMode={actions.changeMode}
                 onOpenRules={handleOpenRules}
-                onShowResistanceLocked={actions.showLockedResistance}
-                hasJoinedResistance={data.hasJoinedResistance}
-            />
-
-            <ResistanceView
-                onClose={(accepted: boolean) => accepted ? actions.closeResistance() : actions.dismissResistance()}
-                onJoin={actions.joinResistance}
-                isOpen={data.resistance.isViewOpen}
-                variant={data.resistance.viewVariant}
             />
 
             <RulesModal isOpen={isRulesOpen} onClose={handleCloseRules} />

@@ -16,7 +16,7 @@ interface AuditBoardProps {
 }
 
 export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDetectResistance, flavorText, optimalScore, gameMode, trackShare }: AuditBoardProps) {
-    const { trackAuditViewed } = useAnalytics();
+    const { trackReportViewed } = useAnalytics();
 
     useEffect(() => {
         // Determine result
@@ -27,7 +27,7 @@ export function AuditBoard({ sessionDate, levelScore, dailyResult, onClose, onDe
             result = 'SOLVED';
         }
 
-        trackAuditViewed(gameMode, levelScore, result);
+        trackReportViewed(gameMode, levelScore, result);
     }, []); // Run on mount
 
     const handleShareSuccess = () => {
