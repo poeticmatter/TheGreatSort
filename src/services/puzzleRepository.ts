@@ -20,13 +20,14 @@ export interface DailyPuzzleData {
     };
 }
 
+import { decodePuzzleId } from '../utils/obfuscationUtils';
+
 // Use local time construction: new Date(year, monthIndex, day)
 // January is 0. 2026-03-19 Local Time.
-const EPOCH_START = new Date(2026, 2, 19);
+export const EPOCH_START = new Date(2026, 2, 19);
 
 export const PuzzleRepository = {
-    getDailyPuzzle(date: Date): DailyPuzzleData {
-        // Normalize dates to midnight LOCAL time and use rounding to handle DST shifts
+    getIndexForDate(date: Date): number {
         const start = new Date(EPOCH_START);
         start.setHours(0, 0, 0, 0);
 
@@ -34,18 +35,46 @@ export const PuzzleRepository = {
         current.setHours(0, 0, 0, 0);
 
         const diffTime = current.getTime() - start.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        let diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-        // Handle days before epoch or negative diffs safely (though unlikely in prod)
-        let index = diffDays;
-        if (index < 0) {
-            index = 0;
+        if (diffDays < 0) {
+            diffDays = 0;
         }
+        return diffDays;
+    },
 
+    getDateForIndex(index: number): Date {
+        const date = new Date(EPOCH_START);
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + index);
+        return date;
+    },
+
+    getDailyPuzzle(date: Date): DailyPuzzleData {
+        const index = this.getIndexForDate(date);
         const puzzleCount = dailyPuzzles.length;
         const puzzleIndex = index % puzzleCount;
 
         return dailyPuzzles[puzzleIndex] as unknown as DailyPuzzleData;
+    },
+
+    resolveObfuscatedPuzzle(obfuscatedId: string): { date: Date, data: DailyPuzzleData } | null {
+        const index = decodePuzzleId(obfuscatedId);
+
+        if (isNaN(index) || index < 0) {
+            return null;
+        }
+
+        const todayIndex = this.getIndexForDate(new Date());
+
+        if (index > todayIndex) {
+            return null; // Future puzzles are not allowed
+        }
+
+        const date = this.getDateForIndex(index);
+        const data = this.getDailyPuzzle(date);
+
+        return { date, data };
     },
 
     hydrateSequence(sequence: number[]): CardItem[] {

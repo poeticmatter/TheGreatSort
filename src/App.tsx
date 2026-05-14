@@ -7,14 +7,38 @@ import { GameProvider, useGameContext } from './context/GameContext';
 import { GameView } from './components/views/GameView';
 import ResistanceLetter from './assets/ResistanceLetter.png';
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
 import { GlobalResistanceOverlay } from './components/GlobalResistanceOverlay';
 import { TutorialPage } from './components/views/TutorialPage';
 import { CareerPage } from './components/views/CareerPage';
+import { PuzzleRepository } from './services/puzzleRepository';
 const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
+import { useRef } from 'react';
+
 function GamePage() {
+  const [searchParams] = useSearchParams();
+  const { dispatch } = useGameContext();
+  const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      const p = searchParams.get('p');
+      if (p) {
+        const result = PuzzleRepository.resolveObfuscatedPuzzle(p);
+        if (result) {
+          const year = result.date.getFullYear();
+          const month = String(result.date.getMonth() + 1).padStart(2, '0');
+          const day = String(result.date.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+          dispatch({ type: 'SET_SESSION_DATE', payload: { date: formattedDate } });
+        }
+      }
+    }
+  }, [searchParams, dispatch]);
+
   return (
     <TheGreatSortContent />
   );

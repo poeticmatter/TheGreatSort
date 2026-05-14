@@ -21,6 +21,7 @@ export interface UseDailyAuditResult {
     loading: boolean;
     error: string | null;
     initialList: CardItem[];
+    initialTools: ToolType[];
     userFinalList: CardItem[]; // The user's actual submitted list
     solution: Solution | null;
     timeline: TimelineStep[];
@@ -41,6 +42,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
     const [solution, setSolution] = useState<Solution | null>(null);
     const [worstScore, setWorstScore] = useState<number>(0);
     const [initialList, setInitialList] = useState<CardItem[]>([]);
+    const [initialTools, setInitialTools] = useState<ToolType[]>([]);
     const [userFinalList, setUserFinalList] = useState<CardItem[]>([]);
     const [resistanceStatus, setResistanceStatus] = useState<string | undefined>(undefined);
     const [resistanceTarget, setResistanceTarget] = useState<number | undefined>(undefined);
@@ -73,6 +75,9 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
                 // Hydrate Initial List
                 const list = PuzzleRepository.hydrateSequence(puzzle.sequence);
                 setInitialList(list);
+
+                const tools = PuzzleRepository.hydrateTools(puzzle.tools).map(t => t.type);
+                setInitialTools(tools);
 
                 // Load user's final list from persistence (snapshot)
                 const savedState = PersistenceService.loadDailyState(date);
@@ -161,6 +166,7 @@ export const useDailyAudit = (date: string, userHighScore: number): UseDailyAudi
         loading,
         error,
         initialList,
+        initialTools,
         userFinalList,
         solution,
         timeline,
