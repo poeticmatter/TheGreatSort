@@ -25,7 +25,7 @@ interface DailyAuditProps {
 }
 
 export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onClose, onDetectResistance, flavorText: propFlavorText, onShareSuccess }) => {
-  const { loading, solution, timeline, initialList, userFinalList, stats } = useDailyAudit(date, userHighScore);
+  const { loading, solution, timeline, initialList, initialTools, userFinalList, stats } = useDailyAudit(date, userHighScore);
   const { userScore, optimalScore, worstScore, resistanceStatus: rawResistanceStatus } = stats;
   const [isPlanExpanded, setIsPlanExpanded] = React.useState(false);
   const joinedResistance = typeof window !== 'undefined' && localStorage.getItem('joinedResistance') === 'true';
@@ -110,9 +110,6 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
   const handleShare = async () => {
     if (!solution || !timeline || timeline.length === 0) return;
 
-    // Use the user's final list (their actual submission state, not the initial puzzle or optimal solution)
-    const { gradedList: finalItems } = gradeLevel(userFinalList);
-
     let resistanceStatusText: string | undefined;
     if (joinedResistance && isResistanceActive && resistanceOutcome) {
       resistanceStatusText = getStatusConfig(resistanceOutcome).text;
@@ -122,7 +119,8 @@ export const DailyAudit: React.FC<DailyAuditProps> = ({ date, userHighScore, onC
       userScore,
       compliancePercentage: compliance,
       mood: shareMood,
-      items: finalItems,
+      initialList,
+      initialTools,
       date: date,
       resistanceStatusText
     });

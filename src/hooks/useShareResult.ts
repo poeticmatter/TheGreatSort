@@ -1,13 +1,17 @@
 import { useCallback } from 'react';
-import { CardItem } from '../../types';
+import { CardItem, ToolType } from '../../types';
 import { SystemMood } from './useSystemMood';
 import { SHARE_FLAVOR_DATABASE } from '../config/shareFlavor';
+import { TOOL_EMOJIS } from '../config/toolEmojis';
+import { encodePuzzleId } from '../utils/obfuscationUtils';
+import { PuzzleRepository } from '../services/puzzleRepository';
 
 interface UseShareResultProps {
     userScore: number;
     compliancePercentage: number;
     mood: SystemMood;
-    items: CardItem[];
+    initialList: CardItem[];
+    initialTools: ToolType[];
     resistanceStatusText?: string;
 }
 
@@ -31,6 +35,8 @@ export const formatSharePayload = (
     compliancePercentage: number,
     flavorText: string,
     date: string,
+    initialList: CardItem[],
+    initialTools: ToolType[],
     resistanceStatusText?: string
 ): string => {
     const lines = [
@@ -44,17 +50,32 @@ export const formatSharePayload = (
     lines.push(`Citizen Yield: ${userScore}`);
     lines.push(`Compliance: ${compliancePercentage}%`);
     lines.push(``);
+
+    const toolsLine = initialTools.map(t => TOOL_EMOJIS[t] || '🔧').join(' ');
+    lines.push(`Tools: ${toolsLine}`);
+
+    const boardLine = initialList.map(item => `[${item.val}]`).join(' ');
+    lines.push(`Board: ${boardLine}`);
+
+    lines.push(``);
     lines.push(`"${flavorText}"`);
     lines.push(``);
-    lines.push(`Play at stalinsort.fun`);
+
+    const puzzleDateParts = date.split('-');
+    const puzzleDate = new Date(parseInt(puzzleDateParts[0]), parseInt(puzzleDateParts[1]) - 1, parseInt(puzzleDateParts[2]));
+    const index = PuzzleRepository.getIndexForDate(puzzleDate);
+    const obfuscatedId = encodePuzzleId(index);
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://stalinsort.fun';
+    lines.push(`Audit this sequence: ${origin}/?p=${obfuscatedId}`);
 
     return lines.join('\n');
 };
 
 export const useShareResult = () => {
-    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, items, date, resistanceStatusText }: UseShareResultProps & { date: string }) => {
+    const generatePayload = useCallback(({ userScore, compliancePercentage, mood, initialList, initialTools, date, resistanceStatusText }: UseShareResultProps & { date: string }) => {
         const flavorText = getWeightedFlavor(mood);
-        return formatSharePayload(userScore, compliancePercentage, flavorText, date, resistanceStatusText);
+        return formatSharePayload(userScore, compliancePercentage, flavorText, date, initialList, initialTools, resistanceStatusText);
     }, []);
 
     return { generatePayload };
