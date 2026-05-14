@@ -47,6 +47,50 @@ const BannersPage: React.FC = () => {
                 </div>
             </BannerWrapper>
 
+            {/* Variation 2b: Large & Centered (650x500) */}
+            <BannerWrapper title="Variation 2b: Large & Centered 650x500" filename="header_large_650x500" width={650} height={500}>
+                <div className="w-full h-full bg-gradient-to-b from-stone-900 to-red-950 flex flex-col justify-center items-center relative overflow-hidden">
+                    {/* Subtle Background Star */}
+                    <Star className="absolute text-red-900/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" size={350} />
+
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="relative mb-6">
+                            <Star className="text-amber-500 fill-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]" size={80} />
+                            <div className="absolute inset-0 blur-lg bg-amber-500/20 rounded-full"></div>
+                        </div>
+                        <h1 className="text-5xl font-[Cinzel] font-bold text-transparent bg-clip-text bg-gradient-to-br from-amber-400 to-amber-600 drop-shadow-xl tracking-widest uppercase text-center mx-4">
+                            The Great Sort
+                        </h1>
+                        <div className="h-[2px] w-24 bg-amber-600/50 my-5"></div>
+                        <p className="font-[Courier_Prime] text-stone-300 text-xl tracking-[0.2em] uppercase font-bold text-shadow text-center">
+                            Compliance is Mandatory
+                        </p>
+                    </div>
+                </div>
+            </BannerWrapper>
+
+            {/* Variation 2c: Large & Centered (1500x500 Bluesky) */}
+            <BannerWrapper title="Variation 2c: Large & Centered 1500x500 Bluesky" filename="header_large_1500x500_bluesky" width={1500} height={500}>
+                <div className="w-full h-full bg-gradient-to-b from-stone-900 to-red-950 flex flex-col justify-center items-center gap-10 relative overflow-hidden">
+                    {/* Subtle Background Star */}
+                    <Star className="absolute text-red-900/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" size={600} />
+
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="relative mb-6">
+                            <Star className="text-amber-500 fill-amber-500 drop-shadow-[0_0_20px_rgba(245,158,11,0.4)]" size={120} />
+                            <div className="absolute inset-0 blur-xl bg-amber-500/20 rounded-full"></div>
+                        </div>
+                        <h1 className="text-7xl xl:text-8xl font-[Cinzel] font-bold text-transparent bg-clip-text bg-gradient-to-br from-amber-400 to-amber-600 drop-shadow-2xl tracking-widest uppercase text-center mx-4">
+                            The Great Sort
+                        </h1>
+                        <div className="h-1 w-32 bg-amber-600/50 my-5"></div>
+                        <p className="font-[Courier_Prime] text-stone-300 text-3xl tracking-[0.2em] uppercase font-bold text-shadow text-center">
+                            Compliance is Mandatory
+                        </p>
+                    </div>
+                </div>
+            </BannerWrapper>
+
             {/* Variation 3: Split Layout (Left/Right) */}
             <BannerWrapper title="Variation 3: Split Layout" filename="header_split">
                 <div className="w-full h-full bg-stone-950 relative flex items-center justify-center overflow-hidden">
