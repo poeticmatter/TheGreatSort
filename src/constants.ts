@@ -7,6 +7,8 @@ import { TOOL_META } from './toolDefinitions';
 
 export { ALL_TOOL_TYPES } from './toolDefinitions';
 
+export const BASE_URL = 'https://stalinsort.fun';
+
 export const TOOLS: Record<string, ToolDefinition> = {
   DEMOTE: { ...TOOL_META.DEMOTE, name: 'Demote', icon: ArrowRightToLine, desc: 'Move an item to the end (Right)' },
   SWAP: { ...TOOL_META.SWAP, name: 'Swap', icon: ArrowRightLeft, desc: 'Switch two adjacent items' },

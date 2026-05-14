@@ -5,6 +5,7 @@ import { SHARE_FLAVOR_DATABASE } from '../config/shareFlavor';
 import { TOOL_EMOJIS } from '../config/toolEmojis';
 import { encodePuzzleId } from '../utils/obfuscationUtils';
 import { PuzzleRepository } from '../services/puzzleRepository';
+import { BASE_URL } from '../constants';
 
 interface UseShareResultProps {
     userScore: number;
@@ -37,6 +38,7 @@ export const formatSharePayload = (
     date: string,
     initialList: CardItem[],
     initialTools: ToolType[],
+    permalinkUrl: string,
     resistanceStatusText?: string
 ): string => {
     const lines = [
@@ -61,13 +63,7 @@ export const formatSharePayload = (
     lines.push(`"${flavorText}"`);
     lines.push(``);
 
-    const puzzleDateParts = date.split('-');
-    const puzzleDate = new Date(parseInt(puzzleDateParts[0]), parseInt(puzzleDateParts[1]) - 1, parseInt(puzzleDateParts[2]));
-    const index = PuzzleRepository.getIndexForDate(puzzleDate);
-    const obfuscatedId = encodePuzzleId(index);
-
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://stalinsort.fun';
-    lines.push(`Audit this sequence: ${origin}/?p=${obfuscatedId}`);
+    lines.push(`Audit this sequence: ${permalinkUrl}`);
 
     return lines.join('\n');
 };
@@ -75,7 +71,16 @@ export const formatSharePayload = (
 export const useShareResult = () => {
     const generatePayload = useCallback(({ userScore, compliancePercentage, mood, initialList, initialTools, date, resistanceStatusText }: UseShareResultProps & { date: string }) => {
         const flavorText = getWeightedFlavor(mood);
-        return formatSharePayload(userScore, compliancePercentage, flavorText, date, initialList, initialTools, resistanceStatusText);
+
+        const puzzleDateParts = date.split('-');
+        const puzzleDate = new Date(parseInt(puzzleDateParts[0]), parseInt(puzzleDateParts[1]) - 1, parseInt(puzzleDateParts[2]));
+        const index = PuzzleRepository.getIndexForDate(puzzleDate);
+        const obfuscatedId = encodePuzzleId(index);
+
+        const origin = typeof window !== 'undefined' ? window.location.origin : BASE_URL;
+        const permalinkUrl = `${origin}/?p=${obfuscatedId}`;
+
+        return formatSharePayload(userScore, compliancePercentage, flavorText, date, initialList, initialTools, permalinkUrl, resistanceStatusText);
     }, []);
 
     return { generatePayload };

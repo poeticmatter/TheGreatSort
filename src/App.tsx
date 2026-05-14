@@ -15,29 +15,29 @@ import { CareerPage } from './components/views/CareerPage';
 import { PuzzleRepository } from './services/puzzleRepository';
 const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
+import { useRef } from 'react';
+
 function GamePage() {
   const [searchParams] = useSearchParams();
   const { dispatch } = useGameContext();
-  const [initialized, setInitialized] = useState(false);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    const p = searchParams.get('p');
-    if (p) {
-      const result = PuzzleRepository.resolveObfuscatedPuzzle(p);
-      if (result) {
-        const year = result.date.getFullYear();
-        const month = String(result.date.getMonth() + 1).padStart(2, '0');
-        const day = String(result.date.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
-        dispatch({ type: 'SET_SESSION_DATE', payload: { date: formattedDate } });
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      const p = searchParams.get('p');
+      if (p) {
+        const result = PuzzleRepository.resolveObfuscatedPuzzle(p);
+        if (result) {
+          const year = result.date.getFullYear();
+          const month = String(result.date.getMonth() + 1).padStart(2, '0');
+          const day = String(result.date.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+          dispatch({ type: 'SET_SESSION_DATE', payload: { date: formattedDate } });
+        }
       }
     }
-    setInitialized(true);
   }, [searchParams, dispatch]);
-
-  if (!initialized) {
-    return <div className="min-h-screen bg-stone-900" />;
-  }
 
   return (
     <TheGreatSortContent />

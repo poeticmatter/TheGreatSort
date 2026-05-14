@@ -8,10 +8,6 @@ export const encodePuzzleId = (index: number): string => {
     let num = ((index << 4) ^ SALT) >>> 0;
 
     // 2. Base62 Encode
-    if (num === 0) {
-        return BASE62[0].padStart(MIN_LENGTH, BASE62[0]);
-    }
-
     let str = "";
     while (num > 0) {
         str = BASE62[num % 62] + str;
