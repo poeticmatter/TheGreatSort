@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:stress": "npx tsx testing/verify_optimality.ts",
+    "simulate": "npx tsx scripts/simulate-runs.ts",
     "test": "vitest"
   },
   "dependencies": {

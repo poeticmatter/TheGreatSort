@@ -10,6 +10,7 @@ npm run build      # Production build → dist/
 npm run preview    # Preview production build
 npm test           # Run tests (Vitest)
 npm run test:stress  # Stress test solver optimality
+npm run simulate -- 1000  # Simulate roguelike runs per bot and print balance stats
 ```
 
 ## Architecture
@@ -32,7 +33,7 @@ State is held in `GameContext` (React Context + useReducer) and consumed via `us
 
 1. Puzzle loaded from `src/data/daily_puzzles.json` via `puzzleRepository` + `gameHydrationService`
 2. Player applies tools to sort the list → moves recorded in `gameReducer`
-3. On submit, `solverCore.ts` calculates optimal/worst scores; player score is compared
+3. On submit, `src/engine/solver.ts` calculates optimal/worst scores; player score is compared
 4. Results saved to localStorage via `PersistenceService`
 5. Daily completion triggers audit board display
 
@@ -46,6 +47,9 @@ State is held in `GameContext` (React Context + useReducer) and consumed via `us
   - `generation.ts` / `random.ts` — seeded sequence and tool generation
   - `solver.ts` / `solutions.ts` — exhaustive search for optimal/worst scores
   - `tools/implementations.ts` — all 13 tool implementations (demote, swap, promote, longswap, sink, halve, shield, shrink, hop, mirror, cycle, equalize, transfer)
+  - `run/` — roguelike run rules as pure state transitions (`createRun`, `applyRunMove`, `undoRunMove`, `submitSequence`); tunable numbers live in `run/runConfig.ts`
+  - `simulation/` — bots (idle, greedy, patient, oracle) and `simulateRuns`; not part of the app bundle, import it directly rather than through the engine index
+- `src/features/run/` — prototype run screen at `/run` (`?seed=N` replays a seed); UI state in `runSessionReducer.ts`
 - `src/utils/gameLogic.ts` — Daily-mode scoring on top of the engine: compliance, flavor selection, resistance triggers and mission verification
 - `src/services/` — persistence (localStorage), analytics (GA), puzzle hydration
 - `src/components/views/` — `GameView` → `PuzzleBoard` / `AuditBoard`

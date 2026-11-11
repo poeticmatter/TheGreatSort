@@ -12,6 +12,7 @@ import { AnalyticsTracker } from './components/AnalyticsTracker';
 import { GlobalResistanceOverlay } from './components/GlobalResistanceOverlay';
 import { TutorialPage } from './components/views/TutorialPage';
 import { CareerPage } from './components/views/CareerPage';
+import { RunPage } from './features/run/RunPage';
 import { PuzzleRepository } from './services/puzzleRepository';
 const BannersPage = React.lazy(() => import('./components/views/BannersPage'));
 
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/" element={<GamePage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
           <Route path="/career" element={<CareerPage />} />
+          <Route path="/run" element={<RunPage />} />
           {import.meta.env.DEV && (
             <Route
               path="/banners"

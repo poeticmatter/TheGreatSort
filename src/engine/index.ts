@@ -11,3 +11,4 @@ export * from './solutions.ts';
 export * from './toolDefinitions.ts';
 export { TOOL_REGISTRY } from './tools/index.ts';
 export type { ToolStrategy } from './tools/types.ts';
+export * from './run/index.ts';
