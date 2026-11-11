@@ -1,4 +1,4 @@
-import { ToolType } from '../../types.ts';
+import { ToolType } from '../types.ts';
 import { ToolStrategy } from './types.ts';
 import {
     DemoteTool, SwapTool, PromoteTool,

@@ -1,17 +1,17 @@
+import type { ToolType } from './src/engine/types.ts';
 
-export type CardStatus = 'pending' | 'scanning' | 'safe' | 'eliminated';
-
-export interface ISortable {
-  val: number;
-  hasShield?: boolean;
-}
-
-
-export enum AgentRole {
-  NONE = 'none',
-  RESISTANCE = 'resistance',
-  STATE = 'state',
-}
+// The rules engine owns the types it operates on; they are re-exported here so
+// app code keeps a single import site for shared types.
+export { AgentRole } from './src/engine/types.ts';
+export type {
+  CardItem,
+  CardStatus,
+  ISortable,
+  Move,
+  SortDirection,
+  ToolInstance,
+  ToolType,
+} from './src/engine/types.ts';
 
 export enum ResistanceStatus {
   INACTIVE = 'inactive',
@@ -22,28 +22,12 @@ export enum ResistanceStatus {
   EXPOSED = 'exposed', // Resistance agent eliminated
 }
 
-export interface CardItem extends ISortable {
-  id: string;
-  status: CardStatus;
-  role: AgentRole;
-  // delta removed
-  // userTag removed
-}
-
-export type ToolType = 'demote' | 'swap' | 'promote' | 'longswap' | 'sink' | 'halve' | 'shield' | 'shrink' | 'hop' | 'mirror' | 'cycle' | 'equalize' | 'transfer';
-
 export interface ToolDefinition {
   id: ToolType;
   name: string;
   icon: any; // LucideIcon
   desc: string;
   weight: number;
-}
-
-export interface ToolInstance {
-  instanceId: string;
-  type: ToolType;
-  used: boolean;
 }
 
 export enum GamePhase {
@@ -53,11 +37,3 @@ export enum GamePhase {
 }
 
 export type GameMode = 'DAILY' | 'PRACTICE' | 'TUTORIAL';
-
-export interface Move {
-  tool: ToolType;
-  toolInstanceId?: string;
-  index: number;
-  targetIndex?: number;
-  description: string;
-}

@@ -3,12 +3,8 @@ import { GameState, GameAction } from '../reducers/gameState';
 import { MetaState, MetaActions } from './useMetaGame';
 import { ResistanceStatus } from '../../types';
 import { PersistenceService } from '../services/persistence';
-import {
-    verifyResistanceMission,
-    gradeLevel,
-    shouldTriggerResistance,
-    selectResistanceTriggerContext
-} from '../utils/gameLogic';
+import { gradeLevel } from '../engine';
+import { verifyResistanceMission, shouldTriggerResistance, selectResistanceTriggerContext } from '../utils/gameLogic';
 
 interface UseResistanceSystemProps {
     coreState: GameState;

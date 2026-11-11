@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, Dispatch } from 'react';
 import { GamePhase, CardItem } from '../../types';
-import { createInspectionStream, InspectionYield } from '../utils/gameLogic';
+import { createInspectionStream, InspectionYield } from '../engine';
 import { GameAction } from '../reducers/gameState';
 
 export const useInspectionLoop = (

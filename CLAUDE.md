@@ -40,9 +40,13 @@ State is held in `GameContext` (React Context + useReducer) and consumed via `us
 
 - `src/hooks/` — game logic orchestration (start here for feature work)
 - `src/reducers/` — state transitions (`gameReducer.ts`, `resistanceReducer.ts`, `gameState.ts`)
-- `src/utils/gameLogic.ts` — core mechanics: tool application, scoring, compliance
-- `src/utils/solverCore.ts` — solver algorithm (BFS/DFS for optimal/worst scores)
-- `src/tools/implementations.ts` — all 13 tool implementations (demote, swap, promote, longswap, sink, halve, shield, shrink, hop, mirror, cycle, equalize, transfer)
+- `src/engine/` — UI-free rules engine, imported via `src/engine/index.ts`. Must not import anything outside its own folder (enforced by `engineBoundary.test.ts`)
+  - `grading.ts` — Stalin-sort judging and yield (`gradeLevel`, `calculateBatchScore`)
+  - `moves.ts` — `applyMove`
+  - `generation.ts` / `random.ts` — seeded sequence and tool generation
+  - `solver.ts` / `solutions.ts` — exhaustive search for optimal/worst scores
+  - `tools/implementations.ts` — all 13 tool implementations (demote, swap, promote, longswap, sink, halve, shield, shrink, hop, mirror, cycle, equalize, transfer)
+- `src/utils/gameLogic.ts` — Daily-mode scoring on top of the engine: compliance, flavor selection, resistance triggers and mission verification
 - `src/services/` — persistence (localStorage), analytics (GA), puzzle hydration
 - `src/components/views/` — `GameView` → `PuzzleBoard` / `AuditBoard`
 - `src/config/` — resistance status UI config, flavor text

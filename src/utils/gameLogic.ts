@@ -1,10 +1,9 @@
-import { CardItem, ToolType, GamePhase, ToolInstance, ISortable, Move, AgentRole, ResistanceStatus } from '../../types.ts';
-import { ALL_TOOL_TYPES, TOOL_META } from '../toolDefinitions.ts';
-import { TOOL_REGISTRY } from '../tools/index.ts';
+import { CardItem, GamePhase, ToolInstance, Move, AgentRole, ResistanceStatus } from '../../types.ts';
 import { FLAVOR_DATABASE, FlavorKey } from '../config/flavorText.ts';
-import { calculateBatchScore, judgeStep, solve, DailyPuzzleMove, SolverItem } from './solverCore.ts';
+import { createSeededRandom, gradeLevel } from '../engine/index.ts';
 
-export { calculateBatchScore, judgeStep };
+// Keeps the flavor stream independent of the sequence stream for the same seed.
+const FLAVOR_SEED_OFFSET = 777;
 
 export const calculateCompliance = (
   currentYield: number,
@@ -104,172 +103,6 @@ export interface DailyState {
   tools: ToolInstance[];
 }
 
-export interface Solution {
-  score: number;
-  moves: Move[];
-}
-
-export interface InspectionYield {
-  list: CardItem[];
-  index: number;
-  scoreDelta: number;
-  detectedMode: 'ASC' | 'DESC' | null;
-}
-
-
-
-export function* createInspectionStream(initialList: CardItem[]): Generator<InspectionYield> {
-  const list = initialList.map(item => ({ ...item }));
-  let lastSurvivorVal: number | null = null;
-  let lastSurvivorHasShield = false;
-  let sortDirection: 'ASC' | 'DESC' | null = null;
-
-  for (let i = 0; i < list.length; i++) {
-    // 1. Yield Scanning State
-    list[i] = { ...list[i], status: 'scanning' };
-    yield {
-      list: [...list],
-      index: i,
-      scoreDelta: 0,
-      detectedMode: sortDirection
-    };
-
-    // 2. Process Logic
-    const currentItem = list[i];
-    const currentVal = currentItem.val;
-    const currentHasShield = currentItem.hasShield || false;
-    let survived = false;
-    let pointsToAdd = 0;
-
-    if (lastSurvivorVal === null) {
-      // This is effectively the first item (or first non-eliminated item)
-      survived = true;
-      pointsToAdd = currentVal; // Include first item's value
-      lastSurvivorVal = currentVal;
-      lastSurvivorHasShield = currentHasShield;
-    } else {
-      // Use judgeStep to determine outcome
-      const result = judgeStep(currentVal, currentHasShield, lastSurvivorVal, sortDirection);
-      survived = result.survived;
-
-      // Update State if Survived
-      if (survived) {
-        sortDirection = result.newMode;
-        pointsToAdd = currentVal; // Add survivor's value (not scoreToAdd)
-        lastSurvivorVal = currentVal;
-        lastSurvivorHasShield = currentHasShield;
-      }
-    }
-
-    // 3. Update Result State
-    if (survived) {
-      list[i] = { ...currentItem, status: 'safe' };
-    } else {
-      list[i] = { ...currentItem, status: 'eliminated' };
-    }
-
-    // 4. Yield Result
-    yield {
-      list: [...list],
-      index: i,
-      scoreDelta: pointsToAdd,
-      detectedMode: sortDirection
-    };
-  }
-}
-
-// Simple PRNG (Mulberry32)
-function mulberry32(a: number) {
-  return function () {
-    var t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
-
-export const stringToSeed = (str: string): number => {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 16777619);
-  }
-  return h >>> 0;
-};
-
-
-
-// Evaluate list to produce final scored items (for visual restoration)
-export const gradeLevel = (list: CardItem[]): { score: number, gradedList: CardItem[] } => {
-  if (list.length === 0) return { score: 0, gradedList: [] };
-
-  const generator = createInspectionStream(list);
-  let finalYield: InspectionYield | null = null;
-  let totalScore = 0;
-
-  let result = generator.next();
-  while (!result.done) {
-    finalYield = result.value;
-    totalScore += finalYield.scoreDelta;
-    result = generator.next();
-  }
-
-  // Use the list from the last yield, or original if empty
-  const gradedList = finalYield ? finalYield.list : list;
-
-  return { score: totalScore, gradedList };
-};
-
-// Recursive Solver to find the theoretical maximum score
-export const findOptimalScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
-  // If no tools provided, default to standard set (legacy support or fallback)
-  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
-  const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
-
-  const solution = findOptimalSolution(startList, toolsToUse);
-  return solution.score;
-};
-
-// Recursive Solver to find the optimal solution (score + path)
-export const findOptimalSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
-
-  const result = solve(initialNums, availableTools);
-
-  const moves: Move[] = result.bestSolution.map(m => ({
-    tool: m.tool as ToolType,
-    index: m.i,
-    targetIndex: m.t,
-    description: '' // Fallback description
-  }));
-
-  return { score: result.maxYield, moves };
-};
-
-// Recursive Solver to find the theoretical minimum score
-export const findWorstScore = (startList: CardItem[], availableTools?: ToolInstance[]): number => {
-  const defaultTools: ToolType[] = ['swap', 'promote', 'demote'];
-  const toolsToUse = availableTools ? availableTools.filter(t => !t.used).map(t => t.type) : defaultTools;
-
-  const solution = findWorstSolution(startList, toolsToUse);
-  return solution.score;
-};
-
-// Recursive Solver to find the worst solution (score + path)
-export const findWorstSolution = (startList: CardItem[], availableTools: ToolType[]): Solution => {
-  const initialNums: SolverItem[] = startList.map(item => ({ val: item.val, hasShield: item.hasShield }));
-
-  const result = solve(initialNums, availableTools, 'MIN');
-
-  const moves: Move[] = result.bestSolution.map(m => ({
-    tool: m.tool as ToolType,
-    index: m.i,
-    targetIndex: m.t,
-    description: ''
-  }));
-
-  return { score: result.maxYield, moves };
-};
-
 export const calculateRelativeEfficiency = (userScore: number, optimal: number, worst: number): number => {
   if (optimal === worst) return 100;
   const efficiency = ((userScore - worst) / (optimal - worst)) * 100;
@@ -278,105 +111,8 @@ export const calculateRelativeEfficiency = (userScore: number, optimal: number, 
 
 
 
-export interface MoveResult<T> {
-  newList: T[];
-  impactedIndices: number[];
-}
-
-// Apply a move to a list and return the new list and impacted indices
-export function applyMove<T extends ISortable>(list: T[], tool: ToolType, index: number, selection?: number | null): MoveResult<T> {
-  const strategy = TOOL_REGISTRY[tool];
-  if (strategy) {
-    const newList = strategy.apply(list, index, selection !== null ? selection : undefined) as T[];
-    let impactedIndices: number[] = [];
-
-    // Determine impacted indices based on tool type
-    if (tool === 'transfer') {
-      impactedIndices = [index];
-      if (selection !== undefined && selection !== null) {
-        impactedIndices.push(selection);
-      }
-    } else if (tool === 'swap') {
-      impactedIndices = [index];
-      if (selection !== undefined && selection !== null) {
-        impactedIndices.push(selection);
-      }
-    } else {
-      // Default single-index action (promote, demote, etc.)
-      impactedIndices = [index];
-    }
-
-    return { newList, impactedIndices };
-  }
-  return { newList: list, impactedIndices: [] };
-}
-
-// Generate 4 tools from the pool
-export const generateTools = (seed?: number): ToolInstance[] => {
-  const random = seed !== undefined ? mulberry32(seed + 9999) : Math.random;
-  const tools: ToolInstance[] = [];
-
-  const totalWeight = ALL_TOOL_TYPES.reduce((sum, toolId) => {
-    const def = TOOL_META[toolId.toUpperCase()];
-    return sum + (def ? def.weight : 0);
-  }, 0);
-
-  for (let i = 0; i < 4; i++) {
-    let threshold = random() * totalWeight;
-    let selectedType: ToolType = ALL_TOOL_TYPES[0] as ToolType;
-
-    for (const toolId of ALL_TOOL_TYPES) {
-      const def = TOOL_META[toolId.toUpperCase()];
-      const weight = def ? def.weight : 0;
-      threshold -= weight;
-      if (threshold < 0) {
-        selectedType = toolId as ToolType;
-        break;
-      }
-    }
-
-    tools.push({
-      instanceId: `tool-${i}-${Math.floor(random() * 1000000).toString(36)}`,
-      type: selectedType,
-      used: false
-    });
-  }
-  return tools;
-};
-
-// Utility to generate random levels
-export const generateLevel = (length: number, seed?: number): CardItem[] => {
-  const random = seed !== undefined ? mulberry32(seed) : Math.random;
-
-  const maxVal = length * 2;
-  const pool = Array.from({ length: maxVal }, (_, i) => i + 1);
-
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-
-  const numbers = pool.slice(0, length);
-
-  return numbers.map(val => {
-    const idSuffix = seed !== undefined
-      ? Math.floor(random() * 1000000).toString(36)
-      : Math.random().toString(36).substring(2, 9);
-
-    return {
-      id: idSuffix,
-      val: val,
-      status: 'pending',
-      role: AgentRole.NONE,
-      // delta removed
-      // userTag removed
-    };
-  });
-};
-
-
 export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
-  const random = seed !== undefined ? mulberry32(seed + 777) : Math.random;
+  const random = seed !== undefined ? createSeededRandom(seed + FLAVOR_SEED_OFFSET) : Math.random;
   const keys: FlavorKey[] = ["SOLVED", "DONE", "ADEQUATE", "INITIAL", "SUSPICIOUS", "SABOTAGE"];
   const map = {} as Record<FlavorKey, string>;
 
@@ -400,8 +136,6 @@ export const generateFlavorMap = (seed?: number): Record<FlavorKey, string> => {
 
   return map;
 };
-
-// Deprecated logic removed.
 
 export const verifyResistanceMission = (
   items: CardItem[],

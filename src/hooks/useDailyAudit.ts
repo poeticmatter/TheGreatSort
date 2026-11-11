@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PuzzleRepository } from '../services/puzzleRepository';
 import { CardItem, Move, ToolType } from '../../types';
-import { applyMove, Solution } from '../utils/gameLogic';
+import { applyMove, Solution } from '../engine';
 import { PersistenceService } from '../services/persistence';
 
 export interface TimelineStep {

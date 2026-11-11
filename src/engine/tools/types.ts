@@ -1,4 +1,4 @@
-import { ISortable, Move, ToolType } from '../../types.ts';
+import { ISortable, Move, ToolType } from '../types.ts';
 
 export interface ToolStrategy {
     type: ToolType;

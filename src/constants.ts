@@ -3,9 +3,9 @@ import {
   RefreshCcwDot, Divide, Shield, DiamondMinus, RedoDot, FlipHorizontal2, Recycle, Equal, Scale
 } from 'lucide-react';
 import { ToolDefinition } from '../types';
-import { TOOL_META } from './toolDefinitions';
+import { TOOL_META } from './engine/toolDefinitions';
 
-export { ALL_TOOL_TYPES } from './toolDefinitions';
+export { ALL_TOOL_TYPES } from './engine/toolDefinitions';
 
 export const BASE_URL = 'https://stalinsort.fun';
 

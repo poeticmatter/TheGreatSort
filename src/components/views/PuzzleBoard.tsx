@@ -6,7 +6,7 @@ import { ComplianceMeter } from '../ComplianceMeter';
 import { TrainingScoreDisplay } from '../TrainingScoreDisplay';
 import { FlavorText } from '../FlavorText';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
-import { TOOL_REGISTRY } from '../../tools';
+import { TOOL_REGISTRY } from '../../engine';
 import { useNarrativeSystem } from '../../hooks/useNarrativeSystem';
 import { calculateCompliance } from '../../utils/gameLogic';
 

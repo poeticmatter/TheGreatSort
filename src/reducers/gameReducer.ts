@@ -1,6 +1,6 @@
 import { GameState, GameAction } from './gameState';
 import { GamePhase } from '../../types';
-import { applyMove } from '../utils/gameLogic';
+import { applyMove } from '../engine';
 import { resistanceReducer, initialResistanceState } from './resistanceReducer';
 
 import { getTodayDateString } from '../utils/dateUtils';

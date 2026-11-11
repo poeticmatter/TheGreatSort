@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { CardItem, ResistanceStatus } from '../../types';
-import { gradeLevel, calculateBatchScore, calculateCompliance, verifyResistanceMission } from '../utils/gameLogic';
+import { gradeLevel, calculateBatchScore } from '../engine';
+import { calculateCompliance, verifyResistanceMission } from '../utils/gameLogic';
 
 interface ProjectedMetrics {
     currentYield: number;

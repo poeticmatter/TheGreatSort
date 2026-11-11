@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { calculateRelativeEfficiency, calculateBatchScore, verifyResistanceMission, gradeLevel } from '../utils/gameLogic';
+import { calculateBatchScore, gradeLevel } from '../engine';
+import { calculateRelativeEfficiency, verifyResistanceMission } from '../utils/gameLogic';
 import { ResistanceStatus } from '../../types';
 import { TOOLS } from '../constants';
 import { CheckCircle, AlertTriangle, ArrowDown, FileText, Share2, Clipboard, Mail } from 'lucide-react';

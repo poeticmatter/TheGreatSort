@@ -1,16 +1,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import {
-    generateLevel,
-    generateTools,
-    calculateBatchScore,
-    findWorstSolution,
-    gradeLevel
-} from '../src/utils/gameLogic.ts';
-import { TOOL_REGISTRY } from '../src/tools/index.ts';
+import { generateLevel, generateTools, calculateBatchScore, findWorstSolution, gradeLevel, TOOL_REGISTRY, solve, DailyPuzzleMove } from '../src/engine/index.ts';
 import { ToolType, CardItem } from '../types.ts';
-import { solve, DailyPuzzleMove } from '../src/utils/solverCore.ts';
 
 const OUTPUT_FILE_PATH = path.join(process.cwd(), 'src/data/daily_puzzles.json');
 const LEVEL_LENGTH = 9;

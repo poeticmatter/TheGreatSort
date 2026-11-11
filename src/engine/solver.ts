@@ -1,5 +1,6 @@
-import { ToolType, ISortable } from '../../types.ts';
-import { TOOL_REGISTRY } from '../tools/index.ts';
+import { calculateBatchScore } from './grading.ts';
+import { TOOL_REGISTRY } from './tools/index.ts';
+import { ISortable, ToolType } from './types.ts';
 
 export interface SolverItem extends ISortable { }
 
@@ -24,86 +25,6 @@ export interface SolverResult {
     computationalComplexity: number;
     allSolutions?: AlternativeSolution[];
 }
-
-// Pure Logic Helper for Mode Determination & Survival
-export const judgeStep = (
-    currentVal: number,
-    currentHasShield: boolean,
-    lastSurvivorVal: number,
-    currentMode: 'ASC' | 'DESC' | null
-): { survived: boolean; newMode: 'ASC' | 'DESC' | null; scoreToAdd: number } => {
-    let survived = false;
-    let newMode = currentMode;
-    let scoreToAdd = 0;
-
-    // 1. Shield Logic (Always Survives)
-    if (currentHasShield) {
-        survived = true;
-        // Edge Case: Shielded item can still set the mode if currently pending
-        if (newMode === null) {
-            if (currentVal > lastSurvivorVal) newMode = 'ASC';
-            else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-        }
-    }
-    // 2. Standard Logic
-    else {
-        if (newMode === null) {
-            // Pending Mode: Equality is OK (survival), Difference sets mode
-            survived = true;
-            if (currentVal > lastSurvivorVal) newMode = 'ASC';
-            else if (currentVal < lastSurvivorVal) newMode = 'DESC';
-        } else {
-            // Determined Mode
-            if (newMode === 'ASC') {
-                if (currentVal >= lastSurvivorVal) survived = true;
-            } else {
-                if (currentVal <= lastSurvivorVal) survived = true;
-            }
-        }
-    }
-
-    if (survived) {
-        scoreToAdd = currentVal;
-    }
-
-    return { survived, newMode, scoreToAdd };
-};
-
-// Pure function to calculate yield (sum of survivor values INCLUDING first item)
-export const calculateBatchScore = (numbers: ISortable[]): number => {
-    if (!numbers || numbers.length === 0) return 0;
-
-    let yield_ = 0;
-    let lastSurvivor = 0;
-    let lastSurvivorHasShield = false;
-    let mode: 'ASC' | 'DESC' | null = null;
-
-    // Iterate
-    for (let i = 0; i < numbers.length; i++) {
-        const item = numbers[i];
-        const currentVal = item.val;
-        const currentHasShield = item.hasShield || false;
-        let survived = false;
-
-        if (i === 0) {
-            survived = true;
-            yield_ += currentVal; // Include first item's value
-            lastSurvivor = currentVal;
-            lastSurvivorHasShield = currentHasShield;
-        } else {
-            const result = judgeStep(currentVal, currentHasShield, lastSurvivor, mode);
-            survived = result.survived;
-
-            if (survived) {
-                mode = result.newMode;
-                yield_ += currentVal; // Add survivor's value
-                lastSurvivor = currentVal;
-                lastSurvivorHasShield = currentHasShield;
-            }
-        }
-    }
-    return yield_;
-};
 
 /**
  * Core Solver Function

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CardItem, ToolType, Move } from '../types';
-import { generateLevel, findOptimalSolution, Solution, stringToSeed, applyMove, generateTools } from './utils/gameLogic';
+import { generateLevel, findOptimalSolution, Solution, stringToSeed, applyMove, generateTools } from './engine';
 import { getTodayDateString } from './utils/dateUtils';
 import Card from './components/Card';
 import { TOOLS } from './constants';

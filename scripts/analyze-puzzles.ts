@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { TOOL_META, ALL_TOOL_TYPES } from '../src/toolDefinitions';
+import { TOOL_META, ALL_TOOL_TYPES } from '../src/engine/toolDefinitions';
 
 // --- Interfaces ---
 interface PuzzleMetrics {

@@ -2,8 +2,7 @@ import { useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
 import { GamePhase, CardItem, ToolInstance, Move } from '../../types';
 import { useInspectionLoop } from './useInspectionLoop';
-import { TOOL_REGISTRY } from '../tools';
-import { applyMove } from '../utils/gameLogic';
+import { TOOL_REGISTRY, applyMove } from '../engine';
 
 interface UseCoreGameProps {
     onGameComplete?: (score: number) => void;

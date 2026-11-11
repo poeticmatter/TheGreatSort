@@ -1,7 +1,8 @@
 import { GameState } from '../reducers/gameState';
 import { SaveStateSchema } from './persistence/types';
 import { PuzzleRepository, DailyPuzzleData } from './puzzleRepository';
-import { generateLevel, generateTools, applyMove, generateFlavorMap, gradeLevel } from '../utils/gameLogic';
+import { generateLevel, generateTools, applyMove, gradeLevel } from '../engine';
+import { generateFlavorMap } from '../utils/gameLogic';
 import { GamePhase, CardItem, AgentRole, ResistanceStatus } from '../../types';
 import { initialResistanceState } from '../reducers/resistanceReducer';
 

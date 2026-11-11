@@ -1,11 +1,11 @@
-import { ToolType } from '../types.ts';
+import { ToolType } from './types.ts';
 
 export interface ToolMetadata {
     id: ToolType;
     weight: number;
 }
 
-export const ALL_TOOL_TYPES = ['demote', 'swap', 'promote', 'longswap', 'sink', 'halve', 'shield', 'shrink', 'hop', 'mirror', 'cycle', 'equalize', 'transfer'];
+export const ALL_TOOL_TYPES: ToolType[] = ['demote', 'swap', 'promote', 'longswap', 'sink', 'halve', 'shield', 'shrink', 'hop', 'mirror', 'cycle', 'equalize', 'transfer'];
 
 export const TOOL_META: Record<string, ToolMetadata> = {
     DEMOTE: { id: 'demote', weight: 20 },
