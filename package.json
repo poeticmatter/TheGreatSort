@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:stress": "npx tsx testing/verify_optimality.ts",
     "simulate": "npx tsx scripts/simulate-runs.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "build:pages": "vite build --base=/TheGreatSort/ && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
+    "deploy:pages": "npm run build:pages && gh-pages --dist dist --nojekyll"
   },
   "dependencies": {
     "framer-motion": "^12.34.0",
@@ -26,6 +28,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "gh-pages": "^6.3.0",
     "playwright": "^1.57.0",
     "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",

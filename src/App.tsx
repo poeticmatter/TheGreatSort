@@ -48,7 +48,8 @@ function GamePage() {
 export default function App() {
   return (
     <GameProvider>
-      <BrowserRouter>
+      {/* The app may be served from a sub-path (GitHub Pages serves it under the repository name). */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AnalyticsTracker />
         <GlobalResistanceOverlay />
         <Routes>

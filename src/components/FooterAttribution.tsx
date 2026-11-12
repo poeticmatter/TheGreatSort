@@ -5,6 +5,10 @@ interface FooterAttributionProps {
     vertical?: boolean;
 }
 
+// Built from BASE_URL so the logo resolves when the app is served from a sub-path.
+const LOGO_MASK_IMAGE = `url(${import.meta.env.BASE_URL}TimeshapersLogo.svg)`;
+const LOGO_MASK_STYLE: React.CSSProperties = { maskImage: LOGO_MASK_IMAGE, WebkitMaskImage: LOGO_MASK_IMAGE };
+
 export const FooterAttribution: React.FC<FooterAttributionProps> = ({ className = "", vertical = false }) => {
     return (
         <a
@@ -17,7 +21,8 @@ export const FooterAttribution: React.FC<FooterAttributionProps> = ({ className 
                 by Aurore Inara @ Timeshapers
             </span>
             <div
-                className={`w-auto aspect-[67/67] text-cyan-400 group-hover:text-cyan-300 bg-current [mask-image:url(/TimeshapersLogo.svg)] [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center] opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] transition-all ${vertical ? 'h-6' : 'h-4'}`}
+                className={`w-auto aspect-[67/67] text-cyan-400 group-hover:text-cyan-300 bg-current [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center] opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.8)] transition-all ${vertical ? 'h-6' : 'h-4'}`}
+                style={LOGO_MASK_STYLE}
             />
         </a>
     );

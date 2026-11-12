@@ -77,8 +77,8 @@ export const useShareResult = () => {
         const index = PuzzleRepository.getIndexForDate(puzzleDate);
         const obfuscatedId = encodePuzzleId(index);
 
-        const origin = typeof window !== 'undefined' ? window.location.origin : BASE_URL;
-        const permalinkUrl = `${origin}/?p=${obfuscatedId}`;
+        const appRoot = typeof window !== 'undefined' ? `${window.location.origin}${import.meta.env.BASE_URL}` : `${BASE_URL}/`;
+        const permalinkUrl = `${appRoot}?p=${obfuscatedId}`;
 
         return formatSharePayload(userScore, compliancePercentage, flavorText, date, initialList, initialTools, permalinkUrl, resistanceStatusText);
     }, []);
