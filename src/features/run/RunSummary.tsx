@@ -18,23 +18,24 @@ export function RunSummary({ run, onNewRun }: RunSummaryProps) {
         <thead>
           <tr className="text-xs tracking-widest uppercase text-stone-500">
             <th className="px-3 py-1 text-left">Shift</th>
-            <th className="px-3 py-1 text-right">Sequences</th>
             <th className="px-3 py-1 text-right">Yield</th>
             <th className="px-3 py-1 text-right">Quota</th>
+            <th className="px-3 py-1 text-right">Favors</th>
           </tr>
         </thead>
         <tbody>
           {run.completedShifts.map(shift => (
             <tr key={shift.shiftIndex} className={shift.wasQuotaMet ? '' : 'text-red-400'}>
               <td className="px-3 py-1">{shift.shiftIndex + 1}</td>
-              <td className="px-3 py-1 text-right">{shift.sequenceCount}</td>
               <td className="px-3 py-1 text-right">{shift.bankedYield}</td>
               <td className="px-3 py-1 text-right">{shift.quota}</td>
+              <td className="px-3 py-1 text-right">{shift.favorsEarned}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      <p className="font-mono text-sm text-stone-300">Favors earned: {run.favors}</p>
       <p className="font-mono text-xs text-stone-600">Seed {run.seed}</p>
 
       <button

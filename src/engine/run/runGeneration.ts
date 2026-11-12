@@ -1,5 +1,5 @@
 import { generateLevel } from '../generation.ts';
-import { createSeededRandom, stringToSeed } from '../random.ts';
+import { createSeededRandom, RandomSource, stringToSeed } from '../random.ts';
 import { CardItem } from '../types.ts';
 import { RunConfig } from './runTypes.ts';
 
@@ -9,11 +9,25 @@ import { RunConfig } from './runTypes.ts';
 const deriveSeed = (runSeed: number, label: string, ...position: number[]): number =>
   stringToSeed([runSeed, label, ...position].join(':'));
 
-/** The hidden number of sequences in a shift. */
-export const generateShiftSequenceCount = (runSeed: number, config: RunConfig, shiftIndex: number): number => {
-  const random = createSeededRandom(deriveSeed(runSeed, 'shift-length', shiftIndex));
-  const span = config.maxSequencesPerShift - config.minSequencesPerShift + 1;
-  return config.minSequencesPerShift + Math.floor(random() * span);
+const drawWithoutReplacement = <T>(items: T[], count: number, random: RandomSource): T[] => {
+  const remaining = [...items];
+  const drawn: T[] = [];
+  while (drawn.length < count && remaining.length > 0) {
+    const [item] = remaining.splice(Math.floor(random() * remaining.length), 1);
+    drawn.push(item);
+  }
+  return drawn;
+};
+
+/**
+ * Stars some of the sequence's lowest values. Low numbers are worth little
+ * yield, so keeping one alive competes with sorting for the quota.
+ */
+const starLowCards = (cards: CardItem[], config: RunConfig, random: RandomSource): CardItem[] => {
+  const lowestCards = [...cards].sort((a, b) => a.val - b.val).slice(0, config.starPoolSize);
+  const starredIds = new Set(drawWithoutReplacement(lowestCards, config.starsPerSequence, random).map(card => card.id));
+
+  return cards.map(card => (starredIds.has(card.id) ? { ...card, isStarred: true } : card));
 };
 
 export const generateRunSequence = (
@@ -21,5 +35,9 @@ export const generateRunSequence = (
   config: RunConfig,
   shiftIndex: number,
   sequenceIndex: number
-): CardItem[] =>
-  generateLevel(config.sequenceLength, deriveSeed(runSeed, 'sequence', shiftIndex, sequenceIndex));
+): CardItem[] => {
+  const cards = generateLevel(config.sequenceLength, deriveSeed(runSeed, 'sequence', shiftIndex, sequenceIndex));
+  const starRandom = createSeededRandom(deriveSeed(runSeed, 'stars', shiftIndex, sequenceIndex));
+
+  return starLowCards(cards, config, starRandom);
+};

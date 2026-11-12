@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { calculateBatchScore, gradeLevel } from './grading.ts';
+import { calculateBatchScore, countStarredSurvivors, gradeLevel, listSurvivors } from './grading.ts';
 import { AgentRole, CardItem } from './types.ts';
 
-const toCards = (values: number[], shieldedIndices: number[] = []): CardItem[] =>
+const toCards = (values: number[], shieldedIndices: number[] = [], starredIndices: number[] = []): CardItem[] =>
   values.map((val, index) => ({
     id: `card-${index}`,
     val,
     status: 'pending',
     role: AgentRole.NONE,
     hasShield: shieldedIndices.includes(index),
+    isStarred: starredIndices.includes(index),
   }));
 
 const gradeStatuses = (cards: CardItem[]) => gradeLevel(cards).gradedList.map(card => card.status);
@@ -66,5 +67,53 @@ describe('calculateBatchScore', () => {
     const cards = toCards(values, shielded);
 
     expect(calculateBatchScore(cards)).toBe(gradeLevel(cards).score);
+  });
+});
+
+const survivorIds = (cards: CardItem[]) => listSurvivors(cards).map(card => card.id);
+
+describe('listSurvivors', () => {
+  it('returns the surviving cards in order', () => {
+    expect(survivorIds(toCards([1, 3, 2, 4]))).toEqual(['card-0', 'card-1', 'card-3']);
+  });
+
+  it('always keeps the first card', () => {
+    expect(survivorIds(toCards([9]))).toEqual(['card-0']);
+  });
+
+  it('keeps a shielded card that is out of order', () => {
+    expect(survivorIds(toCards([1, 5, 2], [2]))).toEqual(['card-0', 'card-1', 'card-2']);
+  });
+
+  it('returns nothing for an empty sequence', () => {
+    expect(listSurvivors([])).toEqual([]);
+  });
+
+  it('sums to the batch score', () => {
+    const cards = toCards([5, 3, 4, 1]);
+
+    expect(listSurvivors(cards).reduce((total, card) => total + card.val, 0)).toBe(calculateBatchScore(cards));
+  });
+});
+
+describe('countStarredSurvivors', () => {
+  it('counts a starred card that survives', () => {
+    expect(countStarredSurvivors(toCards([1, 2, 3], [], [1]))).toBe(1);
+  });
+
+  it('does not count a starred card that is eliminated', () => {
+    expect(countStarredSurvivors(toCards([1, 3, 2, 4], [], [2]))).toBe(0);
+  });
+
+  it('counts a starred first card', () => {
+    expect(countStarredSurvivors(toCards([4, 5, 6], [], [0]))).toBe(1);
+  });
+
+  it('ignores surviving cards that are not starred', () => {
+    expect(countStarredSurvivors(toCards([1, 2, 3]))).toBe(0);
+  });
+
+  it('counts a starred card kept alive by a shield', () => {
+    expect(countStarredSurvivors(toCards([1, 5, 2], [2], [2]))).toBe(1);
   });
 });

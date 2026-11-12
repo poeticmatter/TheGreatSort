@@ -44,34 +44,35 @@ export const judgeStep = (
     return { survived, newMode, scoreToAdd };
 };
 
-// Pure function to calculate yield (sum of survivor values INCLUDING first item)
-export const calculateBatchScore = (numbers: ISortable[]): number => {
-    if (!numbers || numbers.length === 0) return 0;
-
-    let yield_ = 0;
-    let lastSurvivor = 0;
+/** The items that survive the sort, in order. The first item always survives. */
+export const listSurvivors = <T extends ISortable>(items: T[]): T[] => {
+    const survivors: T[] = [];
     let mode: SortDirection | null = null;
 
-    for (let i = 0; i < numbers.length; i++) {
-        const item = numbers[i];
-        const currentVal = item.val;
-        const currentHasShield = item.hasShield || false;
+    for (const item of items) {
+        const lastSurvivor = survivors.at(-1);
+        if (lastSurvivor === undefined) {
+            survivors.push(item);
+            continue;
+        }
 
-        if (i === 0) {
-            yield_ += currentVal; // Include first item's value
-            lastSurvivor = currentVal;
-        } else {
-            const result = judgeStep(currentVal, currentHasShield, lastSurvivor, mode);
-
-            if (result.survived) {
-                mode = result.newMode;
-                yield_ += currentVal; // Add survivor's value
-                lastSurvivor = currentVal;
-            }
+        const result = judgeStep(item.val, item.hasShield || false, lastSurvivor.val, mode);
+        if (result.survived) {
+            mode = result.newMode;
+            survivors.push(item);
         }
     }
-    return yield_;
+    return survivors;
 };
+
+/** Yield of a sequence: the sum of its survivors' values, including the first item. */
+export const calculateBatchScore = (numbers: ISortable[]): number => {
+    if (!numbers) return 0;
+    return listSurvivors(numbers).reduce((total, item) => total + item.val, 0);
+};
+
+export const countStarredSurvivors = (items: ISortable[]): number =>
+    listSurvivors(items).filter(item => item.isStarred).length;
 
 export interface InspectionYield {
   list: CardItem[];

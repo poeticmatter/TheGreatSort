@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { CardItem, AgentRole } from '../../types';
-import { Play, Siren, Shield } from 'lucide-react';
+import { Play, Siren, Shield, Star } from 'lucide-react';
 import CountUp from './CountUp';
 
 interface CardProps {
@@ -217,6 +217,16 @@ const Card: React.FC<CardProps> = React.memo(({
       )}
 
 
+      {/* Star: a marked card that earns a favor if it survives */}
+      {item.isStarred && (
+        <div className={`
+          absolute pointer-events-none text-sky-300
+          ${variant === 'wide' ? 'left-1 top-1/2 -translate-y-1/2' : 'top-1.5 left-1/2 -translate-x-1/2'}
+        `}>
+          <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-sky-300" aria-label="Starred" />
+        </div>
+      )}
+
       {/* Mirror Label Badge */}
       {mirrorLabel && (
         <div className={`
@@ -250,6 +260,7 @@ const arePropsEqual = (prev: CardProps, next: CardProps) => {
     prev.item.val === next.item.val &&
     prev.item.status === next.item.status &&
     prev.item.hasShield === next.item.hasShield &&
+    prev.item.isStarred === next.item.isStarred &&
     prev.item.role === next.item.role && // updated property
 
     prev.item.id === next.item.id

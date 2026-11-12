@@ -1,15 +1,9 @@
-import { getPaceHint, getShiftCount, PaceHint, RunState } from '../../engine';
-
-const PACE_HINT_TEXT: Record<PaceHint, string> = {
-  EARLY: 'The shift has just begun.',
-  MIDWAY: 'The shift is well under way.',
-  WINDING_DOWN: 'The shift is winding down.',
-};
+import { getShiftCount, RunState, SequenceOutcome } from '../../engine';
 
 interface RunStatusPanelProps {
   run: RunState;
-  /** Yield the current sequence would bank if inspected now. */
-  projectedYield: number;
+  /** What the current sequence would produce if inspected now. */
+  outcome: SequenceOutcome;
 }
 
 interface StatProps {
@@ -27,20 +21,18 @@ function Stat({ label, value, isAlert }: StatProps) {
   );
 }
 
-export function RunStatusPanel({ run, projectedYield }: RunStatusPanelProps) {
-  const { shift, strikes, config } = run;
+export function RunStatusPanel({ run, outcome }: RunStatusPanelProps) {
+  const { shift, strikes, favors, energy, config } = run;
 
   return (
-    <section className="bg-stone-950/50 rounded-lg border border-stone-800 p-4 flex flex-col items-center gap-3">
-      <div className="flex flex-wrap justify-center gap-y-3">
-        <Stat label="Shift" value={`${shift.index + 1} / ${getShiftCount(run)}`} />
-        <Stat label="Quota" value={`${shift.bankedYield} / ${shift.quota}`} />
-        <Stat label="This sequence" value={`+${projectedYield}`} />
-        <Stat label="Strikes" value={`${strikes} / ${config.strikeLimit}`} isAlert={strikes > 0} />
-      </div>
-      <p className="font-mono text-xs tracking-widest uppercase text-amber-500/80">
-        {PACE_HINT_TEXT[getPaceHint(run)]}
-      </p>
+    <section className="bg-stone-950/50 rounded-lg border border-stone-800 p-4 flex flex-wrap justify-center gap-y-3">
+      <Stat label="Shift" value={`${shift.index + 1} / ${getShiftCount(run)}`} />
+      <Stat label="Sequence" value={`${shift.sequenceIndex + 1} / ${config.sequencesPerShift}`} />
+      <Stat label="Shift quota" value={`${shift.bankedYield} / ${shift.quota}`} />
+      <Stat label="This sequence" value={`${outcome.yield} / ${outcome.target}`} isAlert={outcome.isBelowTarget} />
+      <Stat label="Energy" value={`${energy} / ${config.energy.capacity}`} />
+      <Stat label="Favors" value={`${favors}`} />
+      <Stat label="Strikes" value={`${strikes} / ${config.strikeLimit}`} isAlert={strikes > 0} />
     </section>
   );
 }

@@ -1,33 +1,29 @@
 import { DEFAULT_RUN_CONFIG } from '../src/engine/run/index.ts';
 import {
     Bot,
+    createGreedyBot,
+    createOracleBot,
     createPatientBot,
-    greedyBot,
     idleBot,
-    oracleBot,
     SimulationSummary,
     simulateRuns
 } from '../src/engine/simulation/index.ts';
 
 const DEFAULT_RUN_COUNT = 1000;
-const PATIENT_THRESHOLDS = [2, 4, 6];
+const PATIENT_MIN_GAIN_PER_ENERGY = 5;
+// How much yield a bot will trade for one favor: 0 ignores stars altogether.
+const FAVOR_VALUES = [0, 5, 15];
 
 const formatPercent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
 const printSummary = (summary: SimulationSummary): void => {
     console.log(`\n${summary.botName}`);
-    console.log(`  win rate            ${formatPercent(summary.winRate)}`);
-    console.log(`  mean strikes        ${summary.meanStrikes.toFixed(2)}`);
-    console.log(`  yield per sequence  ${summary.meanYieldPerSequence.toFixed(1)}`);
-    console.log(`  quota met by shift  ${summary.quotaMetRateByShift.map(formatPercent).join('  ')}`);
-    for (const lengthSummary of summary.byShiftLength) {
-        console.log(
-            `  ${lengthSummary.sequenceCount}-sequence shifts   ` +
-            `quota met ${formatPercent(lengthSummary.quotaMetRate)}, ` +
-            `mean banked ${lengthSummary.meanBankedYield.toFixed(0)} ` +
-            `(${lengthSummary.shiftsPlayed} shifts)`
-        );
-    }
+    console.log(`  win rate             ${formatPercent(summary.winRate)}`);
+    console.log(`  mean strikes         ${summary.meanStrikes.toFixed(2)}`);
+    console.log(`  yield per sequence   ${summary.meanYieldPerSequence.toFixed(1)}`);
+    console.log(`  stars kept           ${formatPercent(summary.favorRate)}`);
+    console.log(`  sequences below par  ${formatPercent(summary.belowTargetRate)}`);
+    console.log(`  quota met by shift   ${summary.quotaMetRateByShift.map(formatPercent).join('  ')}`);
 };
 
 const parseRunCount = (argument: string | undefined): number => {
@@ -41,10 +37,16 @@ const parseRunCount = (argument: string | undefined): number => {
 
 const runCount = parseRunCount(process.argv[2]);
 const seeds = Array.from({ length: runCount }, (_, index) => index + 1);
-const bots: Bot[] = [idleBot, greedyBot, ...PATIENT_THRESHOLDS.map(createPatientBot), oracleBot];
+const bots: Bot[] = [
+    idleBot,
+    ...FAVOR_VALUES.map(createGreedyBot),
+    ...FAVOR_VALUES.map(favorValue => createPatientBot({ minGainPerEnergy: PATIENT_MIN_GAIN_PER_ENERGY, favorValue })),
+    ...FAVOR_VALUES.map(createOracleBot),
+];
 
 console.log(`Simulating ${runCount} runs per bot.`);
-console.log(`Quota curve: ${DEFAULT_RUN_CONFIG.quotaCurve.join(', ')}`);
+console.log(`Quota curve: ${DEFAULT_RUN_CONFIG.quotaCurve.join(', ')} over ${DEFAULT_RUN_CONFIG.sequencesPerShift} sequences per shift`);
+console.log(`Energy: ${JSON.stringify(DEFAULT_RUN_CONFIG.energy)}`);
 
 for (const bot of bots) {
     printSummary(simulateRuns(bot, seeds, DEFAULT_RUN_CONFIG));

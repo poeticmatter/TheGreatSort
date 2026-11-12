@@ -1,21 +1,28 @@
-import { calculateBatchScore } from '../grading.ts';
 import { applyMove } from '../moves.ts';
 import { TOOL_REGISTRY } from '../tools/index.ts';
-import { generateRunSequence, generateShiftSequenceCount } from './runGeneration.ts';
-import { findRunTool, isToolReady, isToolUsedThisSequence } from './runSelectors.ts';
+import { generateRunSequence } from './runGeneration.ts';
+import { canAffordTool, findRunTool, getSequenceOutcome, getToolCost } from './runSelectors.ts';
 import { RunConfig, RunState, RunTool, SequenceState, ShiftResult, ShiftState } from './runTypes.ts';
 
 const validateConfig = (config: RunConfig): void => {
   if (config.quotaCurve.length === 0) {
     throw new Error('RunConfig.quotaCurve must contain at least one shift quota.');
   }
-  if (config.minSequencesPerShift < 1 || config.maxSequencesPerShift < config.minSequencesPerShift) {
+  if (config.sequencesPerShift < 1) {
+    throw new Error(`RunConfig.sequencesPerShift must be at least 1, received ${config.sequencesPerShift}.`);
+  }
+  if (config.starsPerSequence < 0 || config.starsPerSequence > config.starPoolSize) {
     throw new Error(
-      `RunConfig sequence bounds are invalid: min ${config.minSequencesPerShift}, max ${config.maxSequencesPerShift}.`
+      `RunConfig.starsPerSequence must be between 0 and starPoolSize (${config.starPoolSize}), received ${config.starsPerSequence}.`
     );
   }
   if (config.strikeLimit < 1) {
     throw new Error(`RunConfig.strikeLimit must be at least 1, received ${config.strikeLimit}.`);
+  }
+  if (config.energy.startingEnergy < 0 || config.energy.startingEnergy > config.energy.capacity) {
+    throw new Error(
+      `RunConfig.energy.startingEnergy must be between 0 and capacity (${config.energy.capacity}), received ${config.energy.startingEnergy}.`
+    );
   }
 };
 
@@ -24,25 +31,22 @@ const loadSequence = (seed: number, config: RunConfig, shiftIndex: number, seque
   moves: [],
 });
 
-const startShift = (seed: number, config: RunConfig, shiftIndex: number, carriedDeficit: number): ShiftState => ({
+const startShift = (config: RunConfig, shiftIndex: number, carriedDeficit: number): ShiftState => ({
   index: shiftIndex,
-  sequenceCount: generateShiftSequenceCount(seed, config, shiftIndex),
   sequenceIndex: 0,
   quota: config.quotaCurve[shiftIndex] + carriedDeficit,
   bankedYield: 0,
+  sequencesBelowTarget: 0,
+  favorsEarned: 0,
 });
 
-const refreshTools = (tools: RunTool[]): RunTool[] =>
-  tools.map(tool => ({ ...tool, sequencesUntilReady: 0 }));
+const resetToolCosts = (tools: RunTool[]): RunTool[] => tools.map(tool => ({ ...tool, usesThisShift: 0 }));
 
-/** Tools used in the sequence just submitted start cooling; the rest move one sequence closer to ready. */
-const tickCooldowns = (run: RunState): RunTool[] =>
-  run.tools.map(tool => ({
-    ...tool,
-    sequencesUntilReady: isToolUsedThisSequence(run, tool.id)
-      ? tool.cooldown
-      : Math.max(0, tool.sequencesUntilReady - 1),
-  }));
+const adjustToolUses = (tools: RunTool[], toolId: string, change: number): RunTool[] =>
+  tools.map(tool => (tool.id === toolId ? { ...tool, usesThisShift: tool.usesThisShift + change } : tool));
+
+const restoreEnergy = (run: RunState, amount: number): number =>
+  Math.min(run.config.energy.capacity, run.energy + amount);
 
 export const createRun = (seed: number, config: RunConfig): RunState => {
   validateConfig(config);
@@ -52,12 +56,14 @@ export const createRun = (seed: number, config: RunConfig): RunState => {
     config,
     status: 'IN_PROGRESS',
     strikes: 0,
+    favors: 0,
+    energy: config.energy.startingEnergy,
     tools: config.loadout.map((entry, position) => ({
       ...entry,
       id: `tool-${position}-${entry.type}`,
-      sequencesUntilReady: 0,
+      usesThisShift: 0,
     })),
-    shift: startShift(seed, config, 0, 0),
+    shift: startShift(config, 0, 0),
     sequence: loadSequence(seed, config, 0, 0),
     completedShifts: [],
   };
@@ -65,37 +71,42 @@ export const createRun = (seed: number, config: RunConfig): RunState => {
 
 export const canApplyRunMove = (run: RunState, toolId: string, index: number, selection?: number): boolean => {
   const tool = findRunTool(run, toolId);
-  if (run.status !== 'IN_PROGRESS' || tool === undefined || !isToolReady(run, toolId)) return false;
+  if (run.status !== 'IN_PROGRESS' || tool === undefined || !canAffordTool(run, toolId)) return false;
   return TOOL_REGISTRY[tool.type].isValid(run.sequence.cards, index, selection);
 };
 
-/** Uses a ready tool on the current sequence. An illegal move is a caller bug, so it throws. */
+/** Pays for a tool and uses it on the current sequence. An illegal move is a caller bug, so it throws. */
 export const applyRunMove = (run: RunState, toolId: string, index: number, selection?: number): RunState => {
   const tool = findRunTool(run, toolId);
   if (tool === undefined || !canApplyRunMove(run, toolId, index, selection)) {
     throw new Error(
-      `Illegal run move: tool "${toolId}" at index ${index}, selection ${selection}, run status ${run.status}.`
+      `Illegal run move: tool "${toolId}" at index ${index}, selection ${selection}, energy ${run.energy}, run status ${run.status}.`
     );
   }
 
   const { newList } = applyMove(run.sequence.cards, tool.type, index, selection);
+  const energySpent = getToolCost(run, tool);
 
   return {
     ...run,
+    energy: run.energy - energySpent,
+    tools: adjustToolUses(run.tools, toolId, 1),
     sequence: {
       cards: newList,
-      moves: [...run.sequence.moves, { toolId, index, selection, cardsBefore: run.sequence.cards }],
+      moves: [...run.sequence.moves, { toolId, index, selection, energySpent, cardsBefore: run.sequence.cards }],
     },
   };
 };
 
-/** Takes back the latest move of the current sequence, making its tool ready again. */
+/** Takes back the latest move of the current sequence, refunding its energy and its cost increase. */
 export const undoRunMove = (run: RunState): RunState => {
   const lastMove = run.sequence.moves.at(-1);
   if (run.status !== 'IN_PROGRESS' || lastMove === undefined) return run;
 
   return {
     ...run,
+    energy: run.energy + lastMove.energySpent,
+    tools: adjustToolUses(run.tools, lastMove.toolId, -1),
     sequence: {
       cards: lastMove.cardsBefore,
       moves: run.sequence.moves.slice(0, -1),
@@ -107,10 +118,11 @@ const closeShift = (run: RunState, shift: ShiftState): RunState => {
   const wasQuotaMet = shift.bankedYield >= shift.quota;
   const result: ShiftResult = {
     shiftIndex: shift.index,
-    sequenceCount: shift.sequenceCount,
     quota: shift.quota,
     bankedYield: shift.bankedYield,
     wasQuotaMet,
+    sequencesBelowTarget: shift.sequencesBelowTarget,
+    favorsEarned: shift.favorsEarned,
   };
   const strikes = run.strikes + (wasQuotaMet ? 0 : 1);
   const closedRun: RunState = { ...run, shift, strikes, completedShifts: [...run.completedShifts, result] };
@@ -123,27 +135,32 @@ const closeShift = (run: RunState, shift: ShiftState): RunState => {
   const carriedDeficit = wasQuotaMet ? 0 : shift.quota - shift.bankedYield;
   return {
     ...closedRun,
-    tools: refreshTools(run.tools),
-    shift: startShift(run.seed, run.config, nextShiftIndex, carriedDeficit),
+    energy: restoreEnergy(run, run.config.energy.shiftBonus),
+    tools: resetToolCosts(run.tools),
+    shift: startShift(run.config, nextShiftIndex, carriedDeficit),
     sequence: loadSequence(run.seed, run.config, nextShiftIndex, 0),
   };
 };
 
-/** Runs the sort on the current sequence, banks its yield, and moves the run forward. */
+/** Runs the sort on the current sequence, banks its yield and favors, and moves the run forward. */
 export const submitSequence = (run: RunState): RunState => {
   if (run.status !== 'IN_PROGRESS') return run;
 
+  const outcome = getSequenceOutcome(run);
   const shift: ShiftState = {
     ...run.shift,
-    bankedYield: run.shift.bankedYield + calculateBatchScore(run.sequence.cards),
+    bankedYield: run.shift.bankedYield + outcome.yield,
+    sequencesBelowTarget: run.shift.sequencesBelowTarget + (outcome.isBelowTarget ? 1 : 0),
+    favorsEarned: run.shift.favorsEarned + outcome.favorsEarned,
   };
+  const scoredRun: RunState = { ...run, favors: run.favors + outcome.favorsEarned };
   const nextSequenceIndex = shift.sequenceIndex + 1;
 
-  if (nextSequenceIndex >= shift.sequenceCount) return closeShift(run, shift);
+  if (nextSequenceIndex >= run.config.sequencesPerShift) return closeShift(scoredRun, shift);
 
   return {
-    ...run,
-    tools: tickCooldowns(run),
+    ...scoredRun,
+    energy: restoreEnergy(run, run.config.energy.perSequence),
     shift: { ...shift, sequenceIndex: nextSequenceIndex },
     sequence: loadSequence(run.seed, run.config, shift.index, nextSequenceIndex),
   };

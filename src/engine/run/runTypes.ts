@@ -2,32 +2,49 @@ import { CardItem, ToolType } from '../types.ts';
 
 export interface ToolLoadoutEntry {
   type: ToolType;
-  /** Number of following sequences the tool is unavailable for after a use. */
-  cooldown: number;
+  /** Energy the tool's first use of a shift costs. */
+  baseCost: number;
+}
+
+export interface EnergyConfig {
+  /** The pool never holds more than this. */
+  capacity: number;
+  startingEnergy: number;
+  /** Energy restored when the next sequence of a shift is loaded. */
+  perSequence: number;
+  /** Energy restored when a new shift starts, on top of whatever was left over. */
+  shiftBonus: number;
+  /** Added to a tool's cost for each time it has already been used this shift. */
+  repeatUseSurcharge: number;
 }
 
 export interface RunConfig {
   /** Base quota of each shift, in order. Its length is the number of shifts in a run. */
   quotaCurve: number[];
-  /** Inclusive bounds of the hidden number of sequences in a shift. */
-  minSequencesPerShift: number;
-  maxSequencesPerShift: number;
+  sequencesPerShift: number;
   sequenceLength: number;
   /** Missing this many shift quotas ends the run. */
   strikeLimit: number;
   loadout: ToolLoadoutEntry[];
+  energy: EnergyConfig;
+  /** How many cards of each sequence are starred. */
+  starsPerSequence: number;
+  /** Stars are drawn from this many of the sequence's lowest values. */
+  starPoolSize: number;
 }
 
 export interface RunTool extends ToolLoadoutEntry {
   id: string;
-  /** Sequences left before the tool can be used again; 0 means ready. */
-  sequencesUntilReady: number;
+  /** Uses so far in the current shift. Each one makes the next use dearer until the shift ends. */
+  usesThisShift: number;
 }
 
 export interface RunMove {
   toolId: string;
   index: number;
   selection?: number;
+  /** Energy paid for this move, refunded if it is undone. */
+  energySpent: number;
   /** The sequence as it was before this move, so the move can be undone. */
   cardsBefore: CardItem[];
 }
@@ -39,20 +56,30 @@ export interface SequenceState {
 
 export interface ShiftState {
   index: number;
-  /** Hidden from the player: how many sequences this shift contains. */
-  sequenceCount: number;
   sequenceIndex: number;
   /** Base quota plus any deficit carried from a missed shift. */
   quota: number;
   bankedYield: number;
+  /** Sequences submitted below their share of the quota. Narrative only: it has no rules effect. */
+  sequencesBelowTarget: number;
+  favorsEarned: number;
 }
 
 export interface ShiftResult {
   shiftIndex: number;
-  sequenceCount: number;
   quota: number;
   bankedYield: number;
   wasQuotaMet: boolean;
+  sequencesBelowTarget: number;
+  favorsEarned: number;
+}
+
+/** What inspecting the current sequence would produce, before it is submitted. */
+export interface SequenceOutcome {
+  yield: number;
+  target: number;
+  isBelowTarget: boolean;
+  favorsEarned: number;
 }
 
 export type RunStatus = 'IN_PROGRESS' | 'WON' | 'LOST';
@@ -62,10 +89,12 @@ export interface RunState {
   config: RunConfig;
   status: RunStatus;
   strikes: number;
+  /** Favors earned across the run. Tallied only for now; nothing spends them yet. */
+  favors: number;
+  /** Shared pool every tool use is paid from. Unspent energy carries across sequences and shifts. */
+  energy: number;
   tools: RunTool[];
   shift: ShiftState;
   sequence: SequenceState;
   completedShifts: ShiftResult[];
 }
-
-export type PaceHint = 'EARLY' | 'MIDWAY' | 'WINDING_DOWN';

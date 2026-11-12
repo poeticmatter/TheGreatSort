@@ -1,25 +1,36 @@
 import { describe, expect, it } from 'vitest';
 
 import { RunConfig } from '../run/runTypes.ts';
-import { Bot, createPatientBot, greedyBot, idleBot, oracleBot } from './bots.ts';
+import { Bot, createGreedyBot, createOracleBot, createPatientBot, idleBot } from './bots.ts';
 import { simulateRun, simulateRuns } from './runSimulation.ts';
 
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const UNREACHABLE_QUOTA = 100000;
+const FAVOR_VALUE = 50;
 
-const ALL_BOTS: Bot[] = [idleBot, greedyBot, createPatientBot(5), oracleBot];
+const greedyBot = createGreedyBot(0);
+const ALL_BOTS: Bot[] = [
+  idleBot,
+  greedyBot,
+  createGreedyBot(FAVOR_VALUE),
+  createPatientBot({ minGainPerEnergy: 5, favorValue: 0 }),
+  createOracleBot(0),
+];
 
-const buildConfig = (quotaCurve: number[]): RunConfig => ({
+const buildConfig = (quotaCurve: number[], overrides: Partial<RunConfig> = {}): RunConfig => ({
   quotaCurve,
-  minSequencesPerShift: 3,
-  maxSequencesPerShift: 4,
+  sequencesPerShift: 3,
   sequenceLength: 6,
   strikeLimit: 2,
   loadout: [
-    { type: 'swap', cooldown: 2 },
-    { type: 'promote', cooldown: 1 },
-    { type: 'hop', cooldown: 3 },
+    { type: 'swap', baseCost: 1 },
+    { type: 'promote', baseCost: 2 },
+    { type: 'hop', baseCost: 3 },
   ],
+  energy: { capacity: 12, startingEnergy: 6, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: 1 },
+  starsPerSequence: 1,
+  starPoolSize: 3,
+  ...overrides,
 });
 
 const MODERATE_CONFIG = buildConfig([40, 40, 40]);
@@ -56,7 +67,7 @@ describe('simulateRuns', () => {
   });
 
   it('reports the bot name', () => {
-    expect(simulateRuns(greedyBot, SEEDS, MODERATE_CONFIG).botName).toBe('greedy');
+    expect(simulateRuns(greedyBot, SEEDS, MODERATE_CONFIG).botName).toBe(greedyBot.name);
   });
 
   it('is deterministic for the same seeds', () => {
@@ -80,5 +91,32 @@ describe('simulateRuns', () => {
     const idle = simulateRuns(idleBot, SEEDS, EASY_CONFIG).meanYieldPerSequence;
 
     expect(greedy).toBeGreaterThanOrEqual(idle);
+  });
+
+  it('gives a bot that values favors at least the favor rate of one that ignores them', () => {
+    const valuing = simulateRuns(createGreedyBot(FAVOR_VALUE), SEEDS, EASY_CONFIG).favorRate;
+    const ignoring = simulateRuns(createGreedyBot(0), SEEDS, EASY_CONFIG).favorRate;
+
+    expect(valuing).toBeGreaterThanOrEqual(ignoring);
+  });
+
+  it('reports a favor rate of zero when no cards are starred', () => {
+    const config = buildConfig([0, 0, 0], { starsPerSequence: 0 });
+
+    expect(simulateRuns(createGreedyBot(FAVOR_VALUE), SEEDS, config).favorRate).toBe(0);
+  });
+
+  it('keeps the favor rate between zero and one', () => {
+    const { favorRate } = simulateRuns(greedyBot, SEEDS, EASY_CONFIG);
+
+    expect(favorRate >= 0 && favorRate <= 1).toBe(true);
+  });
+
+  it('reports a below-target rate of zero when every quota is zero', () => {
+    expect(simulateRuns(idleBot, SEEDS, EASY_CONFIG).belowTargetRate).toBe(0);
+  });
+
+  it('reports a below-target rate of one when quotas are unreachable', () => {
+    expect(simulateRuns(idleBot, SEEDS, IMPOSSIBLE_CONFIG).belowTargetRate).toBe(1);
   });
 });

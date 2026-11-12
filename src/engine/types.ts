@@ -5,6 +5,8 @@ export type SortDirection = 'ASC' | 'DESC';
 export interface ISortable {
   val: number;
   hasShield?: boolean;
+  /** A starred item earns a favor if it survives the sort. */
+  isStarred?: boolean;
 }
 
 export enum AgentRole {

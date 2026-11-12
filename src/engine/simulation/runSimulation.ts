@@ -1,13 +1,6 @@
 import { createRun, submitSequence } from '../run/runTransitions.ts';
-import { RunConfig, RunState, ShiftResult } from '../run/runTypes.ts';
+import { RunConfig, RunState } from '../run/runTypes.ts';
 import { Bot } from './bots.ts';
-
-export interface ShiftLengthSummary {
-  sequenceCount: number;
-  shiftsPlayed: number;
-  quotaMetRate: number;
-  meanBankedYield: number;
-}
 
 export interface SimulationSummary {
   botName: string;
@@ -15,9 +8,12 @@ export interface SimulationSummary {
   winRate: number;
   meanStrikes: number;
   meanYieldPerSequence: number;
+  /** Share of starred cards that survived, across all sequences played. */
+  favorRate: number;
+  /** Share of sequences submitted below their share of the shift quota. */
+  belowTargetRate: number;
   /** Share of runs that reached each shift and met its quota, by shift index. */
   quotaMetRateByShift: number[];
-  byShiftLength: ShiftLengthSummary[];
 }
 
 export const simulateRun = (bot: Bot, seed: number, config: RunConfig): RunState => {
@@ -33,26 +29,14 @@ const mean = (values: number[]): number =>
 
 const rate = (matching: number, total: number): number => (total === 0 ? 0 : matching / total);
 
-const summarizeByShiftLength = (shifts: ShiftResult[]): ShiftLengthSummary[] => {
-  const sequenceCounts = Array.from(new Set(shifts.map(shift => shift.sequenceCount))).sort((a, b) => a - b);
+const sum = <T>(items: T[], pick: (item: T) => number): number =>
+  items.reduce((total, item) => total + pick(item), 0);
 
-  return sequenceCounts.map(sequenceCount => {
-    const matching = shifts.filter(shift => shift.sequenceCount === sequenceCount);
-    return {
-      sequenceCount,
-      shiftsPlayed: matching.length,
-      quotaMetRate: rate(matching.filter(shift => shift.wasQuotaMet).length, matching.length),
-      meanBankedYield: mean(matching.map(shift => shift.bankedYield)),
-    };
-  });
-};
-
-export const summarizeRuns = (botName: string, runs: RunState[], shiftCount: number): SimulationSummary => {
+export const summarizeRuns = (botName: string, runs: RunState[], config: RunConfig): SimulationSummary => {
   const shifts = runs.flatMap(run => run.completedShifts);
-  const sequencesPlayed = shifts.reduce((total, shift) => total + shift.sequenceCount, 0);
-  const totalYield = shifts.reduce((total, shift) => total + shift.bankedYield, 0);
+  const sequencesPlayed = shifts.length * config.sequencesPerShift;
 
-  const quotaMetRateByShift = Array.from({ length: shiftCount }, (_, shiftIndex) => {
+  const quotaMetRateByShift = config.quotaCurve.map((_, shiftIndex) => {
     const reached = shifts.filter(shift => shift.shiftIndex === shiftIndex);
     return rate(reached.filter(shift => shift.wasQuotaMet).length, reached.length);
   });
@@ -62,12 +46,13 @@ export const summarizeRuns = (botName: string, runs: RunState[], shiftCount: num
     runCount: runs.length,
     winRate: rate(runs.filter(run => run.status === 'WON').length, runs.length),
     meanStrikes: mean(runs.map(run => run.strikes)),
-    meanYieldPerSequence: rate(totalYield, sequencesPlayed),
+    meanYieldPerSequence: rate(sum(shifts, shift => shift.bankedYield), sequencesPlayed),
+    favorRate: rate(sum(shifts, shift => shift.favorsEarned), sequencesPlayed * config.starsPerSequence),
+    belowTargetRate: rate(sum(shifts, shift => shift.sequencesBelowTarget), sequencesPlayed),
     quotaMetRateByShift,
-    byShiftLength: summarizeByShiftLength(shifts),
   };
 };
 
 /** Plays the same seeds with one bot, so bots can be compared like for like. */
 export const simulateRuns = (bot: Bot, seeds: number[], config: RunConfig): SimulationSummary =>
-  summarizeRuns(bot.name, seeds.map(seed => simulateRun(bot, seed, config)), config.quotaCurve.length);
+  summarizeRuns(bot.name, seeds.map(seed => simulateRun(bot, seed, config)), config);

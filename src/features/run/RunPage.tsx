@@ -4,12 +4,13 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { GamePhase, ToolInstance } from '../../../types';
 import { InventoryGrid, LayoutType } from '../../components/InventoryGrid';
 import ToolBelt from '../../components/ToolBelt';
-import { calculateBatchScore, CardItem, findRunTool, isToolReady } from '../../engine';
+import { canAffordTool, CardItem, findRunTool, getSequenceOutcome } from '../../engine';
 import { useGridPresentation } from '../../hooks/useGridPresentation';
-import { CooldownList } from './CooldownList';
+import { describeFavor, describeManagerReaction } from './managerReactions';
 import { createRunSession, runSessionReducer } from './runSessionReducer';
 import { RunStatusPanel } from './RunStatusPanel';
 import { RunSummary } from './RunSummary';
+import { ToolCostList } from './ToolCostList';
 
 const SEED_PARAM = 'seed';
 const MAX_RANDOM_SEED = 2 ** 31;
@@ -50,6 +51,8 @@ export function RunPage() {
   const isInspected = inspectedCards !== null;
   const displayedCards = inspectedCards ?? run.sequence.cards;
   const selectedTool = selectedToolId === null ? undefined : findRunTool(run, selectedToolId);
+  const outcome = getSequenceOutcome(run);
+  const favorLine = describeFavor(outcome);
 
   const cards = useGridPresentation({
     sequence: displayedCards,
@@ -61,7 +64,7 @@ export function RunPage() {
   });
 
   const beltTools: ToolInstance[] = useMemo(
-    () => run.tools.map(tool => ({ instanceId: tool.id, type: tool.type, used: !isToolReady(run, tool.id) })),
+    () => run.tools.map(tool => ({ instanceId: tool.id, type: tool.type, used: !canAffordTool(run, tool.id) })),
     [run]
   );
 
@@ -83,7 +86,7 @@ export function RunPage() {
         <RunSummary run={run} onNewRun={() => dispatch({ type: 'RUN_RESTARTED', seed: createRandomSeed() })} />
       ) : (
         <main className="w-full max-w-4xl flex flex-col items-center gap-6">
-          <RunStatusPanel run={run} projectedYield={calculateBatchScore(run.sequence.cards)} />
+          <RunStatusPanel run={run} outcome={outcome} />
 
           <InventoryGrid cards={cards} layout={layout} onItemClick={handleCardClick} disabled={isInspected} />
 
@@ -99,7 +102,16 @@ export function RunPage() {
             }}
           />
 
-          <CooldownList run={run} />
+          <ToolCostList run={run} />
+
+          {isInspected && (
+            <div className="flex flex-col items-center gap-1 font-mono text-sm text-center">
+              <p className={outcome.isBelowTarget ? 'text-red-400/90' : 'text-stone-300'}>
+                {describeManagerReaction(outcome, run.shift.index + run.shift.sequenceIndex)}
+              </p>
+              {favorLine !== null && <p className="text-sky-300/90">{favorLine}</p>}
+            </div>
+          )}
 
           <button
             type="button"

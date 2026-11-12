@@ -4,17 +4,22 @@ import { RunConfig, ToolType } from '../../engine';
 import { createRunSession, RunSessionAction, runSessionReducer, RunSessionState } from './runSessionReducer';
 
 const SEED = 7;
+const PROMOTE_COST = 1;
+const SWAP_COST = 2;
+const UNAFFORDABLE_STARTING_ENERGY = PROMOTE_COST;
 
 const CONFIG: RunConfig = {
   quotaCurve: [0, 0],
-  minSequencesPerShift: 3,
-  maxSequencesPerShift: 3,
+  sequencesPerShift: 3,
   sequenceLength: 6,
   strikeLimit: 3,
   loadout: [
-    { type: 'promote', cooldown: 1 },
-    { type: 'swap', cooldown: 1 },
+    { type: 'promote', baseCost: PROMOTE_COST },
+    { type: 'swap', baseCost: SWAP_COST },
   ],
+  energy: { capacity: 10, startingEnergy: 5, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: 1 },
+  starsPerSequence: 1,
+  starPoolSize: 3,
 };
 
 const startSession = (): RunSessionState => createRunSession(SEED, CONFIG);
@@ -89,11 +94,13 @@ describe('runSessionReducer', () => {
     expect(play(start, clickCard(2))).toEqual(start);
   });
 
-  it('does not select a tool already used in this sequence', () => {
-    const start = startSession();
-    const used = play(start, clickTool(start, 'promote'), clickCard(2));
+  it('does not select a tool that cannot be afforded', () => {
+    const start = createRunSession(SEED, {
+      ...CONFIG,
+      energy: { ...CONFIG.energy, startingEnergy: UNAFFORDABLE_STARTING_ENERGY },
+    });
 
-    const after = play(used, clickTool(used, 'promote'));
+    const after = play(start, clickTool(start, 'swap'));
 
     expect(after.selectedToolId).toBeNull();
   });

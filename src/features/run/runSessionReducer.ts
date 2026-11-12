@@ -1,12 +1,12 @@
 import {
   applyRunMove,
+  canAffordTool,
   canApplyRunMove,
   CardItem,
   createRun,
   DEFAULT_RUN_CONFIG,
   findRunTool,
   gradeLevel,
-  isToolReady,
   RunConfig,
   RunState,
   submitSequence,
@@ -49,7 +49,7 @@ const isPlanning = (state: RunSessionState): boolean =>
 
 const selectTool = (state: RunSessionState, toolId: string): RunSessionState => {
   if (state.selectedToolId === toolId) return clearSelection(state);
-  if (!isToolReady(state.run, toolId)) return state;
+  if (!canAffordTool(state.run, toolId)) return state;
   return { ...state, selectedToolId: toolId, selectedIndex: null };
 };
 
