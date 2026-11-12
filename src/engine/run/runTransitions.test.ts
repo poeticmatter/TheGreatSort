@@ -14,10 +14,10 @@ const buildConfig = (overrides: Partial<RunConfig> = {}): RunConfig => ({
   sequenceLength: 8,
   strikeLimit: 2,
   loadout: [
-    { type: 'swap', baseCost: 1 },
-    { type: 'promote', baseCost: 1 },
+    { type: 'swap', cost: 1 },
+    { type: 'promote', cost: 1 },
   ],
-  energy: { capacity: 20, startingEnergy: 10, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: 1 },
+  energy: { capacity: 20, startingEnergy: 10, perSequence: 2, shiftBonus: 4 },
   starsPerSequence: 1,
   starPoolSize: 3,
   ...overrides,

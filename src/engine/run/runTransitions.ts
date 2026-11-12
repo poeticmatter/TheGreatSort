@@ -1,8 +1,8 @@
 import { applyMove } from '../moves.ts';
 import { TOOL_REGISTRY } from '../tools/index.ts';
 import { generateRunSequence } from './runGeneration.ts';
-import { canAffordTool, findRunTool, getSequenceOutcome, getToolCost } from './runSelectors.ts';
-import { RunConfig, RunState, RunTool, SequenceState, ShiftResult, ShiftState } from './runTypes.ts';
+import { canAffordTool, findRunTool, getSequenceOutcome } from './runSelectors.ts';
+import { RunConfig, RunState, SequenceState, ShiftResult, ShiftState } from './runTypes.ts';
 
 const validateConfig = (config: RunConfig): void => {
   if (config.quotaCurve.length === 0) {
@@ -40,11 +40,6 @@ const startShift = (config: RunConfig, shiftIndex: number, carriedDeficit: numbe
   favorsEarned: 0,
 });
 
-const resetToolCosts = (tools: RunTool[]): RunTool[] => tools.map(tool => ({ ...tool, usesThisShift: 0 }));
-
-const adjustToolUses = (tools: RunTool[], toolId: string, change: number): RunTool[] =>
-  tools.map(tool => (tool.id === toolId ? { ...tool, usesThisShift: tool.usesThisShift + change } : tool));
-
 const restoreEnergy = (run: RunState, amount: number): number =>
   Math.min(run.config.energy.capacity, run.energy + amount);
 
@@ -61,7 +56,6 @@ export const createRun = (seed: number, config: RunConfig): RunState => {
     tools: config.loadout.map((entry, position) => ({
       ...entry,
       id: `tool-${position}-${entry.type}`,
-      usesThisShift: 0,
     })),
     shift: startShift(config, 0, 0),
     sequence: loadSequence(seed, config, 0, 0),
@@ -85,12 +79,11 @@ export const applyRunMove = (run: RunState, toolId: string, index: number, selec
   }
 
   const { newList } = applyMove(run.sequence.cards, tool.type, index, selection);
-  const energySpent = getToolCost(run, tool);
+  const energySpent = tool.cost;
 
   return {
     ...run,
     energy: run.energy - energySpent,
-    tools: adjustToolUses(run.tools, toolId, 1),
     sequence: {
       cards: newList,
       moves: [...run.sequence.moves, { toolId, index, selection, energySpent, cardsBefore: run.sequence.cards }],
@@ -98,7 +91,7 @@ export const applyRunMove = (run: RunState, toolId: string, index: number, selec
   };
 };
 
-/** Takes back the latest move of the current sequence, refunding its energy and its cost increase. */
+/** Takes back the latest move of the current sequence, refunding its energy. */
 export const undoRunMove = (run: RunState): RunState => {
   const lastMove = run.sequence.moves.at(-1);
   if (run.status !== 'IN_PROGRESS' || lastMove === undefined) return run;
@@ -106,7 +99,6 @@ export const undoRunMove = (run: RunState): RunState => {
   return {
     ...run,
     energy: run.energy + lastMove.energySpent,
-    tools: adjustToolUses(run.tools, lastMove.toolId, -1),
     sequence: {
       cards: lastMove.cardsBefore,
       moves: run.sequence.moves.slice(0, -1),
@@ -136,7 +128,6 @@ const closeShift = (run: RunState, shift: ShiftState): RunState => {
   return {
     ...closedRun,
     energy: restoreEnergy(run, run.config.energy.shiftBonus),
-    tools: resetToolCosts(run.tools),
     shift: startShift(run.config, nextShiftIndex, carriedDeficit),
     sequence: loadSequence(run.seed, run.config, nextShiftIndex, 0),
   };

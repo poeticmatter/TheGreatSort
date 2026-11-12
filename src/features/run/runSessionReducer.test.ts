@@ -14,10 +14,10 @@ const CONFIG: RunConfig = {
   sequenceLength: 6,
   strikeLimit: 3,
   loadout: [
-    { type: 'promote', baseCost: PROMOTE_COST },
-    { type: 'swap', baseCost: SWAP_COST },
+    { type: 'promote', cost: PROMOTE_COST },
+    { type: 'swap', cost: SWAP_COST },
   ],
-  energy: { capacity: 10, startingEnergy: 5, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: 1 },
+  energy: { capacity: 10, startingEnergy: 5, perSequence: 2, shiftBonus: 4 },
   starsPerSequence: 1,
   starPoolSize: 3,
 };

@@ -10,7 +10,7 @@ import {
 } from '../src/engine/simulation/index.ts';
 
 const DEFAULT_RUN_COUNT = 1000;
-const PATIENT_MIN_GAIN_PER_ENERGY = 5;
+const PATIENT_MIN_GAIN_PER_ENERGY = 2;
 // How much yield a bot will trade for one favor: 0 ignores stars altogether.
 const FAVOR_VALUES = [0, 5, 15];
 
@@ -24,6 +24,7 @@ const printSummary = (summary: SimulationSummary): void => {
     console.log(`  stars kept           ${formatPercent(summary.favorRate)}`);
     console.log(`  sequences below par  ${formatPercent(summary.belowTargetRate)}`);
     console.log(`  quota met by shift   ${summary.quotaMetRateByShift.map(formatPercent).join('  ')}`);
+    console.log(`  tool uses/sequence   ${summary.meanToolUsesPerSequence.toFixed(2)}  (${summary.toolUseShares.map((share, uses) => `${uses}: ${formatPercent(share)}`).join('  ')})`);
 };
 
 const parseRunCount = (argument: string | undefined): number => {

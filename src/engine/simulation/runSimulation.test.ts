@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RunConfig } from '../run/runTypes.ts';
 import { Bot, createGreedyBot, createOracleBot, createPatientBot, idleBot } from './bots.ts';
-import { simulateRun, simulateRuns } from './runSimulation.ts';
+import { playRun, simulateRun, simulateRuns } from './runSimulation.ts';
 
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const UNREACHABLE_QUOTA = 100000;
@@ -23,11 +23,11 @@ const buildConfig = (quotaCurve: number[], overrides: Partial<RunConfig> = {}): 
   sequenceLength: 6,
   strikeLimit: 2,
   loadout: [
-    { type: 'swap', baseCost: 1 },
-    { type: 'promote', baseCost: 2 },
-    { type: 'hop', baseCost: 3 },
+    { type: 'swap', cost: 1 },
+    { type: 'promote', cost: 2 },
+    { type: 'hop', cost: 3 },
   ],
-  energy: { capacity: 12, startingEnergy: 6, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: 1 },
+  energy: { capacity: 12, startingEnergy: 6, perSequence: 2, shiftBonus: 4 },
   starsPerSequence: 1,
   starPoolSize: 3,
   ...overrides,
@@ -118,5 +118,39 @@ describe('simulateRuns', () => {
 
   it('reports a below-target rate of one when quotas are unreachable', () => {
     expect(simulateRuns(idleBot, SEEDS, IMPOSSIBLE_CONFIG).belowTargetRate).toBe(1);
+  });
+});
+
+describe('playRun', () => {
+  it('records one tool-use entry per sequence played', () => {
+    const { run, toolUsesBySequence } = playRun(greedyBot, SEEDS[0], EASY_CONFIG);
+
+    expect(toolUsesBySequence).toHaveLength(run.config.quotaCurve.length * run.config.sequencesPerShift);
+  });
+
+  it('records zero tool uses for every sequence the idle bot plays', () => {
+    const { toolUsesBySequence } = playRun(idleBot, SEEDS[0], EASY_CONFIG);
+
+    expect(toolUsesBySequence.every(uses => uses === 0)).toBe(true);
+  });
+
+  it('ends in the same state as simulateRun', () => {
+    expect(playRun(greedyBot, SEEDS[0], MODERATE_CONFIG).run).toEqual(simulateRun(greedyBot, SEEDS[0], MODERATE_CONFIG));
+  });
+});
+
+describe('tool use statistics', () => {
+  it('reports a mean of zero tool uses per sequence for the idle bot', () => {
+    expect(simulateRuns(idleBot, SEEDS, EASY_CONFIG).meanToolUsesPerSequence).toBe(0);
+  });
+
+  it('reports every idle sequence as having zero tool uses', () => {
+    expect(simulateRuns(idleBot, SEEDS, EASY_CONFIG).toolUseShares).toEqual([1]);
+  });
+
+  it.each(ALL_BOTS)('makes the tool use shares sum to one for the $name bot', bot => {
+    const { toolUseShares } = simulateRuns(bot, SEEDS, MODERATE_CONFIG);
+
+    expect(toolUseShares.reduce((total, share) => total + share, 0)).toBeCloseTo(1);
   });
 });

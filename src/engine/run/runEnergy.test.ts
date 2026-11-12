@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { TOOL_REGISTRY } from '../tools/index.ts';
-import { canAffordTool, getToolCost } from './runSelectors.ts';
+import { canAffordTool } from './runSelectors.ts';
 import { applyRunMove, canApplyRunMove, createRun, submitSequence, undoRunMove } from './runTransitions.ts';
 import { EnergyConfig, RunConfig, RunState } from './runTypes.ts';
 
@@ -10,7 +10,7 @@ const CAPACITY = 20;
 const STARTING_ENERGY = 10;
 const PER_SEQUENCE = 2;
 const SHIFT_BONUS = 4;
-const SURCHARGE = 1;
+const REPEAT_USE_COUNT = 2;
 const SWAP_COST = 3;
 const PROMOTE_COST = 2;
 const SWAP_POSITION = 0;
@@ -21,7 +21,6 @@ const buildEnergy = (overrides: Partial<EnergyConfig> = {}): EnergyConfig => ({
   startingEnergy: STARTING_ENERGY,
   perSequence: PER_SEQUENCE,
   shiftBonus: SHIFT_BONUS,
-  repeatUseSurcharge: SURCHARGE,
   ...overrides,
 });
 
@@ -31,8 +30,8 @@ const buildConfig = (overrides: Partial<RunConfig> = {}, energy: Partial<EnergyC
   sequenceLength: 8,
   strikeLimit: 2,
   loadout: [
-    { type: 'swap', baseCost: SWAP_COST },
-    { type: 'promote', baseCost: PROMOTE_COST },
+    { type: 'swap', cost: SWAP_COST },
+    { type: 'promote', cost: PROMOTE_COST },
   ],
   energy: buildEnergy(energy),
   starsPerSequence: 1,
@@ -46,20 +45,9 @@ const useTool = (run: RunState, position: number): RunState => {
   return applyRunMove(run, tool.id, move.index, move.targetIndex);
 };
 
-const costOf = (run: RunState, position: number): number => getToolCost(run, run.tools[position]);
-
-const submitTimes = (run: RunState, count: number): RunState =>
-  Array.from({ length: count }).reduce<RunState>(current => submitSequence(current), run);
-
 describe('createRun energy', () => {
   it('starts with the configured starting energy', () => {
     expect(createRun(SEED, buildConfig()).energy).toBe(STARTING_ENERGY);
-  });
-
-  it('starts every tool with no uses this shift', () => {
-    const run = createRun(SEED, buildConfig());
-
-    expect(run.tools.map(tool => tool.usesThisShift)).toEqual([0, 0]);
   });
 
   it('accepts starting energy equal to the capacity', () => {
@@ -80,7 +68,7 @@ describe('createRun energy', () => {
 });
 
 describe('paying for moves', () => {
-  it('charges the base cost of a tool used for the first time', () => {
+  it('charges the tool cost', () => {
     const run = useTool(createRun(SEED, buildConfig()), SWAP_POSITION);
 
     expect(run.energy).toBe(STARTING_ENERGY - SWAP_COST);
@@ -92,28 +80,16 @@ describe('paying for moves', () => {
     expect(run.sequence.moves[0].energySpent).toBe(SWAP_COST);
   });
 
-  it('charges a surcharge for each earlier use of the tool this shift', () => {
+  it('charges the flat cost again on every repeat use of a tool', () => {
     const run = useTool(useTool(createRun(SEED, buildConfig()), SWAP_POSITION), SWAP_POSITION);
 
-    expect(run.energy).toBe(STARTING_ENERGY - SWAP_COST - (SWAP_COST + SURCHARGE));
+    expect(run.energy).toBe(STARTING_ENERGY - REPEAT_USE_COUNT * SWAP_COST);
   });
 
   it('allows the same tool to be used repeatedly in one sequence', () => {
     const run = useTool(useTool(createRun(SEED, buildConfig()), SWAP_POSITION), SWAP_POSITION);
 
-    expect(run.tools[SWAP_POSITION].usesThisShift).toBe(2);
-  });
-
-  it('does not raise the cost of a tool that was not used', () => {
-    const run = useTool(createRun(SEED, buildConfig()), SWAP_POSITION);
-
-    expect(costOf(run, PROMOTE_POSITION)).toBe(PROMOTE_COST);
-  });
-
-  it('keeps the raised cost into the next sequence of the shift', () => {
-    const run = submitSequence(useTool(createRun(SEED, buildConfig()), SWAP_POSITION));
-
-    expect(costOf(run, SWAP_POSITION)).toBe(SWAP_COST + SURCHARGE);
+    expect(run.sequence.moves).toHaveLength(REPEAT_USE_COUNT);
   });
 
   it('throws when the tool costs more than the energy left', () => {
@@ -122,7 +98,7 @@ describe('paying for moves', () => {
     expect(() => useTool(run, SWAP_POSITION)).toThrow();
   });
 
-  it('throws when earlier uses have raised the cost beyond the energy left', () => {
+  it('throws when a repeat use costs more than the energy left', () => {
     const run = useTool(createRun(SEED, buildConfig({}, { startingEnergy: SWAP_COST })), SWAP_POSITION);
 
     expect(() => useTool(run, SWAP_POSITION)).toThrow();
@@ -156,12 +132,6 @@ describe('undoing a paid move', () => {
     const run = undoRunMove(useTool(createRun(SEED, buildConfig()), SWAP_POSITION));
 
     expect(run.energy).toBe(STARTING_ENERGY);
-  });
-
-  it('takes back the cost increase of the move', () => {
-    const run = undoRunMove(useTool(createRun(SEED, buildConfig()), SWAP_POSITION));
-
-    expect(costOf(run, SWAP_POSITION)).toBe(SWAP_COST);
   });
 
   it('refunds only the latest of several uses of a tool', () => {
@@ -207,17 +177,5 @@ describe('restoring energy on submit', () => {
     const run = submitSequence(createRun(SEED, buildConfig({ sequencesPerShift: 1 }, { startingEnergy: CAPACITY })));
 
     expect(run.energy).toBe(CAPACITY);
-  });
-
-  it('resets the cost of every tool when a new shift starts', () => {
-    const used = useTool(createRun(SEED, buildConfig({ sequencesPerShift: 1 })), SWAP_POSITION);
-
-    expect(costOf(submitSequence(used), SWAP_POSITION)).toBe(SWAP_COST);
-  });
-
-  it('keeps the raised cost until the shift ends', () => {
-    const used = useTool(createRun(SEED, buildConfig({ sequencesPerShift: 3 })), SWAP_POSITION);
-
-    expect(costOf(submitTimes(used, 2), SWAP_POSITION)).toBe(SWAP_COST + SURCHARGE);
   });
 });

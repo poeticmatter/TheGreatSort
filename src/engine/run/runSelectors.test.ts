@@ -8,7 +8,6 @@ import {
   getSequenceOutcome,
   getSequenceTarget,
   getShiftCount,
-  getToolCost,
 } from './runSelectors.ts';
 import { applyRunMove, createRun, submitSequence } from './runTransitions.ts';
 import { EnergyConfig, RunConfig, RunState } from './runTypes.ts';
@@ -16,8 +15,6 @@ import { EnergyConfig, RunConfig, RunState } from './runTypes.ts';
 const SEED = 99;
 const SWAP_COST = 3;
 const PROMOTE_COST = 2;
-const SURCHARGE = 1;
-const USES_BEFORE = 2;
 const SWAP_POSITION = 0;
 const PROMOTE_POSITION = 1;
 
@@ -27,10 +24,10 @@ const buildConfig = (overrides: Partial<RunConfig> = {}, energy: Partial<EnergyC
   sequenceLength: 8,
   strikeLimit: 2,
   loadout: [
-    { type: 'swap', baseCost: SWAP_COST },
-    { type: 'promote', baseCost: PROMOTE_COST },
+    { type: 'swap', cost: SWAP_COST },
+    { type: 'promote', cost: PROMOTE_COST },
   ],
-  energy: { capacity: 20, startingEnergy: 10, perSequence: 2, shiftBonus: 4, repeatUseSurcharge: SURCHARGE, ...energy },
+  energy: { capacity: 20, startingEnergy: 10, perSequence: 2, shiftBonus: 4, ...energy },
   starsPerSequence: 1,
   starPoolSize: 3,
   ...overrides,
@@ -66,26 +63,6 @@ describe('findRunTool', () => {
 
   it('returns undefined for an unknown id', () => {
     expect(findRunTool(createRun(SEED, buildConfig()), 'missing-tool')).toBeUndefined();
-  });
-});
-
-describe('getToolCost', () => {
-  it('is the base cost of a tool not yet used this shift', () => {
-    const run = createRun(SEED, buildConfig());
-
-    expect(getToolCost(run, run.tools[SWAP_POSITION])).toBe(SWAP_COST);
-  });
-
-  it('rises by the surcharge for each use this shift', () => {
-    const run = useTool(useTool(createRun(SEED, buildConfig()), SWAP_POSITION), SWAP_POSITION);
-
-    expect(getToolCost(run, run.tools[SWAP_POSITION])).toBe(SWAP_COST + USES_BEFORE * SURCHARGE);
-  });
-
-  it('stays at base cost for a tool that was not used', () => {
-    const run = useTool(createRun(SEED, buildConfig()), SWAP_POSITION);
-
-    expect(getToolCost(run, run.tools[PROMOTE_POSITION])).toBe(PROMOTE_COST);
   });
 });
 

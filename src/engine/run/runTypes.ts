@@ -2,8 +2,8 @@ import { CardItem, ToolType } from '../types.ts';
 
 export interface ToolLoadoutEntry {
   type: ToolType;
-  /** Energy the tool's first use of a shift costs. */
-  baseCost: number;
+  /** Energy each use of the tool costs. */
+  cost: number;
 }
 
 export interface EnergyConfig {
@@ -14,8 +14,6 @@ export interface EnergyConfig {
   perSequence: number;
   /** Energy restored when a new shift starts, on top of whatever was left over. */
   shiftBonus: number;
-  /** Added to a tool's cost for each time it has already been used this shift. */
-  repeatUseSurcharge: number;
 }
 
 export interface RunConfig {
@@ -35,8 +33,6 @@ export interface RunConfig {
 
 export interface RunTool extends ToolLoadoutEntry {
   id: string;
-  /** Uses so far in the current shift. Each one makes the next use dearer until the shift ends. */
-  usesThisShift: number;
 }
 
 export interface RunMove {

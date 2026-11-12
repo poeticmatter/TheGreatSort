@@ -22,30 +22,22 @@ interface PricedStep extends PlannedStep {
   cumulativeCost: number;
 }
 
-/** Uses of each tool so far this shift, in the order of `run.tools`. */
-type ToolUses = number[];
-
 const describeFavorValue = (favorValue: number): string => (favorValue === 0 ? '' : `, favors worth ${favorValue}`);
 
 const applySteps = (run: RunState, steps: PlannedStep[]): RunState =>
   steps.reduce((current, step) => applyRunMove(current, step.toolId, step.index, step.selection), run);
 
-const readToolUses = (run: RunState): ToolUses => run.tools.map(tool => tool.usesThisShift);
+const findToolCost = (run: RunState, toolId: string): number => {
+  const tool = run.tools.find(candidate => candidate.id === toolId);
+  if (tool === undefined) throw new Error(`Planned step uses tool "${toolId}", which is not in the run's loadout.`);
+  return tool.cost;
+};
 
-const countUsesAfter = (run: RunState, usesBefore: ToolUses, steps: PlannedStep[]): ToolUses =>
-  run.tools.map(
-    (tool, toolPosition) => usesBefore[toolPosition] + steps.filter(step => step.toolId === tool.id).length
-  );
-
-/** Prices a plan in order, since every use of a tool makes its next use dearer. */
-const priceSteps = (run: RunState, steps: PlannedStep[], usesBefore: ToolUses): PricedStep[] => {
-  const { repeatUseSurcharge } = run.config.energy;
+const priceSteps = (run: RunState, steps: PlannedStep[]): PricedStep[] => {
   let cumulativeCost = 0;
 
-  return steps.map((step, stepPosition) => {
-    const toolPosition = run.tools.findIndex(tool => tool.id === step.toolId);
-    const uses = countUsesAfter(run, usesBefore, steps.slice(0, stepPosition))[toolPosition];
-    const cost = run.tools[toolPosition].baseCost + uses * repeatUseSurcharge;
+  return steps.map(step => {
+    const cost = findToolCost(run, step.toolId);
     cumulativeCost += cost;
     return { ...step, cost, cumulativeCost };
   });
@@ -57,7 +49,7 @@ const takeStepsWhile = (steps: PricedStep[], isWanted: (step: PricedStep) => boo
 };
 
 const planCurrentSequence = (run: RunState, favorValue: number): PricedStep[] =>
-  priceSteps(run, planSequence(run.sequence.cards, run.tools, favorValue), readToolUses(run));
+  priceSteps(run, planSequence(run.sequence.cards, run.tools, favorValue));
 
 /** Never uses a tool. Its results are the floor every other bot is measured against. */
 export const idleBot: Bot = {
@@ -177,14 +169,14 @@ const scheduleRun = (run: RunState, upcoming: UpcomingSequence[]): Schedule => {
   const { capacity, perSequence, shiftBonus } = run.config.energy;
   const scheduleCache = new Map<string, Schedule>();
 
-  const scheduleFrom = (position: number, energy: number, uses: ToolUses): Schedule => {
+  const scheduleFrom = (position: number, energy: number): Schedule => {
     if (position >= upcoming.length) return EMPTY_SCHEDULE;
 
-    const key = `${position}|${energy}|${uses.join(',')}`;
+    const key = `${position}|${energy}`;
     const cached = scheduleCache.get(key);
     if (cached !== undefined) return cached;
 
-    const pricedSteps = priceSteps(run, upcoming[position].steps, uses);
+    const pricedSteps = priceSteps(run, upcoming[position].steps);
     const startsNewShift = upcoming[position + 1]?.shiftIndex !== upcoming[position].shiftIndex;
     let best = EMPTY_SCHEDULE;
     let gain = 0;
@@ -197,8 +189,7 @@ const scheduleRun = (run: RunState, upcoming: UpcomingSequence[]): Schedule => {
 
       const rest = scheduleFrom(
         position + 1,
-        Math.min(capacity, energy - energySpent + (startsNewShift ? shiftBonus : perSequence)),
-        startsNewShift ? uses.map(() => 0) : countUsesAfter(run, uses, pricedSteps.slice(0, stepCount))
+        Math.min(capacity, energy - energySpent + (startsNewShift ? shiftBonus : perSequence))
       );
       // Strictly greater, so ties go to the schedule that spends less now.
       if (stepCount === 0 || gain + rest.totalGain > best.totalGain) {
@@ -210,7 +201,7 @@ const scheduleRun = (run: RunState, upcoming: UpcomingSequence[]): Schedule => {
     return best;
   };
 
-  return scheduleFrom(0, run.energy, readToolUses(run));
+  return scheduleFrom(0, run.energy);
 };
 
 /**

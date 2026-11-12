@@ -5,6 +5,8 @@ import { ISortable, ToolType } from '../types.ts';
 export interface PlannableTool {
   id: string;
   type: ToolType;
+  /** Energy per use. The planner prefers the use with the most gain per point of energy. */
+  cost: number;
 }
 
 export interface PlannedStep {
@@ -17,6 +19,7 @@ export interface PlannedStep {
 
 interface Candidate extends PlannedStep {
   cards: ISortable[];
+  gainPerEnergy: number;
 }
 
 /**
@@ -36,8 +39,9 @@ const findBestSingleStep = (cards: ISortable[], tools: PlannableTool[], favorVal
     for (const move of strategy.generateMoves(cards)) {
       const nextCards = strategy.apply(cards, move.index, move.targetIndex);
       const gain = valueSequence(nextCards, favorValue) - currentValue;
-      if (gain > 0 && (best === null || gain > best.gain)) {
-        best = { toolId: tool.id, index: move.index, selection: move.targetIndex, gain, cards: nextCards };
+      const gainPerEnergy = gain / tool.cost;
+      if (gain > 0 && (best === null || gainPerEnergy > best.gainPerEnergy)) {
+        best = { toolId: tool.id, index: move.index, selection: move.targetIndex, gain, gainPerEnergy, cards: nextCards };
       }
     }
   }
@@ -49,11 +53,11 @@ const MAX_PLANNED_STEPS = 6;
 
 /**
  * Plans a sequence by hill climbing: repeatedly take the single tool use with
- * the largest immediate gain until none helps. The result is an ordered wish
- * list that ignores energy; each bot decides how far down it to pay.
+ * the most immediate gain per point of energy until none helps. The result is
+ * an ordered wish list that ignores the energy available; each bot decides
+ * how far down it to pay.
  *
- * It misses combinations whose first move gains nothing and does not weigh a
- * tool's cost when choosing between tools. Both are acceptable here: every
+ * It misses combinations whose first move gains nothing. That is acceptable here: every
  * bot shares this planner, so differences between bots come from *when* they
  * spend energy and *what* they value, not from how well they use a tool. It
  * is also far cheaper than the exhaustive solver, which matters across
@@ -67,9 +71,8 @@ export const planSequence = (cards: ISortable[], tools: PlannableTool[], favorVa
     const best = findBestSingleStep(currentCards, tools, favorValue);
     if (best === null) break;
 
-    const { cards: nextCards, ...step } = best;
-    steps.push(step);
-    currentCards = nextCards;
+    steps.push({ toolId: best.toolId, index: best.index, selection: best.selection, gain: best.gain });
+    currentCards = best.cards;
   }
   return steps;
 };
